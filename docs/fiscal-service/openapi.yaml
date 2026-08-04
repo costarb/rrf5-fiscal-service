@@ -1,0 +1,311 @@
+openapi: 3.1.0
+info:
+  title: RRF5 Fiscal Service API
+  version: 0.1.0-draft
+  description: Contrato inicial; regras e códigos fiscais concretos seguem artefatos oficiais versionados.
+servers:
+  - url: https://sandbox.fiscal.rrf5.example/api/v1
+security:
+  - oauth2: [fiscal.documents.read]
+paths:
+  /documents/prevalidate:
+    post:
+      operationId: prevalidateDocument
+      security: [{ oauth2: [fiscal.documents.create] }]
+      parameters: [{ $ref: "#/components/parameters/CorrelationId" }]
+      requestBody: { $ref: "#/components/requestBodies/DocumentRequest" }
+      responses:
+        "200":
+          {
+            description: Validado,
+            response sem consumo definitivo de número,
+            content:
+              {
+                application/json: { schema: { $ref: "#/components/schemas/PrevalidationResult" } },
+              },
+          }
+        "422": { $ref: "#/components/responses/DomainError" }
+  /documents:
+    post:
+      operationId: createDocument
+      security: [{ oauth2: [fiscal.documents.create] }]
+      parameters:
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+        - { $ref: "#/components/parameters/CorrelationId" }
+      requestBody: { $ref: "#/components/requestBodies/DocumentRequest" }
+      responses:
+        "200":
+          {
+            description: Resultado síncrono,
+            content:
+              { application/json: { schema: { $ref: "#/components/schemas/FiscalDocument" } } },
+          }
+        "202":
+          {
+            description: Aceito para processamento,
+            headers: { Location: { schema: { type: string } } },
+            content:
+              { application/json: { schema: { $ref: "#/components/schemas/FiscalDocument" } } },
+          }
+        "409": { $ref: "#/components/responses/DomainError" }
+        "422": { $ref: "#/components/responses/DomainError" }
+  /documents/async:
+    post:
+      operationId: createDocumentAsync
+      security: [{ oauth2: [fiscal.documents.create] }]
+      parameters:
+        [
+          { $ref: "#/components/parameters/IdempotencyKey" },
+          { $ref: "#/components/parameters/CorrelationId" },
+        ]
+      requestBody: { $ref: "#/components/requestBodies/DocumentRequest" }
+      responses:
+        "202":
+          {
+            description: Aceito,
+            content:
+              { application/json: { schema: { $ref: "#/components/schemas/FiscalDocument" } } },
+          }
+  /documents/{documentId}:
+    get:
+      operationId: getDocument
+      parameters: [{ $ref: "#/components/parameters/DocumentId" }]
+      responses:
+        "200":
+          {
+            description: Documento,
+            content:
+              { application/json: { schema: { $ref: "#/components/schemas/FiscalDocument" } } },
+          }
+        "404": { $ref: "#/components/responses/DomainError" }
+  /documents/{documentId}/cancel:
+    post:
+      operationId: cancelDocument
+      security: [{ oauth2: [fiscal.documents.cancel] }]
+      parameters:
+        [
+          { $ref: "#/components/parameters/DocumentId" },
+          { $ref: "#/components/parameters/IdempotencyKey" },
+        ]
+      requestBody:
+        required: true
+        content:
+          {
+            application/json:
+              {
+                schema:
+                  {
+                    type: object,
+                    required: [reason],
+                    properties: { reason: { type: string, minLength: 15, maxLength: 255 } },
+                  },
+              },
+          }
+      responses:
+        "200":
+          {
+            description: Evento processado,
+            content:
+              { application/json: { schema: { $ref: "#/components/schemas/FiscalDocument" } } },
+          }
+        "409": { $ref: "#/components/responses/DomainError" }
+        "422": { $ref: "#/components/responses/DomainError" }
+  /documents/{documentId}/xml:
+    get:
+      operationId: downloadXml
+      security: [{ oauth2: [fiscal.documents.download] }]
+      parameters: [{ $ref: "#/components/parameters/DocumentId" }]
+      responses:
+        {
+          "200":
+            {
+              description: XML autorizado/processado,
+              content: { application/xml: { schema: { type: string } } },
+            },
+        }
+  /documents/{documentId}/danfe:
+    get:
+      operationId: downloadDanfe
+      security: [{ oauth2: [fiscal.documents.download] }]
+      parameters: [{ $ref: "#/components/parameters/DocumentId" }]
+      responses:
+        {
+          "200":
+            {
+              description: DANFE,
+              content: { application/pdf: { schema: { type: string, contentEncoding: base64 } } },
+            },
+        }
+  /number-voids:
+    post:
+      operationId: voidNumberRange
+      security: [{ oauth2: [fiscal.documents.cancel] }]
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          { application/json: { schema: { $ref: "#/components/schemas/NumberVoidRequest" } } }
+      responses:
+        "200": { description: Inutilização processada }
+        "422": { $ref: "#/components/responses/DomainError" }
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth/token
+          scopes:
+            fiscal.documents.create: Emitir e pré-validar
+            fiscal.documents.read: Consultar
+            fiscal.documents.cancel: Cancelar/inutilizar
+            fiscal.documents.correct: Corrigir/reprocessar operações elegíveis
+            fiscal.documents.download: Baixar XML/DANFE
+  parameters:
+    IdempotencyKey:
+      {
+        name: Idempotency-Key,
+        in: header,
+        required: true,
+        schema: { type: string, minLength: 16, maxLength: 128 },
+      }
+    CorrelationId:
+      {
+        name: X-Correlation-Id,
+        in: header,
+        required: false,
+        schema: { type: string, maxLength: 128 },
+      }
+    DocumentId: { name: documentId, in: path, required: true, schema: { type: string } }
+  requestBodies:
+    DocumentRequest:
+      required: true
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/CreateDocumentRequest" } } }
+  responses:
+    DomainError:
+      description: Erro de validação, estado, configuração ou resultado fiscal
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  schemas:
+    CreateDocumentRequest:
+      type: object
+      additionalProperties: false
+      required: [externalId, documentType, environment, issuer, items, payments, operation]
+      properties:
+        externalId: { type: string, maxLength: 128 }
+        documentType: { type: string, enum: [NFCE, NFE] }
+        environment: { type: string, enum: [HOMOLOGATION, PRODUCTION] }
+        issuer:
+          {
+            type: object,
+            required: [establishmentId],
+            properties: { establishmentId: { type: string } },
+          }
+        customer:
+          {
+            type: object,
+            properties:
+              { taxId: { type: string }, name: { type: string }, address: { type: object } },
+          }
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/DocumentItem" }
+        payments:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/Payment" }
+        operation:
+          {
+            type: object,
+            required: [channel, presenceIndicator],
+            properties:
+              {
+                channel: { type: string },
+                presenceIndicator: { type: string },
+                intermediaryId: { type: string },
+              },
+          }
+    DocumentItem:
+      type: object
+      required: [description, quantity, unitPrice, totalPrice, fiscalProfileId]
+      properties:
+        productId: { type: string }
+        description: { type: string }
+        quantity: { type: string, pattern: '^\\d+(\\.\\d{1,4})?$' }
+        unitPrice: { type: string, pattern: '^\\d+(\\.\\d{1,10})?$' }
+        totalPrice: { type: string, pattern: '^\\d+(\\.\\d{1,2})?$' }
+        discount: { type: string, pattern: '^\\d+(\\.\\d{1,2})?$' }
+        fiscalProfileId: { type: string }
+    Payment:
+      type: object
+      required: [method, amount]
+      properties:
+        method:
+          {
+            type: string,
+            enum: [CASH, PIX, CREDIT_CARD, DEBIT_CARD, VOUCHER, TRANSFER, STORE_CREDIT, OTHER],
+          }
+        amount: { type: string, pattern: '^\\d+(\\.\\d{1,2})?$' }
+        change: { type: string, pattern: '^\\d+(\\.\\d{1,2})?$' }
+        acquirerTaxId: { type: string }
+        authorizationCode: { type: string }
+        terminalReference: { type: string }
+    FiscalDocument:
+      type: object
+      required: [id, externalId, status, documentType, environment]
+      properties:
+        id: { type: string }
+        externalId: { type: string }
+        status: { type: string }
+        documentType: { type: string, enum: [NFCE, NFE] }
+        environment: { type: string, enum: [HOMOLOGATION, PRODUCTION] }
+        accessKey: { type: [string, "null"] }
+        protocol: { type: [string, "null"] }
+        number: { type: [integer, "null"] }
+        series: { type: [integer, "null"] }
+        issuedAt: { type: [string, "null"], format: date-time }
+        xmlUrl: { type: [string, "null"] }
+        danfeUrl: { type: [string, "null"] }
+        sefaz:
+          {
+            type: [object, "null"],
+            properties: { code: { type: string }, message: { type: string } },
+          }
+    PrevalidationResult:
+      type: object
+      required: [valid, errors, warnings]
+      properties:
+        {
+          valid: { type: boolean },
+          errors: { type: array, items: { type: object } },
+          warnings: { type: array, items: { type: object } },
+        }
+    NumberVoidRequest:
+      type: object
+      required: [establishmentId, environment, documentType, series, startNumber, endNumber, reason]
+      properties:
+        establishmentId: { type: string }
+        environment: { type: string, enum: [HOMOLOGATION, PRODUCTION] }
+        documentType: { type: string, enum: [NFCE, NFE] }
+        series: { type: integer }
+        startNumber: { type: integer }
+        endNumber: { type: integer }
+        reason: { type: string, minLength: 15, maxLength: 255 }
+    Error:
+      type: object
+      required: [error, correlationId]
+      properties:
+        error:
+          {
+            type: object,
+            required: [code, message, retryable],
+            properties:
+              {
+                code: { type: string },
+                message: { type: string },
+                retryable: { type: boolean },
+                details: { type: array, items: { type: object } },
+              },
+          }
+        correlationId: { type: string }
