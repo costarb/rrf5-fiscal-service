@@ -23,9 +23,9 @@
 
 ## Phase 3 — US1 emission feasibility POCs
 
-- [ ] T012 [P] [US1] Scaffold isolated .NET 10 POC in `pocs/dotnet/`
-- [ ] T013 [P] [US1] Scaffold isolated Java 25 POC in `pocs/java/`
-- [ ] T014 [P] [US1] Scaffold TypeScript baseline POC in `pocs/typescript/`
+- [x] T012 [P] [US1] Scaffold isolated .NET 10 POC in `pocs/dotnet/`
+- [x] T013 [P] [US1] Scaffold isolated Java 25 POC in `pocs/java/`
+- [x] T014 [P] [US1] Scaffold TypeScript baseline POC in `pocs/typescript/`
 - [ ] T015 [US1] Create one normalized sanitized NFC-e fixture in `pocs/fixtures/nfce-minimal.json`
 - [ ] T016 [US1] Implement XML generation and official XSD validation in each candidate under `pocs/*/`
 - [ ] T017 [US1] Implement A1 loading, XML signing, signature verification and mutation-negative test in `pocs/*/`
