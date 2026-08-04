@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rrf5.example/schemas/fiscal-case.schema.json",
+  "title": "Sanitized fiscal test case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["caseId", "title", "documentType", "environment", "sanitized", "inputRef", "normativeRefs", "expected"],
+  "properties": {
+    "caseId": { "type": "string", "pattern": "^[A-Z0-9_-]+$" },
+    "title": { "type": "string", "minLength": 1 },
+    "documentType": { "enum": ["NFE_55", "NFCE_65"] },
+    "environment": { "enum": ["MOCK", "HOMOLOGATION"] },
+    "sanitized": { "const": true },
+    "inputRef": { "type": "string", "minLength": 1 },
+    "taxRuleVersion": { "type": ["string", "null"] },
+    "schemaVersion": { "type": "string", "minLength": 1 },
+    "normativeRefs": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["xsdValid", "signatureValid"],
+      "properties": {
+        "xsdValid": { "type": "boolean" },
+        "signatureValid": { "type": "boolean" },
+        "authorizationStatus": { "type": ["string", "null"] },
+        "rejectionCode": { "type": ["string", "null"] }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}
+

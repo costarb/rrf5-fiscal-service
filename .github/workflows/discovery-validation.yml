@@ -1,0 +1,38 @@
+name: Discovery validation
+
+on:
+  push:
+    branches: [main, develop, "feature/**"]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan repository secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate JSON and task identifiers
+        shell: python
+        run: |
+          import json, pathlib, re
+          for path in pathlib.Path('.').rglob('*.json'):
+              json.loads(path.read_text(encoding='utf-8'))
+          tasks = pathlib.Path('specs/001-fiscal-service/tasks.md').read_text(encoding='utf-8')
+          ids = re.findall(r'^- \[[ xX]\] (T\d{3})\b', tasks, re.MULTILINE)
+          assert ids, 'No task identifiers found'
+          assert len(ids) == len(set(ids)), 'Duplicate task identifiers found'
+      - name: Validate OpenAPI YAML syntax
+        run: ruby -e "require 'yaml'; YAML.safe_load(File.read('specs/001-fiscal-service/contracts/openapi.yaml'), aliases: true)"
+

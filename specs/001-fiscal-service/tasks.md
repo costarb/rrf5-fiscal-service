@@ -6,19 +6,19 @@
 
 ## Phase 1 — Discovery setup
 
-- [ ] T001 Create discovery evidence directories in `pocs/evidence/`, `pocs/fixtures/` and `pocs/scorecards/`
-- [ ] T002 Add repository security and secret-handling policy in `SECURITY.md`
-- [ ] T003 Add contribution and Git Flow conventions in `CONTRIBUTING.md`
-- [ ] T004 [P] Add official-reference catalog schema in `regulatory/catalog.schema.json`
-- [ ] T005 [P] Add sanitized fiscal-case schema in `tests/FiscalCases/fiscal-case.schema.json`
-- [ ] T006 Add CI secret scan and documentation validation workflow in `.github/workflows/discovery-validation.yml`
+- [x] T001 Create discovery evidence directories in `pocs/evidence/`, `pocs/fixtures/` and `pocs/scorecards/`
+- [x] T002 Add repository security and secret-handling policy in `SECURITY.md`
+- [x] T003 Add contribution and Git Flow conventions in `CONTRIBUTING.md`
+- [x] T004 [P] Add official-reference catalog schema in `regulatory/catalog.schema.json`
+- [x] T005 [P] Add sanitized fiscal-case schema in `tests/FiscalCases/fiscal-case.schema.json`
+- [x] T006 Add CI secret scan and documentation validation workflow in `.github/workflows/discovery-validation.yml`
 
 ## Phase 2 — Normative baseline
 
-- [ ] T007 Populate dated NF-e/NFC-e official reference catalog in `regulatory/catalog.json`
+- [x] T007 Populate dated NF-e/NFC-e official reference catalog in `regulatory/catalog.json`
 - [ ] T008 Record hashes and applicability for MOC, XSD, NT 2025.002, DANFE/QR and contingency in `pocs/evidence/normative-baseline.md`
-- [ ] T009 [P] Document SEFAZ-SP homologation services and capabilities in `pocs/evidence/sefaz-sp-endpoints.md`
-- [ ] T010 [P] Create RTC impact checklist in `pocs/evidence/rtc-impact.md`
+- [x] T009 [P] Document SEFAZ-SP homologation services and capabilities in `pocs/evidence/sefaz-sp-endpoints.md`
+- [x] T010 [P] Create RTC impact checklist in `pocs/evidence/rtc-impact.md`
 - [ ] T011 Review normative baseline with responsible fiscal stakeholder and record approval in `pocs/evidence/fiscal-review.md`
 
 ## Phase 3 — US1 emission feasibility POCs
