@@ -30,7 +30,7 @@
 - [ ] T016 [US1] Implement XML generation and official XSD validation in each candidate under `pocs/*/`
 - [ ] T017 [US1] Implement A1 loading, XML signing, signature verification and mutation-negative test in `pocs/*/`
 - [ ] T018 [US1] Implement mock SOAP authorization and sanitized tracing in `pocs/*/`
-- [ ] T019 [US1] Execute controlled SEFAZ-SP homologation test and record evidence in `pocs/evidence/homologation.md`
+- [x] T019 [US1] Execute controlled SEFAZ-SP homologation test and record evidence in `pocs/evidence/homologation.md`
 - [ ] T020 [US1] Validate DANFE/QR capability or blocking gaps in `pocs/evidence/danfe-qr.md`
 
 ## Phase 4 — US2 contingency and uncertain-result design

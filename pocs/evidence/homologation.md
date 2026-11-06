@@ -1,6 +1,6 @@
 # SEFAZ-SP homologation evidence
 
-**Status:** IN PROGRESS — T019 remains open  
+**Status:** PASS (.NET) — first NFC-e authorized by the POC on 2026-11-06; Java/TypeScript not attempted  
 **Scope:** NFC-e model 65, São Paulo, homologation only (`tpAmb=2`)
 
 ## Run 1 — service status probe (PASS)
@@ -159,9 +159,37 @@ Additional checks:
 - The POC never resends by itself. `NOT_FOUND` is reported; any resend still
   requires the explicit policy described in `pocs/shared/uncertain-result`.
 
-## Remaining for T019
+## Run 3 — authorization by the POC (PASS, 2026-11-06)
 
-Authorization of one sanitized NFC-e in homologation requires the approved
-synthetic fiscal profile (T016), XMLDSig with the A1 (T017), the SOAP mock and
-uncertain-result handling (T018) and a homologation CSC supplied outside the
-repository.
+**Executed:** 2026-11-06 by the operator, Windows development host, same script
+and secret handling as run 2. The document was regenerated with the current
+`dhEmi` (series 2, `nNF` 1, never sent before), signed, validated locally and
+only then transmitted.
+
+| Step | Result |
+| --- | --- |
+| `generate` | 2472 bytes, SHA-256 `8438aae8…` |
+| `sign` | A1 `62cb2f73…`; verified; mutation rejected |
+| `validate` (010e v1.02) | valid |
+| `authorize` → `NFeAutorizacao4`, `indSinc=1` | HTTP 200 in 1655 ms |
+| `retEnviNFe` | `tpAmb` 2, `verAplic` `SP_NFCE_PL_009_V400`, `cStat` **104** Lote processado |
+| `protNFe/infProt` | `cStat` **100** Autorizado o uso da NF-e, `nProt` `13526000025378307` |
+| Protocol `chNFe` / `digVal` match the signed document | yes / yes |
+| `nfeProc` written outside the repository; raw answer saved beside it | yes |
+
+What this proves for the .NET candidate, end to end:
+
+- deterministic generation from fixture + profile + issuer file (T016);
+- XMLDSig with the issuer A1 accepted by the authorizer (T017, .NET);
+- SOAP 1.2 over mutual TLS to `NFeAutorizacao4` with sanitized trace (T018/T019);
+- the frozen 010e v1.02 package plus the profile (no `IBSCBS`, CRT 1,
+  CSOSN 102, PIS/COFINS CST 49) is accepted by SEFAZ-SP homologation;
+- QR Code v3 online format (`p=<chave>|3|2`) **without CSC** accepted in the
+  authorization. Whether the CSC is still needed for any other flow
+  (contingency/offline QR) remains a T020 question.
+
+Not proven: DANFE rendering, Linux/container execution, consultation of a real
+protocol (`consult` with the real A1), Java and TypeScript authorization,
+production behaviour. The fiscal profile is still pending accountant ratification.
+
+Numbering: series 2 `nNF` 1 is consumed. The next real test uses `nNF` 2.
