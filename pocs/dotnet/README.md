@@ -64,5 +64,18 @@ dotnet run -- authorize --xml <signed.xml> --mock authorized|schema-rejected|tim
 dotnet run -- consult --xml <signed.xml> --mock found|not-found
 ```
 
-Pending gates: real homologation authorization (T019), Linux container,
+### Linux container
+
+```powershell
+docker build -t rrf5-fiscal-poc-dotnet:discovery pocs/dotnet
+docker run --rm -v <private dir>:/work:ro -v <repo>\sefaz\trust:/trust:ro `
+  -e RRF5_A1_PASSWORD -e RRF5_SEFAZ_TRUST_ROOT=/trust/icp-brasil-v10.crt `
+  rrf5-fiscal-poc-dotnet:discovery status --pfx /work/a1.pfx
+```
+
+Linux images do not trust the ICP-Brasil root that anchors SEFAZ-SP;
+`RRF5_SEFAZ_TRUST_ROOT` pins it (SHA-256 checked in code). Evidence:
+`pocs/evidence/container-poc.md`.
+
+Pending gates: Linux container run with the real A1,
 DANFE/QR and dependency review.

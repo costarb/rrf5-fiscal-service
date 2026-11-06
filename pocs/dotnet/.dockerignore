@@ -1,0 +1,6 @@
+bin
+obj
+*.pfx
+*.p12
+*.xml
+*.zip

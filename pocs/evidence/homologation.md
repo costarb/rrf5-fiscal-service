@@ -188,8 +188,16 @@ What this proves for the .NET candidate, end to end:
   authorization. Whether the CSC is still needed for any other flow
   (contingency/offline QR) remains a T020 question.
 
-Not proven: DANFE rendering, Linux/container execution, consultation of a real
-protocol (`consult` with the real A1), Java and TypeScript authorization,
+### Run 4 — real consultation of the authorized document (PASS, 2026-11-06)
+
+`consult --xml <signed nNF 1> --pfx <A1>` → `NFeConsultaProtocolo4`: HTTP 200 in
+2130 ms, `retConsSitNFe` `cStat` 100, protocol `nProt` `13526000025378307`
+(same as run 3), key and `digVal` match → `AUTHORIZED`. The consult-before-retry
+path works against the real authorizer. The "not found" answer (217) is still
+only simulated.
+
+Not proven: DANFE rendering, Linux/container execution, a real "not found"
+consultation, Java and TypeScript authorization,
 production behaviour. The fiscal profile is still pending accountant ratification.
 
 Numbering: series 2 `nNF` 1 is consumed. The next real test uses `nNF` 2.

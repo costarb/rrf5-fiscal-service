@@ -157,15 +157,17 @@ static async Task RunStatusAsync(IReadOnlyDictionary<string, string> options)
             $"<consStatServ versao=\"4.00\" xmlns=\"{NfeNamespace}\"><tpAmb>2</tpAmb><cUF>35</cUF><xServ>STATUS</xServ></consStatServ>" +
             "</nfeDadosMsg></soap12:Body></soap12:Envelope>";
 
-        using var handler = new SocketsHttpHandler
+        SocketsHttpHandler handler;
+        try
         {
-            ConnectTimeout = TimeSpan.FromSeconds(10),
-            SslOptions =
-            {
-                ClientCertificates = new X509CertificateCollection { certificate },
-                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
-            }
-        };
+            handler = SefazClient.CreateHandler(certificate);
+        }
+        catch (Exception exception) when (exception is InvalidDataException or CryptographicException)
+        {
+            Fail("TRUST_ROOT_REFUSED", exception.Message);
+            return;
+        }
+        using var disposableHandler = handler;
         using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
         using var content = new StringContent(envelope, Encoding.UTF8, "application/soap+xml");
 
@@ -375,6 +377,15 @@ static async Task RunSefazDocumentCommandAsync(string command, IReadOnlyDictiona
     else
     {
         certificate = LoadA1(options);
+        try
+        {
+            // Fail before transmission if the configured trust root is wrong.
+            using (SefazClient.CreateHandler(certificate)) { }
+        }
+        catch (Exception exception) when (exception is InvalidDataException or CryptographicException)
+        {
+            Fail("TRUST_ROOT_REFUSED", exception.Message);
+        }
         transport = SefazClient.HttpTransport(certificate);
     }
 
@@ -683,8 +694,19 @@ static X509Certificate2 LoadA1(IReadOnlyDictionary<string, string> options)
     return certificate;
 }
 
-static string RepositoryRoot() =>
-    Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..")) + Path.DirectorySeparatorChar;
+// Nearest ancestor of the binary that contains .git. In a container image there
+// is no working tree, so a sentinel that no real path starts with is returned.
+static string RepositoryRoot()
+{
+    for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+    {
+        if (Directory.Exists(Path.Combine(directory.FullName, ".git")))
+        {
+            return directory.FullName.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        }
+    }
+    return "\0no-repository\0";
+}
 
 static Dictionary<string, string> ParseOptions(string[] values)
 {

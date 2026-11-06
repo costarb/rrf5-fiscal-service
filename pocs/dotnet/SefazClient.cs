@@ -91,17 +91,47 @@ static partial class SefazClient
         return ns;
     }
 
-    public static Transport HttpTransport(X509Certificate2 certificate) => async (endpoint, envelope) =>
+    // ICP-Brasil root v10 ("Autoridade Certificadora Raiz Brasileira v10"), which
+    // anchors the SEFAZ-SP server chain. SHA-256 cross-checked on 2026-11-06 between
+    // the ITI download and the Windows trusted root store.
+    const string IcpBrasilV10Sha256 = "6e0bff069a26994c15de2c4888cc54af84882e5495b7fbf66be9ccffec7489f6";
+    public const string TrustRootVariable = "RRF5_SEFAZ_TRUST_ROOT";
+
+    // Without RRF5_SEFAZ_TRUST_ROOT the OS trust store is used (Windows ships the
+    // ICP-Brasil roots; Debian/Ubuntu images do not). With it, server validation
+    // stays on but trusts only the pinned ICP-Brasil v10 root. Validation is never
+    // disabled.
+    public static SocketsHttpHandler CreateHandler(X509Certificate2 clientCertificate)
     {
-        using var handler = new SocketsHttpHandler
+        var handler = new SocketsHttpHandler
         {
             ConnectTimeout = TimeSpan.FromSeconds(10),
             SslOptions =
             {
-                ClientCertificates = new X509CertificateCollection { certificate },
+                ClientCertificates = new X509CertificateCollection { clientCertificate },
                 EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
             }
         };
+
+        var rootPath = Environment.GetEnvironmentVariable(TrustRootVariable);
+        if (!string.IsNullOrEmpty(rootPath))
+        {
+            var root = X509CertificateLoader.LoadCertificateFromFile(rootPath);
+            var fingerprint = root.GetCertHashString(HashAlgorithmName.SHA256).ToLowerInvariant();
+            if (fingerprint != IcpBrasilV10Sha256)
+            {
+                throw new InvalidDataException($"{TrustRootVariable} is not the pinned ICP-Brasil v10 root (got {fingerprint}).");
+            }
+            var policy = new X509ChainPolicy { TrustMode = X509ChainTrustMode.CustomRootTrust };
+            policy.CustomTrustStore.Add(root);
+            handler.SslOptions.CertificateChainPolicy = policy;
+        }
+        return handler;
+    }
+
+    public static Transport HttpTransport(X509Certificate2 certificate) => async (endpoint, envelope) =>
+    {
+        using var handler = CreateHandler(certificate);
         using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
         using var content = new StringContent(envelope, Encoding.UTF8);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/soap+xml") { CharSet = "utf-8" };
