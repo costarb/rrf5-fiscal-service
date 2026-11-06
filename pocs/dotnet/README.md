@@ -64,6 +64,18 @@ dotnet run -- authorize --xml <signed.xml> --mock authorized|schema-rejected|tim
 dotnet run -- consult --xml <signed.xml> --mock found|not-found
 ```
 
+`danfe` (T020) renders the DANFE NFC-e of an authorized `nfeProc` as print-ready
+HTML (QR as millimetre SVG, level M, UTF-8; QRCoder). It refuses documents
+without an authorization protocol, contingency emissions and a `qrCode` that
+does not match the key, environment or configured UF URL. `danfe-selftest`
+checks the manual's QR vectors, v3 online/offline layouts and the DANFE
+divisions on synthetic data. Evidence: `pocs/evidence/danfe-qr.md`.
+
+```powershell
+dotnet run -- danfe --xml <outside repository>\proc.xml --qr-url https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode --out <outside repository>\danfe.html [--paper-mm 80] [--qr-mm 30] [--layout side|center]
+dotnet run -- danfe-selftest --case ../fixtures/nfce-minimal.json --profile ../fixtures/fiscal-profile-sp-sn-own-production-v1.json --issuer ../fixtures/issuer-synthetic.json
+```
+
 ### Linux container
 
 ```powershell

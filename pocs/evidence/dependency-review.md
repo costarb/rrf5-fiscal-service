@@ -7,7 +7,7 @@
 
 | POC | Runtime dependencies | Development/build dependencies | Audit result |
 | --- | --- | --- | --- |
-| .NET 10 | `System.Security.Cryptography.Xml` 10.0.14 (Microsoft, MIT) for XMLDSig; transitive `System.Security.Cryptography.Pkcs` 10.0.14 | SDK 10.0.302 | `dotnet list package --include-transitive` on 2026-10-28: those two packages only; `dotnet list package --vulnerable`: none |
+| .NET 10 | `System.Security.Cryptography.Xml` 10.0.14 (Microsoft, MIT) for XMLDSig; transitive `System.Security.Cryptography.Pkcs` 10.0.14; `QRCoder` 1.8.1 (MIT) for the DANFE QR (T020), which pulls `System.Drawing.Common` 6.0.0 and `Microsoft.Win32.SystemEvents` 6.0.0 transitively | SDK 10.0.302 | `dotnet list package --include-transitive --vulnerable` on 2026-11-06: no vulnerable package |
 | Java 25 target | `jackson-databind` 2.22.4 (+ `jackson-core` 2.22.4, `jackson-annotations` 2.22) for JSON input only; XML, XSD, XMLDSig and StAX from the JDK | Maven 3.9.16, `maven-dependency-plugin` 3.11.0 (copies runtime jars to `target/lib`) | Built and run on Temurin 25.0.5 on 2026-11-06; dependency vulnerability scan not yet run |
 | TypeScript XML | `xmllint-wasm` 5.2.0 | TypeScript 5.9.3, tsx 4.23.5 and type/build packages | npm audit previously passed with zero findings |
 | Contract sample | `openapi-fetch` 0.17.0 plus helper | openapi-typescript 7.13.0, Redocly CLI 1.34.19, TypeScript 5.9.2 | runtime audit: zero; full dev audit: 12 moderate, 2 high |
@@ -27,6 +27,7 @@ from this table.
 | `openapi-fetch` 0.17.0 | npm/GitHub project uses MIT ecosystem licensing | Current release used by generated client; runtime audit clean | Accept for contract POC/client candidate |
 | Redocly CLI 1.34.19 | development CLI; license metadata retained in lock tree | Maintained v2 exists, but requires Node 22 | Restricted to trusted local contract lint in CI; not runtime-approved; migrate to v2/Node 22 |
 | Jackson 2.22.4 | Apache-2.0 (FasterXML) | Latest 2.x release on Maven Central on 2026-11-06 (metadata updated 2026-10-17); a 3.x line (3.2.4, `tools.jackson` packages, renamed APIs) also exists | Accept for POC JSON parsing; a Java foundation must choose 2.x vs 3.x deliberately |
+| `QRCoder` 1.8.1 | nuspec license expression MIT; repository `github.com/Shane32/QRCoder` | The most-used .NET QR encoder (about 94 M NuGet downloads); `QRCoder.Core` is an unrelated third-party fork and was not used | Accept for the DANFE POC. Only `QRCodeGenerator` is used, never the drawing API. Its net6.0 dependency group pulls `System.Drawing.Common` 6.0.0: Windows-only, out of support and unused here. The foundation must remove it from the shipped tree (a QRCoder release without it, an explicit trimmed reference, or another encoder) before release |
 | Unimake.DFe | GitHub repository declares MIT and NFe/NFCe support | Repository shows continuing activity and extensive history | Candidate only; not installed or approved until T016–T020 prove current XSD, XMLDSig/A1, SOAP, RTC, DANFE/QR and SP behavior |
 | Java_NFe | GitHub declares MIT; Maven coordinates documented by project | v4.1.1 and recent history claim PL.010d/RTC work and tests | Candidate only; current official package frozen here is 010e v1.02, so coverage must be demonstrated rather than inferred |
 
@@ -72,7 +73,9 @@ An npm lockfile alone is not the final multi-runtime SBOM.
 - no fiscal library has been added to .NET or Java, so its complete transitive
   license/vulnerability tree cannot yet be reviewed;
 - Java 25/Maven are unavailable on this host;
-- DANFE/QR dependencies are not selected;
+- DANFE/QR: QRCoder 1.8.1 selected for the POC (T020). The transitive
+  `System.Drawing.Common` 6.0.0 still has to be removed from the foundation
+  tree;
 - no container image exists for OS-package SBOM and layer scanning;
 - Unimake.DFe and Java_NFe must be tested against the frozen official artifacts,
   not approved from metadata;

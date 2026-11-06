@@ -1,6 +1,6 @@
 # ADR-012 — Stack tecnológica
 
-**Status:** Recomendada — .NET 10 LTS (06/11/2026); aceite pendente de T020, ADR-011 e T030
+**Status:** Recomendada — .NET 10 LTS (06/11/2026); T020 (DANFE/QR) concluída em 06/11/2026; aceite pendente de ADR-011 e T030
 
 ## Decisão preliminar
 

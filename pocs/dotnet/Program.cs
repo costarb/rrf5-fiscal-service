@@ -28,7 +28,9 @@ if (args.Length == 0)
             "generate --case <fixture.json> --profile <profile.json> --issuer <issuer.json> --nnf <n> --cnf <8 digits> --dhemi <ISO-8601> [--out <path>]",
             "check-key --key <44-digit access key>",
             "authorize --xml <signed NFe> (--pfx <a1.pfx> --out <nfeProc outside the repository> | --mock authorized|schema-rejected|timeout) [--idlote <n>]",
-            "consult --xml <signed NFe> (--pfx <a1.pfx> [--out <nfeProc>] | --mock found|not-found)"
+            "consult --xml <signed NFe> (--pfx <a1.pfx> [--out <nfeProc>] | --mock found|not-found)",
+            "danfe --xml <authorized nfeProc outside the repository> --qr-url <UF QR consultation URL> --out <html outside the repository> [--paper-mm 80] [--qr-mm 30] [--layout side|center] [--tz America/Sao_Paulo]",
+            "danfe-selftest --case <fixture.json> --profile <profile.json> --issuer <synthetic issuer.json> [--out <html>]"
         }
     });
     return;
@@ -43,6 +45,18 @@ if (string.Equals(args[0], "authorize", StringComparison.Ordinal) || string.Equa
 if (string.Equals(args[0], "bench", StringComparison.Ordinal))
 {
     RunBench(ParseOptions(args[1..]));
+    return;
+}
+
+if (string.Equals(args[0], "danfe", StringComparison.Ordinal))
+{
+    RunDanfe(ParseOptions(args[1..]));
+    return;
+}
+
+if (string.Equals(args[0], "danfe-selftest", StringComparison.Ordinal))
+{
+    RunDanfeSelfTest(ParseOptions(args[1..]));
     return;
 }
 
@@ -84,7 +98,7 @@ if (string.Equals(args[0], "sign", StringComparison.Ordinal))
 
 if (!string.Equals(args[0], "validate", StringComparison.Ordinal))
 {
-    Fail("UNKNOWN_COMMAND", "Supported commands: validate, status, sign, verify, generate, check-key, authorize, consult.");
+    Fail("UNKNOWN_COMMAND", "Supported commands: validate, status, sign, verify, generate, check-key, authorize, consult, danfe, danfe-selftest.");
 }
 
 var options = ParseOptions(args[1..]);
@@ -550,6 +564,195 @@ static void RunBench(IReadOnlyDictionary<string, string> options)
         allocatedKbPerOp = Math.Round(allocated / 1024.0 / iterations, 1),
         peakWorkingSetMb = Math.Round(Process.GetCurrentProcess().PeakWorkingSet64 / 1048576.0, 1)
     });
+}
+
+// T020: renders the DANFE NFC-e (HTML) of an authorized nfeProc. A real issuer's
+// document and DANFE carry taxpayer data: both must live outside the repository,
+// and the output does not print the access key.
+static void RunDanfe(IReadOnlyDictionary<string, string> options)
+{
+    var xmlPath = RequiredFile(options, "--xml");
+    if (!options.TryGetValue("--qr-url", out var qrUrl) || !qrUrl.StartsWith("https://", StringComparison.Ordinal))
+    {
+        Fail("QR_URL_REQUIRED", "--qr-url must be the UF's https QR consultation URL for the document's environment (Portal NFC-e, 'URL por UF').");
+    }
+    if (!options.TryGetValue("--out", out var outPath))
+    {
+        Fail("OUT_REQUIRED", "--out <html> is required; the DANFE is not printed to the console.");
+    }
+
+    var document = LoadXmlSafely(xmlPath);
+    var synthetic = document.GetElementsByTagName("CNPJ", NfceGenerator.NfeNamespace) is { Count: > 0 } c && c[0]!.InnerText == "00000000000000";
+    var fullOut = Path.GetFullPath(outPath!);
+    if (!synthetic && (xmlPath.StartsWith(RepositoryRoot(), StringComparison.OrdinalIgnoreCase) || fullOut.StartsWith(RepositoryRoot(), StringComparison.OrdinalIgnoreCase)))
+    {
+        Fail("INSIDE_REPOSITORY", "A real issuer's nfeProc and DANFE carry taxpayer data; keep both outside the repository.");
+    }
+
+    Danfe.Result result;
+    try
+    {
+        result = Danfe.Render(document, DanfeOptions(options, qrUrl!));
+    }
+    catch (Exception exception) when (exception is InvalidDataException or FormatException or TimeZoneNotFoundException)
+    {
+        Fail("DANFE_REFUSED", exception.Message);
+        return;
+    }
+    File.WriteAllText(fullOut, result.Html, new UTF8Encoding(false));
+    WriteResult(new
+    {
+        candidate = "dotnet",
+        command = "danfe",
+        syntheticIssuer = synthetic,
+        accessKey = synthetic ? result.AccessKey : null,
+        homologation = result.Homologation,
+        divisions = result.Divisions,
+        qr = new { version = result.QrVersion, modules = result.QrModules, moduleMm = result.QrModuleMm, marginMmPerSide = result.QrQuietMm, isoQuietZone = result.QrIsoQuietZone, totalMm = result.QrTotalMm, ecc = "M" },
+        htmlSha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(result.Html))).ToLowerInvariant()
+    });
+}
+
+static Danfe.Options DanfeOptions(IReadOnlyDictionary<string, string> options, string qrUrl)
+{
+    double Number(string name, string fallback) => double.Parse(options.GetValueOrDefault(name, fallback), System.Globalization.CultureInfo.InvariantCulture);
+    var layout = options.GetValueOrDefault("--layout", "side");
+    if (layout is not ("side" or "center"))
+    {
+        Fail("INVALID_ARGUMENTS", "--layout must be side or center (§3.1.5).");
+    }
+    return new Danfe.Options(Number("--paper-mm", "80"), Number("--qr-mm", "30"), layout == "center",
+        TimeZoneInfo.FindSystemTimeZoneById(options.GetValueOrDefault("--tz", "America/Sao_Paulo")), qrUrl);
+}
+
+static XmlDocument LoadXmlSafely(string path)
+{
+    var document = new XmlDocument { XmlResolver = null };
+    using var reader = XmlReader.Create(path, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
+    document.Load(reader);
+    return document;
+}
+
+// T020 self-test, synthetic only: manual QR vectors (v2 online/offline hash),
+// v3 online/offline layout and RSA-SHA1 signature with a throwaway key, and a
+// DANFE rendered from a synthetic nfeProc plus fail-closed negative cases.
+static void RunDanfeSelfTest(IReadOnlyDictionary<string, string> options)
+{
+    JsonElement Load(string name) => JsonDocument.Parse(File.ReadAllBytes(RequiredFile(options, name))).RootElement;
+    var issuer = Load("--issuer");
+    if (issuer.GetProperty("cnpj").GetString() != "00000000000000")
+    {
+        Fail("SYNTHETIC_ONLY", "danfe-selftest accepts only the synthetic issuer.");
+    }
+    var qrUrl = issuer.GetProperty("qrCodeUrl").GetString()!;
+    var checks = new List<object>();
+    var failed = 0;
+    void Check(string name, bool ok, string? detail = null)
+    {
+        checks.Add(new { name, ok, detail });
+        if (!ok) failed++;
+    }
+    void Refused(string name, Action action)
+    {
+        try { action(); Check(name, false, "accepted"); }
+        catch (Exception exception) when (exception is InvalidDataException or ArgumentException) { Check(name, true, exception.Message); }
+    }
+
+    // Manual §4.3.6.1 / §4.3.6.2 vectors (hypothetical CSC printed in the manual).
+    const string ManualCsc = "SEU-CODIGO-CSC-CONTRIBUINTE-36-CARACTERES";
+    Check("v2 online hash = manual §4.3.6.1",
+        NfceQrCode.V2OnlineHash("28170800156225000131650110000151341562040824", "1", "000001", ManualCsc) == "DC6AE2C2B9A992BE59679AC365E29922DE6B7511");
+    Check("v2 offline digVal hex = manual §4.3.6.2",
+        NfceQrCode.V2OfflineDigestHex("yzGYhUx1/XYYzksWB+fPR3Qc50c=") == "797a4759685578312f5859597a6b7357422b6650523351633530633d");
+    Check("v2 offline hash = manual §4.3.6.2",
+        NfceQrCode.V2OfflineHash("28170800156225000131650110000151349562040824", "1", "02", "60.90", "yzGYhUx1/XYYzksWB+fPR3Qc50c=", "1", ManualCsc) == "4615A93BB0D7C4E780F8D30EE77EDD5BA55C7D66");
+
+    using var rsa = RSA.Create(2048);
+    var request = new CertificateRequest("CN=RRF5 POC THROWAWAY - NOT AN A1", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+    using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(1));
+
+    // Synthetic document -> throwaway signature -> synthetic protocol -> DANFE.
+    var generated = NfceGenerator.Generate(Load("--case"), Load("--profile"), issuer, 1, "12345678", new DateTimeOffset(2026, 11, 6, 12, 0, 0, TimeSpan.FromHours(-3)));
+    var key = generated.AccessKey;
+    Check("v3 online qrCode in generated XML (§4.4.1)", generated.Xml.Contains($"<qrCode>{NfceQrCode.V3Online(qrUrl, key, "2")}</qrCode>", StringComparison.Ordinal));
+
+    var offlineText = NfceQrCode.V3OfflineSignedText(key, "2", 6, "10.00", null, null);
+    Check("v3 offline: unidentified recipient keeps only separators (§4.4.2)", offlineText == $"{key}|3|2|06|10.00||");
+    var offlineUrl = NfceQrCode.V3Offline(qrUrl, offlineText, rsa);
+    var signature = Convert.FromBase64String(offlineUrl[(offlineUrl.LastIndexOf('|') + 1)..]);
+    Check("v3 offline: RSA-SHA1 signature verifies with the signing certificate, no CSC (§4.4.2)",
+        certificate.GetRSAPublicKey()!.VerifyData(Encoding.UTF8.GetBytes(offlineText), signature, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1));
+    Check("v3 offline: parser recognizes 8-parameter layout", NfceQrCode.Parse(offlineUrl, qrUrl) is { Version: 3, Offline: true });
+    Check("v3 offline: CPF recipient", NfceQrCode.V3OfflineSignedText(key, "2", 6, "10.00", "2", "00000000191") == $"{key}|3|2|06|10.00|2|00000000191");
+    Refused("v3 offline: vNF with comma refused", () => NfceQrCode.V3OfflineSignedText(key, "2", 6, "10,00", null, null));
+
+    var signed = BenchSigner.Sign(generated.Xml, certificate, rsa);
+    var nfe = signed[signed.IndexOf("<NFe", StringComparison.Ordinal)..];
+    var digest = System.Text.RegularExpressions.Regex.Match(nfe, "<DigestValue>([^<]+)</DigestValue>").Groups[1].Value;
+    string Proc(string body, string cStat = "100", string chNFe = "") =>
+        $"<?xml version=\"1.0\" encoding=\"UTF-8\"?><nfeProc xmlns=\"{NfceGenerator.NfeNamespace}\" versao=\"4.00\">{body}" +
+        $"<protNFe versao=\"4.00\"><infProt><tpAmb>2</tpAmb><verAplic>SELFTEST</verAplic><chNFe>{(chNFe == "" ? key : chNFe)}</chNFe>" +
+        $"<dhRecbto>2026-11-06T15:00:01Z</dhRecbto><nProt>135000000000000</nProt><digVal>{digest}</digVal><cStat>{cStat}</cStat><xMotivo>SELFTEST</xMotivo></infProt></protNFe></nfeProc>";
+    XmlDocument Doc(string xml) { var d = new XmlDocument { XmlResolver = null }; d.LoadXml(xml); return d; }
+    var zone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+    Danfe.Options Opts(double paper = 80, double qr = 30, bool center = false, string? url = null) => new(paper, qr, center, zone, url ?? qrUrl);
+
+    var result = Danfe.Render(Doc(Proc(nfe)), Opts());
+    var html = result.Html;
+    foreach (var (label, expected) in new[]
+    {
+        ("I: issuer CNPJ mask", "CNPJ: 00.000.000/0000-00"),
+        ("I: fixed title", "Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica"),
+        ("II: item code", "SYNTHETIC-PRODUCT-001"),
+        ("III: total with comma decimal", "<td class=\"r\">10,00</td>"),
+        ("III: payment line", "Dinheiro"),
+        ("IV: consultation text", "Consulte pela Chave de Acesso em"),
+        ("IV: key in 11 blocks", string.Join(' ', Enumerable.Range(0, 11).Select(i => key.Substring(i * 4, 4)))),
+        ("VI: unidentified consumer", "CONSUMIDOR NÃO IDENTIFICADO"),
+        ("VII: number/series/emission local time", "NFC-e nº 000000001 Série 001 06/11/2026 12:00:00"),
+        ("VII: authorization UTC converted to local", "06/11/2026 12:00:01"),
+        ("VIII: homologation notice", "EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO – SEM VALOR FISCAL")
+    })
+    {
+        Check(label, html.Contains(expected, StringComparison.Ordinal));
+    }
+    Check("III: 'Valor a Pagar' omitted without additions/discount (§3.1.3)", !html.Contains("Valor a Pagar", StringComparison.Ordinal));
+    Check("V: QR module count matches version (17+4v)", result.QrModules == 17 + 4 * result.QrVersion, $"version {result.QrVersion}, {result.QrModules} modules");
+    Check("V: 30 mm QR = 27 mm content + 10% margin (§3.4)",
+        Math.Abs(result.QrModules * result.QrModuleMm - 27) < 0.05 && Math.Abs(result.QrQuietMm - 1.5) < 0.01,
+        $"{result.QrModules * result.QrModuleMm:0.00} mm content, {result.QrQuietMm} mm margin/side, ISO 4-module quiet zone met: {result.QrIsoQuietZone}");
+    var minimum = Danfe.Render(Doc(Proc(nfe)), Opts(qr: 25));
+    Check("V: 25 mm minimum = 22 mm content + 3 mm margin (§3.4)",
+        Math.Abs(minimum.QrModules * minimum.QrModuleMm - 22) < 0.05 && Math.Abs(minimum.QrQuietMm - 1.5) < 0.01,
+        $"module {minimum.QrModuleMm} mm, ISO 4-module quiet zone met: {minimum.QrIsoQuietZone}");
+    Check("V: centered layout renders (§3.1.5)", Danfe.Render(Doc(Proc(nfe)), Opts(center: true)).Html.Contains("qr centered", StringComparison.Ordinal));
+    Check("money format 1.234.567,89", Danfe.Money(1234567.89m) == "1.234.567,89");
+    Check("quantity format 1,5 / 2", Danfe.Qty("1.5000") == "1,5" && Danfe.Qty("2.0000") == "2");
+
+    Refused("refuse: no protocol (unsigned/unauthorized)", () => Danfe.Render(Doc($"<nfeProc xmlns=\"{NfceGenerator.NfeNamespace}\">{nfe}</nfeProc>"), Opts()));
+    Refused("refuse: protocol not 100", () => Danfe.Render(Doc(Proc(nfe, cStat: "110")), Opts()));
+    Refused("refuse: protocol for another key", () => Danfe.Render(Doc(Proc(nfe, chNFe: new string('9', 44))), Opts()));
+    Refused("refuse: offline contingency tpEmis 9", () => Danfe.Render(Doc(Proc(nfe.Replace("<tpEmis>1</tpEmis>", "<tpEmis>9</tpEmis>", StringComparison.Ordinal))), Opts()));
+    Refused("refuse: qrCode for another key", () => Danfe.Render(Doc(Proc(nfe.Replace($"?p={key}|", $"?p={new string('9', 44)}|", StringComparison.Ordinal))), Opts()));
+    Refused("refuse: qrCode environment differs", () => Danfe.Render(Doc(Proc(nfe.Replace($"{key}|3|2<", $"{key}|3|1<", StringComparison.Ordinal))), Opts()));
+    Refused("refuse: QR URL of another UF/environment", () => Danfe.Render(Doc(Proc(nfe)), Opts(url: "https://example.invalid/qrcode")));
+    Refused("refuse: paper < 56 mm (§3.3)", () => Danfe.Render(Doc(Proc(nfe)), Opts(paper: 50)));
+    Refused("refuse: QR < 25 mm (§3.4)", () => Danfe.Render(Doc(Proc(nfe)), Opts(qr: 24)));
+
+    if (options.TryGetValue("--out", out var outPath))
+    {
+        File.WriteAllText(Path.GetFullPath(outPath), html, new UTF8Encoding(false));
+    }
+    WriteResult(new
+    {
+        candidate = "dotnet",
+        command = "danfe-selftest",
+        passed = checks.Count - failed,
+        failed,
+        qr = new { version = result.QrVersion, modules = result.QrModules, moduleMm = result.QrModuleMm, marginMmPerSide = result.QrQuietMm, isoQuietZone = result.QrIsoQuietZone },
+        checks
+    });
+    Environment.ExitCode = failed == 0 ? 0 : 1;
 }
 
 // T016: deterministic NFC-e generation. A synthetic issuer (all-zero CNPJ) may
