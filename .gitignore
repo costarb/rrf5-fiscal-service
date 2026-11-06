@@ -14,9 +14,11 @@ target/
 node_modules/
 dist/
 coverage/
+*.log
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
 pocs/evidence/private/
-
+# Official SEFAZ/ENCAT schema packages: kept local pending redistribution review
+sefaz/

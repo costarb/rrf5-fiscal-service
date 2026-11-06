@@ -1,0 +1,10 @@
+{
+  "name": "@rrf5/uncertain-result-poc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/demo.mjs",
+    "test": "node --test test"
+  }
+}

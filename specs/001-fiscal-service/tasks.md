@@ -16,7 +16,7 @@
 ## Phase 2 — Normative baseline
 
 - [x] T007 Populate dated NF-e/NFC-e official reference catalog in `regulatory/catalog.json`
-- [ ] T008 Record hashes and applicability for MOC, XSD, NT 2025.002, DANFE/QR and contingency in `pocs/evidence/normative-baseline.md`
+- [x] T008 Record hashes and applicability for MOC, XSD, NT 2025.002, DANFE/QR and contingency in `pocs/evidence/normative-baseline.md`
 - [x] T009 [P] Document SEFAZ-SP homologation services and capabilities in `pocs/evidence/sefaz-sp-endpoints.md`
 - [x] T010 [P] Create RTC impact checklist in `pocs/evidence/rtc-impact.md`
 - [ ] T011 Review normative baseline with responsible fiscal stakeholder and record approval in `pocs/evidence/fiscal-review.md`
@@ -26,7 +26,7 @@
 - [x] T012 [P] [US1] Scaffold isolated .NET 10 POC in `pocs/dotnet/`
 - [x] T013 [P] [US1] Scaffold isolated Java 25 POC in `pocs/java/`
 - [x] T014 [P] [US1] Scaffold TypeScript baseline POC in `pocs/typescript/`
-- [ ] T015 [US1] Create one normalized sanitized NFC-e fixture in `pocs/fixtures/nfce-minimal.json`
+- [x] T015 [US1] Create one normalized sanitized NFC-e fixture in `pocs/fixtures/nfce-minimal.json`
 - [ ] T016 [US1] Implement XML generation and official XSD validation in each candidate under `pocs/*/`
 - [ ] T017 [US1] Implement A1 loading, XML signing, signature verification and mutation-negative test in `pocs/*/`
 - [ ] T018 [US1] Implement mock SOAP authorization and sanitized tracing in `pocs/*/`
@@ -35,20 +35,20 @@
 
 ## Phase 4 — US2 contingency and uncertain-result design
 
-- [ ] T021 [P] [US2] Model PDV-to-service connectivity failure and local-agent alternatives in `pocs/evidence/offline-agent-spike.md`
-- [ ] T022 [US2] Implement authorization-timeout simulation with consult-before-retry in `pocs/shared/uncertain-result/`
-- [ ] T023 [US2] Record official contingency applicability and non-goals in `pocs/evidence/contingency-gates.md`
+- [x] T021 [P] [US2] Model PDV-to-service connectivity failure and local-agent alternatives in `pocs/evidence/offline-agent-spike.md`
+- [x] T022 [US2] Implement authorization-timeout simulation with consult-before-retry in `pocs/shared/uncertain-result/`
+- [x] T023 [US2] Record official contingency applicability and non-goals in `pocs/evidence/contingency-gates.md`
 
 ## Phase 5 — US3 security and multi-tenant foundation proof
 
-- [ ] T024 [P] [US3] Create threat model for A1, CSC, tenant, webhook and storage in `pocs/evidence/threat-model.md`
-- [ ] T025 [US3] Prove secrets stay outside source/log/container layers in `pocs/evidence/secret-handling.md`
-- [ ] T026 [US3] Design tenant/environment/series database constraints in `specs/001-fiscal-service/data-model.md`
+- [x] T024 [P] [US3] Create threat model for A1, CSC, tenant, webhook and storage in `pocs/evidence/threat-model.md`
+- [x] T025 [US3] Prove secrets stay outside source/log/container layers in `pocs/evidence/secret-handling.md`
+- [x] T026 [US3] Design tenant/environment/series database constraints in `specs/001-fiscal-service/data-model.md`
 
 ## Phase 6 — US5 integration contract validation
 
-- [ ] T027 [P] [US5] Validate OpenAPI 3.1 and generate sample client in `pocs/contract/`
-- [ ] T028 [US5] Review BurgoOS idempotency, webhook and polling flow in `pocs/evidence/burgoos-contract-review.md`
+- [x] T027 [P] [US5] Validate OpenAPI 3.1 and generate sample client in `pocs/contract/`
+- [x] T028 [US5] Review BurgoOS idempotency, webhook and polling flow in `pocs/evidence/burgoos-contract-review.md`
 
 ## Phase 7 — US6 decision and handoff
 

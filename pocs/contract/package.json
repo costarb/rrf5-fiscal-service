@@ -1,0 +1,24 @@
+{
+  "name": "@rrf5/fiscal-contract-poc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint:openapi": "redocly lint ../../specs/001-fiscal-service/contracts/openapi.yaml --extends=spec",
+    "generate": "openapi-typescript ../../specs/001-fiscal-service/contracts/openapi.yaml -o src/generated/schema.d.ts",
+    "check:generated": "openapi-typescript ../../specs/001-fiscal-service/contracts/openapi.yaml -o src/generated/schema.d.ts && git diff --exit-code -- src/generated/schema.d.ts",
+    "check": "redocly lint ../../specs/001-fiscal-service/contracts/openapi.yaml --extends=spec && openapi-typescript ../../specs/001-fiscal-service/contracts/openapi.yaml -o src/generated/schema.d.ts && git diff --exit-code -- src/generated/schema.d.ts && tsc --noEmit"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  },
+  "devDependencies": {
+    "@redocly/cli": "1.34.19",
+    "@types/node": "20.19.17",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.2"
+  }
+}

@@ -17,8 +17,7 @@ paths:
       responses:
         "200":
           {
-            description: Validado,
-            response sem consumo definitivo de número,
+            description: "Validado, sem consumo definitivo de número",
             content:
               {
                 application/json:
@@ -30,6 +29,20 @@ paths:
           }
         "422": { $ref: "#/components/responses/DomainError" }
   /documents:
+    get:
+      operationId: findDocumentsByExternalId
+      parameters:
+        - { $ref: "#/components/parameters/ExternalId" }
+        - { $ref: "#/components/parameters/CorrelationId" }
+      responses:
+        "200":
+          description: Documentos encontrados para o identificador externo
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FiscalDocument" }
+        "422": { $ref: "#/components/responses/DomainError" }
     post:
       operationId: createDocument
       security: [{ oauth2: [fiscal.documents.create] }]
@@ -50,7 +63,12 @@ paths:
         "202":
           {
             description: Aceito para processamento,
-            headers: { Location: { schema: { type: string } } },
+            headers:
+              {
+                Location: { required: true, schema: { type: string } },
+                Retry-After:
+                  { required: true, schema: { type: integer, minimum: 1 } },
+              },
             content:
               {
                 application/json:
@@ -73,6 +91,12 @@ paths:
         "202":
           {
             description: Aceito,
+            headers:
+              {
+                Location: { required: true, schema: { type: string } },
+                Retry-After:
+                  { required: true, schema: { type: integer, minimum: 1 } },
+              },
             content:
               {
                 application/json:
@@ -207,6 +231,13 @@ components:
       }
     DocumentId:
       { name: documentId, in: path, required: true, schema: { type: string } }
+    ExternalId:
+      {
+        name: externalId,
+        in: query,
+        required: true,
+        schema: { type: string, minLength: 1, maxLength: 128 },
+      }
   requestBodies:
     DocumentRequest:
       required: true

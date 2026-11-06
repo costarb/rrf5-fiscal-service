@@ -1,24 +1,24 @@
 {
   "catalogVersion": "1.0",
-  "checkedAt": "2026-08-04",
+  "checkedAt": "2026-08-18",
   "references": [
     {
       "id": "moc-7",
       "title": "Manual de Orientacao do Contribuinte",
       "authority": "Portal Nacional da NF-e",
-      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/listaHistorico.aspx?AspxAutoDetectCookieSupport=1&tipoConteudo=i2kAtn+PCRE%3D",
+      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/exibirArquivo.aspx?conteudo=LrBx7WT9PuA%3D",
       "documentVersion": "7.0",
       "publishedAt": null,
       "effectiveFrom": null,
       "effectiveTo": null,
       "models": ["55", "65"],
       "states": ["BR"],
-      "artifactSha256": null,
+      "artifactSha256": "f664dcf94b77cabb32311620d85a7eb02cdf86adb2d4632ce178af2572dd2ad1",
       "sourcePageSha256": null,
-      "hashStatus": "PENDING_ARTIFACT_DOWNLOAD",
-      "checkedAt": "2026-08-04",
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-08-18",
       "impact": "Base estrutural do leiaute, assinatura, lotes, retornos e regras comuns.",
-      "notes": "O artefato oficial deve ser preservado e hasheado antes da POC de XML."
+      "notes": "PDF oficial MOC 7.0 - Visao Geral; bytes mantidos fora do Git."
     },
     {
       "id": "moc-anexo-i-layout-4",
@@ -31,48 +31,66 @@
       "effectiveTo": null,
       "models": ["55", "65"],
       "states": ["BR"],
-      "artifactSha256": null,
+      "artifactSha256": "5eb4cf2010b10b0b62f78197c4eb64025f24535d4c6e61158bc7806dd008f55d",
       "sourcePageSha256": null,
-      "hashStatus": "PENDING_ARTIFACT_DOWNLOAD",
-      "checkedAt": "2026-08-04",
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-08-18",
       "impact": "Define campos e validacoes do XML 4.00.",
-      "notes": "Validar em conjunto com o pacote XSD vigente e notas tecnicas posteriores."
+      "notes": "PDF oficial; bytes mantidos fora do Git. Validar em conjunto com o pacote XSD vigente e notas tecnicas posteriores."
     },
     {
       "id": "nt-2025-002",
       "title": "Nota Tecnica 2025.002 - Reforma Tributaria do Consumo",
       "authority": "Portal Nacional da NF-e",
-      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=6WfrpZYE4Ik%3D",
-      "documentVersion": "1.40",
-      "publishedAt": "2026-05-20",
+      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/exibirArquivo.aspx?conteudo=AKD%2FmuSmiIY%3D",
+      "documentVersion": "1.51",
+      "publishedAt": "2026-08-04",
       "effectiveFrom": null,
       "effectiveTo": null,
       "models": ["55", "65"],
       "states": ["BR"],
-      "artifactSha256": null,
+      "artifactSha256": "a4aaaa181522b43cd90b502f8ccb9e4bdabea30fed838e2d0790be5ba77254a4",
       "sourcePageSha256": null,
-      "hashStatus": "PENDING_ARTIFACT_DOWNLOAD",
-      "checkedAt": "2026-08-04",
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-08-18",
       "impact": "Altera leiaute e validacoes relacionados a IBS, CBS e transicao da RTC.",
-      "notes": "Datas e regras devem ser confirmadas no artefato e anexos oficiais."
+      "notes": "PDF oficial v1.51, que substituiu a v1.40 catalogada em 2026-08-04; bytes mantidos fora do Git."
+    },
+    {
+      "id": "xsd-nfe-010e-1-02",
+      "title": "Schemas XML NF-e - Pacote 010e v1.02",
+      "authority": "Portal Nacional da NF-e",
+      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/exibirArquivo.aspx?conteudo=akib2DRpJN4%3D",
+      "documentVersion": "010e v1.02",
+      "publishedAt": "2026-07-10",
+      "effectiveFrom": null,
+      "effectiveTo": null,
+      "models": ["55", "65"],
+      "states": ["BR"],
+      "artifactSha256": "d44ae5aa6a0d1cabf6235d2d2d47b75be5dd87bc6b90a7ec3dcec99c3d41bda1",
+      "sourcePageSha256": null,
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-08-18",
+      "impact": "Pacote XSD oficial usado na validacao do XML NF-e/NFC-e 4.00 da POC.",
+      "notes": "ZIP mantido fora do Git; a POC recebe o caminho local por argumento ou variavel de ambiente."
     },
     {
       "id": "danfe-nfce-qr",
       "title": "Manual de Especificacoes Tecnicas do DANFE NFC-e e QR Code",
       "authority": "Portal Nacional da NF-e",
-      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/consulta.aspx/listaHistorico.aspx?AspxAutoDetectCookieSupport=1&tipoConteudo=Ef+Y1blZDbU%3D",
+      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/exibirArquivo.aspx?conteudo=k%2FIuuaW4YiY%3D",
       "documentVersion": "6.0",
       "publishedAt": "2025-03-01",
       "effectiveFrom": null,
       "effectiveTo": null,
       "models": ["65"],
       "states": ["BR"],
-      "artifactSha256": null,
+      "artifactSha256": "bf906cc212f1edd19b1df7d1cdf4fbf5e73c3fec77567b6e69fa74453c95db5e",
       "sourcePageSha256": null,
-      "hashStatus": "PENDING_ARTIFACT_DOWNLOAD",
-      "checkedAt": "2026-08-04",
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-08-18",
       "impact": "Define representacao auxiliar e formacao/validacao do QR Code da NFC-e.",
-      "notes": "Mes informado pela pagina historica; preservar artefato exato antes da validacao."
+      "notes": "PDF oficial de marco de 2025; bytes mantidos fora do Git."
     },
     {
       "id": "nfce-contingencia-offline",
@@ -85,12 +103,12 @@
       "effectiveTo": null,
       "models": ["65"],
       "states": ["BR"],
-      "artifactSha256": null,
+      "artifactSha256": "5ff5c8fdc8a55ae91f2f6e7c29566a45ca7e3867c7b76877deb48911071cf06c",
       "sourcePageSha256": null,
-      "hashStatus": "PENDING_ARTIFACT_DOWNLOAD",
-      "checkedAt": "2026-08-04",
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-08-18",
       "impact": "Define emissao offline, impressao, transmissao posterior e controles fiscais.",
-      "notes": "Retry tecnico nao equivale a contingencia fiscal."
+      "notes": "PDF oficial obtido pelo postback da pagina historica; bytes mantidos fora do Git. Retry tecnico nao equivale a contingencia fiscal."
     },
     {
       "id": "sp-nfce-services",
@@ -130,4 +148,3 @@
     }
   ]
 }
-
