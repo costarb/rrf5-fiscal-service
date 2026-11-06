@@ -49,6 +49,10 @@ public final class Main {
                 XmlDsigCommands.verifyCommand(options);
             }
             case "generate" -> generate(options);
+            case "bench" -> {
+                System.err.println("{\"dsigPolicy\":\"" + XmlDsigCommands.relaxPolicyForNfe() + "\"}");
+                Bench.run(options);
+            }
             case "check-key" -> {
                 String key = options.get("--key");
                 if (key == null || !key.matches("\\d{44}")) {

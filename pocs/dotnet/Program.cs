@@ -40,6 +40,12 @@ if (string.Equals(args[0], "authorize", StringComparison.Ordinal) || string.Equa
     return;
 }
 
+if (string.Equals(args[0], "bench", StringComparison.Ordinal))
+{
+    RunBench(ParseOptions(args[1..]));
+    return;
+}
+
 if (string.Equals(args[0], "generate", StringComparison.Ordinal))
 {
     RunGenerate(ParseOptions(args[1..]));
@@ -487,6 +493,63 @@ static async Task RunSefazDocumentCommandAsync(string command, IReadOnlyDictiona
 
         Environment.ExitCode = outcome switch { "AUTHORIZED" => 0, "NOT_AUTHORIZED" or "NOT_FOUND" => 2, _ => 3 };
     }
+}
+
+// Performance comparison: generate -> sign -> verify per iteration with a fresh
+// nNF (so the access key and digest change), after a warm-up. Synthetic inputs and
+// a throwaway key only. Reports throughput, latency percentiles and allocation.
+static void RunBench(IReadOnlyDictionary<string, string> options)
+{
+    JsonElement Load(string name) => JsonDocument.Parse(File.ReadAllBytes(RequiredFile(options, name))).RootElement;
+    var fixture = Load("--case");
+    var profile = Load("--profile");
+    var issuer = Load("--issuer");
+    var iterations = int.Parse(options.GetValueOrDefault("--iterations", "2000"), System.Globalization.CultureInfo.InvariantCulture);
+    var warmup = int.Parse(options.GetValueOrDefault("--warmup", "200"), System.Globalization.CultureInfo.InvariantCulture);
+    using var certificate = LoadA1(options);
+    using var key = certificate.GetRSAPrivateKey()!;
+    var dhEmi = new DateTimeOffset(2026, 11, 6, 12, 0, 0, TimeSpan.FromHours(-3));
+
+    bool Once(int n)
+    {
+        var xml = NfceGenerator.Generate(fixture, profile, issuer, n, "12345678", dhEmi);
+        var signed = BenchSigner.Sign(xml.Xml, certificate, key);
+        return VerifyNfeSignature(signed, "NFe" + xml.AccessKey, certificate);
+    }
+
+    for (var i = 1; i <= warmup; i++)
+    {
+        if (!Once(i)) Fail("BENCH_VERIFY_FAILED", "Warm-up iteration failed verification.");
+    }
+
+    var samples = new double[iterations];
+    var allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
+    var total = Stopwatch.StartNew();
+    for (var i = 0; i < iterations; i++)
+    {
+        var started = Stopwatch.GetTimestamp();
+        if (!Once(warmup + 1 + i)) Fail("BENCH_VERIFY_FAILED", "Iteration failed verification.");
+        samples[i] = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+    }
+    total.Stop();
+    var allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
+    Array.Sort(samples);
+    double Percentile(double p) => samples[Math.Min(samples.Length - 1, (int)Math.Ceiling(p * samples.Length) - 1)];
+
+    WriteResult(new
+    {
+        candidate = "dotnet",
+        command = "bench",
+        runtime = Environment.Version.ToString(),
+        iterations,
+        warmup,
+        opsPerSecond = Math.Round(iterations / total.Elapsed.TotalSeconds, 1),
+        p50Ms = Math.Round(Percentile(0.50), 3),
+        p95Ms = Math.Round(Percentile(0.95), 3),
+        p99Ms = Math.Round(Percentile(0.99), 3),
+        allocatedKbPerOp = Math.Round(allocated / 1024.0 / iterations, 1),
+        peakWorkingSetMb = Math.Round(Process.GetCurrentProcess().PeakWorkingSet64 / 1048576.0, 1)
+    });
 }
 
 // T016: deterministic NFC-e generation. A synthetic issuer (all-zero CNPJ) may

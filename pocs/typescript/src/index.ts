@@ -61,6 +61,7 @@ async function main(): Promise<void> {
     case "sign": return runSign(options);
     case "verify": return runVerify(options);
     case "status": return runStatus(options);
+    case "bench": return runBench(options);
     default: fail("UNKNOWN_COMMAND", "Supported commands: validate, generate, check-key, sign, verify, status.");
   }
 }
@@ -181,6 +182,39 @@ async function runVerify(options: Map<string, string>): Promise<void> {
     cStat: /<infProt>.*?<cStat>([^<]*)<\/cStat>/s.exec(xml)?.[1] ?? null,
   })}\n`);
   if (!certificateSha256Matches || !verification.verified || !mutationRejected) process.exitCode = 2;
+}
+
+// Performance comparison: generate -> sign -> verify per iteration with a fresh nNF,
+// after a warm-up. Synthetic inputs and a throwaway key only.
+async function runBench(options: Map<string, string>): Promise<void> {
+  const load = async (name: string) => JSON.parse(await readFile(await requiredFile(options, name), "utf8"));
+  const fixture = await load("--case");
+  const profile = await load("--profile");
+  const issuer = await load("--issuer");
+  const iterations = Number(options.get("--iterations") ?? "2000");
+  const warmup = Number(options.get("--warmup") ?? "200");
+  const { a1 } = await loadIssuerA1(options);
+  const once = (n: number) => {
+    const result = generate(fixture, profile, issuer, n, "12345678", "2026-11-06T12:00:00-03:00");
+    return verify(sign(result.xml, a1), a1.certificateDer).verified;
+  };
+  for (let i = 1; i <= warmup; i++) if (!once(i)) fail("BENCH_VERIFY_FAILED", "Warm-up iteration failed verification.");
+  const samples: number[] = [];
+  const total = process.hrtime.bigint();
+  for (let i = 0; i < iterations; i++) {
+    const started = process.hrtime.bigint();
+    if (!once(warmup + 1 + i)) fail("BENCH_VERIFY_FAILED", "Iteration failed verification.");
+    samples.push(Number(process.hrtime.bigint() - started) / 1e6);
+  }
+  const seconds = Number(process.hrtime.bigint() - total) / 1e9;
+  samples.sort((a, b) => a - b);
+  const percentile = (p: number) => samples[Math.min(samples.length - 1, Math.ceil(p * samples.length) - 1)]!;
+  process.stdout.write(`${JSON.stringify({
+    candidate: "typescript", command: "bench", runtime: process.version, iterations, warmup,
+    opsPerSecond: Math.round((iterations / seconds) * 10) / 10,
+    p50Ms: Number(percentile(0.5).toFixed(3)), p95Ms: Number(percentile(0.95).toFixed(3)), p99Ms: Number(percentile(0.99).toFixed(3)),
+    peakRssMb: Math.round(process.resourceUsage().maxRSS / 1024 * 10) / 10,
+  })}\n`);
 }
 
 // Read-only NFeStatusServico4 probe. Node's TLS stack accepts the PFX directly.

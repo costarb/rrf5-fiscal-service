@@ -129,26 +129,8 @@ final class XmlDsigCommands {
                 || document.getElementsByTagNameNS(DSIG_NS, "Signature").getLength() != 0) {
             Main.fail("UNEXPECTED_STRUCTURE", "Expected one NFe/infNFe and no existing Signature.");
         }
-        Element target = (Element) infNfe.item(0);
-        String id = target.getAttribute("Id");
-        target.setIdAttribute("Id", true);
-
-        XMLSignatureFactory factory = XMLSignatureFactory.getInstance("DOM");
-        Reference reference = factory.newReference("#" + id,
-                factory.newDigestMethod(DigestMethod.SHA1, null),
-                List.of(factory.newTransform(Transform.ENVELOPED, (TransformParameterSpec) null),
-                        factory.newTransform(CanonicalizationMethod.INCLUSIVE, (TransformParameterSpec) null)),
-                null, null);
-        SignedInfo signedInfo = factory.newSignedInfo(
-                factory.newCanonicalizationMethod(CanonicalizationMethod.INCLUSIVE, (C14NMethodParameterSpec) null),
-                factory.newSignatureMethod(SignatureMethod.RSA_SHA1, null),
-                List.of(reference));
-        KeyInfoFactory keyInfoFactory = factory.getKeyInfoFactory();
-        X509Data x509 = keyInfoFactory.newX509Data(List.of(certificate));
-        KeyInfo keyInfo = keyInfoFactory.newKeyInfo(List.of(x509));
-        factory.newXMLSignature(signedInfo, keyInfo).sign(new DOMSignContext(key, root));
-
-        String signedText = serialize(document);
+        String id = ((Element) infNfe.item(0)).getAttribute("Id");
+        String signedText = signDocument(document, key, certificate);
         Verification verified = verify(signedText, id, certificate);
         String mutated = mutate(signedText, documentMode);
         Verification mutation = verify(mutated, id, certificate);
@@ -172,6 +154,30 @@ final class XmlDsigCommands {
         if (!verified.verified() || !mutationRejected) {
             System.exit(2);
         }
+    }
+
+    // Signs the single NFe/infNFe of a parsed document and returns the serialized
+    // result. Used by `sign` and by the benchmark.
+    static String signDocument(Document document, PrivateKey key, X509Certificate certificate) throws Exception {
+        Element target = (Element) document.getElementsByTagNameNS(NFE_NS, "infNFe").item(0);
+        String id = target.getAttribute("Id");
+        target.setIdAttribute("Id", true);
+
+        XMLSignatureFactory factory = XMLSignatureFactory.getInstance("DOM");
+        Reference reference = factory.newReference("#" + id,
+                factory.newDigestMethod(DigestMethod.SHA1, null),
+                List.of(factory.newTransform(Transform.ENVELOPED, (TransformParameterSpec) null),
+                        factory.newTransform(CanonicalizationMethod.INCLUSIVE, (TransformParameterSpec) null)),
+                null, null);
+        SignedInfo signedInfo = factory.newSignedInfo(
+                factory.newCanonicalizationMethod(CanonicalizationMethod.INCLUSIVE, (C14NMethodParameterSpec) null),
+                factory.newSignatureMethod(SignatureMethod.RSA_SHA1, null),
+                List.of(reference));
+        KeyInfoFactory keyInfoFactory = factory.getKeyInfoFactory();
+        X509Data x509 = keyInfoFactory.newX509Data(List.of(certificate));
+        KeyInfo keyInfo = keyInfoFactory.newKeyInfo(List.of(x509));
+        factory.newXMLSignature(signedInfo, keyInfo).sign(new DOMSignContext(key, document.getDocumentElement()));
+        return serialize(document);
     }
 
     static void verifyCommand(Map<String, String> options) throws Exception {

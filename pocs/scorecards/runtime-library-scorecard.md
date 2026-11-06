@@ -1,8 +1,10 @@
 # Runtime and library scorecard (T029)
 
-**Status:** DRAFT — technical scores filled from evidence; team-capacity input and three open gates pending  
+**Status:** SCORED — recommendation .NET 10; acceptance blocked only by gates open for all candidates (T020, T030/ADR-011)  
 **Date:** 2026-11-06  
 **Context decided by the operator (2026-11-06):** independent service (spec FR-001, ADR-001); language chosen here.
+**Operator inputs (2026-11-06):** solo developer assisted by LLM tools; working knowledge of all three languages,
+most deliveries in .NET; priorities are **performance and security**, language is secondary; no restriction on weights.
 **Candidates:** .NET 10 LTS, Java 25 LTS (Temurin), TypeScript on Node.js LTS.
 
 ## 1. Eliminatory gates (plan.md "POC Acceptance Gates")
@@ -22,43 +24,39 @@
 No candidate has failed a gate. DANFE/QR, SBOM and the fiscal-library question are open
 for all three, so **no final decision can be accepted yet** under the plan's rules.
 
-## 2. Weighted criteria (weights are a proposal for the operator to confirm)
+## 2. Weighted criteria
 
-Scores 1–5. Each score cites evidence; "pending" is not scored.
+Weights reflect the operator's priorities (security and performance first, language
+secondary). Scores 1–5 cite evidence; "pending" is not scored.
 
 | # | Criterion | Weight | .NET 10 | Java 25 | TypeScript |
 | --- | --- | --- | --- | --- | --- |
-| C1 | Security of the critical chain (XMLDSig, PKCS#12, TLS) | 20 | **5** — standard library, no overrides | **4** — standard library, but secure-validation policy override and internal JDK property for Base64 | **2** — `xml-crypto` (3 CRITICAL bypass CVEs 2024–2025) and `node-forge` (11 advisories on 2026-10-30, incl. PKCS#12 MAC forgery) |
+| C1 | Security of the critical chain (XMLDSig, PKCS#12, TLS) | 25 | **5** — standard library, no overrides | **4** — standard library, but secure-validation policy override and internal JDK property for Base64 | **2** — `xml-crypto` (3 CRITICAL bypass CVEs 2024–2025) and `node-forge` (11 advisories on 2026-10-30, incl. PKCS#12 MAC forgery) |
+| C8 | Performance (throughput, memory, startup) — `performance-bench.md` | 15 | **5** — ~73–79 ops/s, 61 MB, no tuning | **4** — same throughput only with explicit JVM sizing; 138 MB tuned, 256 MB default | **2** — ~12 ops/s (≈6× slower; `xml-crypto` XML layer), ~143 MB |
 | C2 | Proven against SEFAZ homologation | 15 | **5** — authorization + consultation, host and container | **3** — signature byte-identical to an authorized one; no SOAP | **2** — signature parity with throwaway key; TLS only |
 | C3 | Maintenance complexity | 15 | **4** — 1 runtime package; no runtime tweaks | **3** — JDK policy/property overrides to re-check on upgrades; Jackson 2.x vs 3.x decision | **3** — smallest code, but own decimal arithmetic, two xmldom versions, faster dependency churn |
-| C4 | Team capacity (build and operate) | 20 | *input pending* | *input pending* | *input pending* |
-| C5 | Fiscal library ecosystem (DANFE, events, NT updates) | 10 | *pending — ADR-011* | *pending — ADR-011* | *pending — ADR-011* |
 | C6 | Operation and portability | 10 | **5** — container proven with real A1; 204 MB image | **3** — not containerized in POC | **3** — not containerized; Node ignores OS trust store |
 | C7 | Runtime support window | 10 | **4** — .NET 10 to 2028-11-14 | **5** — Temurin 25 to 2031-09-30 | **4** — Node 26 LTS to 2029-04-30 (POC ran on Node 20, EOL 2026-04-30) |
+| C4 | Developer capacity (solo + LLM) | 5 | **5** — most deliveries | **4** — working knowledge | **4** — working knowledge |
+| C5 | Fiscal library ecosystem | — | *pending — ADR-011* | *pending* | *pending* |
 
-### Partial totals (C1, C2, C3, C6, C7 — weight 70)
+### Totals (weight 95)
 
 | | .NET 10 | Java 25 | TypeScript |
 | --- | --- | --- | --- |
-| Weighted sum | 325 | 250 | 185 |
-| Average (/70) | **4.64** | 3.57 | 2.64 |
+| Weighted sum | 450 | 350 | 245 |
+| Average (/95) | **4.74** | 3.68 | 2.58 |
+| If Java/TS closed SOAP + container (C2 = 5, C6 = 4) | 4.74 | 4.11 | 3.16 |
 
-C2 and C6 for Java and TypeScript reflect **work not done**, not proven inability. If
-both finished SOAP, homologation and container (C2 = 5, C6 = 4): Java 4.14, TypeScript 3.43.
-.NET stays ahead because of C1 and C3.
+The ranking also held in the earlier draft weighting, except in a hypothetical team with no
+.NET capacity at all (near tie with TypeScript), which does not apply here. .NET leads on
+the operator's two priorities (C1, C8) without depending on unfinished work. Java is a
+credible second whose gap is mostly unfinished POC work plus JVM tuning and JDK
+overrides. TypeScript is functionally viable but last on both priorities.
 
-### Sensitivity to team capacity (C4, weight 20 → total weight 90)
-
-| Scenario (C4 scores .NET / Java / TS) | .NET | Java | TypeScript |
-| --- | --- | --- | --- |
-| Team equally able in all (3/3/3) | 4.28 | 3.44 | 2.72 |
-| TypeScript-only team, can learn (2/2/5) | 4.06 | 3.22 | 3.17 |
-| TypeScript-only team, no .NET capacity (1/1/5) | 3.83 | 3.00 | 3.17 |
-| Same, and TS completes SOAP/container (1/1/5, TS C2=5, C6=4) | 3.83 | 3.00 | **3.78** |
-
-TypeScript reaches parity only when the team has essentially no .NET/Java capacity
-**and** TypeScript closes the SOAP/container gaps. Even then the C1 dependency risk remains
-and must be accepted explicitly.
+On LLM-assisted development: all three are well supported. The security argument is
+stronger with LLM-generated code, because less hand-written or third-party code sits in
+the signing path when the platform library does XMLDSig and PKCS#12 (.NET, Java).
 
 ## 3. Fiscal library question (ADR-011) — not yet evaluated
 
@@ -74,18 +72,19 @@ Evidence from this phase lowers the risk of the self-implemented path for the pr
 proven here; DANFE, events (cancellation, inutilização) and contingency remain the
 larger surface where a library may matter most.
 
-## 4. Provisional recommendation
+## 4. Recommendation
 
-**.NET 10 is the provisional front-runner** on every scored criterion except C7, with the
-most evidence (SEFAZ authorization, container with real A1, no runtime overrides, no
-third-party crypto). Java 25 is a sound second; TypeScript is viable but carries the
-highest security-dependency risk.
+**Adopt .NET 10 LTS for the fiscal service** (to be recorded in ADR-012 once the open
+gates below close). Rationale: best security posture of the signing chain, best
+performance and memory, the only candidate proven end to end against SEFAZ-SP
+(host and Linux container), and the operator's strongest delivery record.
+Plan the upgrade to the next .NET LTS before 2028-11-14.
 
-Before ADR-012 can be accepted:
+Before ADR-012 moves to Accepted (gates open for every candidate, so they do not
+change the ranking but can still block the project):
 
-1. Operator: confirm weights and provide C4 (team capacity) — the only input that can
-   change the ranking.
-2. T020: DANFE NFC-e and QR v3 confirmation (gate open for all).
-3. T030: SBOM/licence/maintenance for the chosen candidate; ADR-011 library evaluation
-   (at least Unimake.DFe for .NET).
-4. T011: accountant ratification of the fiscal profile (independent of stack).
+1. T020: DANFE NFC-e and QR v3 confirmation.
+2. ADR-011: evaluate Unimake.DFe (and alternatives) against the self-implemented
+   primitives proven here; decide library vs. own implementation per capability.
+3. T030: SBOM, licences and maintenance for the .NET dependency set.
+4. T011: accountant ratification of the fiscal profile (stack-independent).
