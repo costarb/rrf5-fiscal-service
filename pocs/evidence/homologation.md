@@ -113,6 +113,52 @@ Consequences for the service design (not a tax interpretation):
   something to retry.
 - This document remains signature evidence only (see `xmldsig-poc.md`).
 
+## Run 2 — real-issuer document prepared locally (PASS, not transmitted)
+
+**Executed:** 2026-11-06 by the operator on the Windows development host
+(script outside Git; password via `Read-Host -AsSecureString`, removed after).
+Issuer file outside Git, series 2, `nNF` 1.
+
+| Step | Result |
+| --- | --- |
+| `generate` (real issuer, output outside the repository, key not printed) | pass, 2472 bytes |
+| first attempt `validate` | **invalid**: `cMunFG`/`cMun` held a CEP instead of the IBGE code; fixed in the issuer file |
+| `sign` with the issuer A1 (`62cb2f73…`) | signature verified, mutation rejected |
+| `validate` against 010e v1.02 | **valid** |
+| `verify` (signed file SHA-256 `da39684e…`) | certificate matches A1, signature verified |
+
+The local XSD gate caught an issuer-configuration error before any transmission.
+
+## T018 — mock SOAP authorization (PASS, 2026-11-06)
+
+`authorize` and `consult` share one code path; `--mock <scenario>` swaps only
+the transport for canned SEFAZ-shaped answers (no network, no A1). Signed input:
+synthetic golden XML signed with a throwaway PFX (deleted afterwards).
+
+| Command / scenario | SEFAZ `cStat` | Protocol | Outcome | Exit |
+| --- | --- | --- | --- | --- |
+| authorize `authorized` | 104 | 100, key and `digVal` match | `AUTHORIZED`, `nfeProc` written | 0 |
+| authorize `schema-rejected` | 225 | none | `NOT_AUTHORIZED` | 2 |
+| authorize `timeout` | — | — | `RESULT_UNKNOWN`, instructs `consult` before anything else | 3 |
+| consult `found` | 100 | 100, key and `digVal` match | `AUTHORIZED` | 0 |
+| consult `not-found` | 217 | none | `NOT_FOUND` | 2 |
+
+Additional checks:
+
+- The `nfeProc` is built from the exact signed bytes plus the returned
+  `protNFe`; `verify` on it: signature valid, `digVal` = `DigestValue`.
+- `AUTHORIZED` requires protocol `cStat` 100 **and** matching `chNFe` and
+  `digVal`; a 100 for a different document is not accepted.
+- Refusals: unsigned document (`DOCUMENT_REFUSED`), real call without `--out`
+  (`OUT_REQUIRED`), output inside the repository, `tpAmb` other than 2,
+  model other than 65.
+- Sanitized trace: HTTP status, elapsed time and response SHA-256 only; real
+  calls save the raw answer next to `--out` (outside Git).
+- Codes simulated: 104, 100, 225 (observed) and 217 (consultation "not found",
+  to be confirmed against the MOC code table when the first real consultation runs).
+- The POC never resends by itself. `NOT_FOUND` is reported; any resend still
+  requires the explicit policy described in `pocs/shared/uncertain-result`.
+
 ## Remaining for T019
 
 Authorization of one sanitized NFC-e in homologation requires the approved

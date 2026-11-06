@@ -26,9 +26,17 @@ if (args.Length == 0)
             "sign --pfx <a1.pfx outside the repository> [--out <signed.xml outside the repository>]",
             "verify --xml <authorized nfeProc outside the repository> --cert-sha256 <expected A1 fingerprint>",
             "generate --case <fixture.json> --profile <profile.json> --issuer <issuer.json> --nnf <n> --cnf <8 digits> --dhemi <ISO-8601> [--out <path>]",
-            "check-key --key <44-digit access key>"
+            "check-key --key <44-digit access key>",
+            "authorize --xml <signed NFe> (--pfx <a1.pfx> --out <nfeProc outside the repository> | --mock authorized|schema-rejected|timeout) [--idlote <n>]",
+            "consult --xml <signed NFe> (--pfx <a1.pfx> [--out <nfeProc>] | --mock found|not-found)"
         }
     });
+    return;
+}
+
+if (string.Equals(args[0], "authorize", StringComparison.Ordinal) || string.Equals(args[0], "consult", StringComparison.Ordinal))
+{
+    await RunSefazDocumentCommandAsync(args[0], ParseOptions(args[1..]));
     return;
 }
 
@@ -70,7 +78,7 @@ if (string.Equals(args[0], "sign", StringComparison.Ordinal))
 
 if (!string.Equals(args[0], "validate", StringComparison.Ordinal))
 {
-    Fail("UNKNOWN_COMMAND", "Supported commands: validate, status, sign, verify, generate, check-key.");
+    Fail("UNKNOWN_COMMAND", "Supported commands: validate, status, sign, verify, generate, check-key, authorize, consult.");
 }
 
 var options = ParseOptions(args[1..]);
@@ -322,6 +330,141 @@ static void RunSign(IReadOnlyDictionary<string, string> options)
     if (!verified || !mutationRejected)
     {
         Environment.ExitCode = 2;
+    }
+}
+
+// T018/T019: authorize (NFeAutorizacao4, indSinc=1) or consult
+// (NFeConsultaProtocolo4) one signed NFC-e in SEFAZ-SP homologation, or run the
+// same path against a mock transport. Output is sanitized: no access key, issuer
+// data or raw body. Exit codes: 0 authorized, 2 not authorized / not found,
+// 3 RESULT_UNKNOWN.
+static async Task RunSefazDocumentCommandAsync(string command, IReadOnlyDictionary<string, string> options)
+{
+    SefazClient.SignedDocument document;
+    try
+    {
+        document = SefazClient.LoadSigned(RequiredFile(options, "--xml"));
+    }
+    catch (Exception exception) when (exception is InvalidDataException or XmlException)
+    {
+        Fail("DOCUMENT_REFUSED", exception.Message);
+        return;
+    }
+
+    var mock = options.TryGetValue("--mock", out var scenario);
+    string? outPath = null;
+    if (options.TryGetValue("--out", out var requestedOut))
+    {
+        outPath = Path.GetFullPath(requestedOut);
+        if (outPath.StartsWith(RepositoryRoot(), StringComparison.OrdinalIgnoreCase))
+        {
+            Fail("OUTPUT_INSIDE_REPOSITORY", "Fiscal documents and SEFAZ answers stay outside the repository.");
+        }
+    }
+    if (!mock && command == "authorize" && outPath is null)
+    {
+        Fail("OUT_REQUIRED", "A real authorization must persist the nfeProc: pass --out outside the repository.");
+    }
+
+    X509Certificate2? certificate = null;
+    SefazClient.Transport transport;
+    if (mock)
+    {
+        transport = SefazClient.MockTransport(scenario!, document);
+    }
+    else
+    {
+        certificate = LoadA1(options);
+        transport = SefazClient.HttpTransport(certificate);
+    }
+
+    using (certificate)
+    {
+        XmlDocument response;
+        SefazClient.Exchange exchange;
+        long elapsedMs;
+        try
+        {
+            if (command == "authorize")
+            {
+                var idLote = options.TryGetValue("--idlote", out var lote) ? lote : DateTime.UtcNow.ToString("yyMMddHHmmssfff", System.Globalization.CultureInfo.InvariantCulture);
+                if (idLote.Length is 0 or > 15 || !idLote.All(char.IsAsciiDigit))
+                {
+                    Fail("INVALID_ARGUMENTS", "--idlote must have 1 to 15 digits.");
+                }
+                (response, exchange, elapsedMs) = await SefazClient.AuthorizeAsync(transport, document, idLote);
+            }
+            else
+            {
+                (response, exchange, elapsedMs) = await SefazClient.ConsultAsync(transport, document.AccessKey);
+            }
+        }
+        catch (SefazClient.UncertainResultException exception)
+        {
+            WriteResult(new
+            {
+                candidate = "dotnet",
+                command,
+                mock = mock ? scenario : null,
+                outcome = "RESULT_UNKNOWN",
+                reason = exception.Message,
+                next = "Run `consult` with the same signed document. Do not regenerate, renumber or resend before the consultation answers."
+            });
+            Environment.ExitCode = 3;
+            return;
+        }
+
+        var ns = SefazClient.Namespaces(response);
+        var ret = response.SelectSingleNode(command == "authorize" ? "//nfe:retEnviNFe" : "//nfe:retConsSitNFe", ns);
+        var prot = ret?.SelectSingleNode("nfe:protNFe/nfe:infProt", ns);
+        string? Field(XmlNode? node, string name) => node?.SelectSingleNode($"nfe:{name}", ns)?.InnerText;
+
+        var protocolKeyMatches = prot is not null && Field(prot, "chNFe") == document.AccessKey;
+        var protocolDigestMatches = prot is not null && Field(prot, "digVal") == document.DigestValue;
+        var authorized = Field(prot, "cStat") == "100" && protocolKeyMatches && protocolDigestMatches;
+        // NOT_FOUND (217 on consultation) is the only answer that, together with an
+        // explicit approved policy, may later allow a resend (pocs/shared/uncertain-result).
+        var outcome = ret is null ? "RESULT_UNKNOWN"
+            : authorized ? "AUTHORIZED"
+            : command == "consult" && Field(ret, "cStat") == "217" ? "NOT_FOUND"
+            : "NOT_AUTHORIZED";
+
+        if (!mock && outPath is not null)
+        {
+            File.WriteAllText(outPath + ".ret.xml", exchange.Body, new UTF8Encoding(false));
+        }
+        if (authorized && outPath is not null)
+        {
+            File.WriteAllText(outPath, SefazClient.BuildNfeProc(document, prot!.ParentNode!), new UTF8Encoding(false));
+        }
+
+        WriteResult(new
+        {
+            candidate = "dotnet",
+            command,
+            mock = mock ? scenario : null,
+            environment = "HOMOLOGATION",
+            trace = new { httpStatus = exchange.HttpStatus, elapsedMs, responseSha256 = SefazClient.Sha256(exchange.Body) },
+            sefaz = ret is null ? null : new
+            {
+                tpAmb = Field(ret, "tpAmb"),
+                verAplic = Field(ret, "verAplic"),
+                cStat = Field(ret, "cStat"),
+                xMotivo = Field(ret, "xMotivo")
+            },
+            protocol = prot is null ? null : new
+            {
+                cStat = Field(prot, "cStat"),
+                xMotivo = Field(prot, "xMotivo"),
+                nProt = Field(prot, "nProt"),
+                keyMatches = protocolKeyMatches,
+                digestMatches = protocolDigestMatches
+            },
+            outcome,
+            nfeProcWritten = authorized && outPath is not null
+        });
+
+        Environment.ExitCode = outcome switch { "AUTHORIZED" => 0, "NOT_AUTHORIZED" or "NOT_FOUND" => 2, _ => 3 };
     }
 }
 

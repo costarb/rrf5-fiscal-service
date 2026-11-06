@@ -50,5 +50,19 @@ dotnet run -- generate --case ../fixtures/nfce-minimal.json --profile ../fixture
 dotnet run -- sign --pfx <outside repository>\a1.pfx --xml <unsigned.xml> --out <outside repository>\signed.xml
 ```
 
-Pending gates: SOAP mock and homologation authorization, Linux container,
+`authorize` sends one signed NFC-e to SEFAZ-SP homologation
+(`NFeAutorizacao4`, synchronous) and writes the `nfeProc` only when protocol
+`cStat` is 100 with matching key and digest. `consult` queries
+`NFeConsultaProtocolo4` for the same signed document. Any transport failure is
+`RESULT_UNKNOWN` (exit 3): run `consult` before anything else; the POC never
+resends. `--mock` replaces the transport with canned answers.
+
+```powershell
+dotnet run -- authorize --xml <signed.xml> --pfx <a1.pfx> --out <outside repository>\proc.xml
+dotnet run -- consult --xml <signed.xml> --pfx <a1.pfx> [--out <outside repository>\proc.xml]
+dotnet run -- authorize --xml <signed.xml> --mock authorized|schema-rejected|timeout
+dotnet run -- consult --xml <signed.xml> --mock found|not-found
+```
+
+Pending gates: real homologation authorization (T019), Linux container,
 DANFE/QR and dependency review.
