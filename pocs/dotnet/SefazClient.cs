@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
+using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -101,17 +102,30 @@ static partial class SefazClient
     // ICP-Brasil roots; Debian/Ubuntu images do not). With it, server validation
     // stays on but trusts only the pinned ICP-Brasil v10 root. Validation is never
     // disabled.
+    // Intermediate CA certificates shipped inside the A1 PKCS#12, if any. Set by
+    // the caller after loading the A1; used to present the client chain offline.
+    public static X509Certificate2Collection ClientIntermediates { get; set; } = [];
+
     public static SocketsHttpHandler CreateHandler(X509Certificate2 clientCertificate)
     {
         var handler = new SocketsHttpHandler
         {
             ConnectTimeout = TimeSpan.FromSeconds(10),
-            SslOptions =
-            {
-                ClientCertificates = new X509CertificateCollection { clientCertificate },
-                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
-            }
+            SslOptions = { EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13 }
         };
+
+        // With intermediates from the PFX, the client chain is built offline so the
+        // TLS handshake never waits on AIA downloads (Linux builds the client chain
+        // during the handshake; the connect timeout covers it).
+        if (ClientIntermediates.Count > 0)
+        {
+            handler.SslOptions.ClientCertificateContext =
+                SslStreamCertificateContext.Create(clientCertificate, ClientIntermediates, offline: true);
+        }
+        else
+        {
+            handler.SslOptions.ClientCertificates = new X509CertificateCollection { clientCertificate };
+        }
 
         var rootPath = Environment.GetEnvironmentVariable(TrustRootVariable);
         if (!string.IsNullOrEmpty(rootPath))

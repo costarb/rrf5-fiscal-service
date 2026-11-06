@@ -101,8 +101,25 @@ Content decisions encoded (each traceable, none inferred by the code):
 - `infRespTec` is written only when the issuer file provides it (absent in the
   synthetic issuer).
 
+## Java on the target runtime (2026-11-06)
+
+`mvn -f pocs/java/pom.xml package` with **Temurin 25.0.5 LTS** and **Maven
+3.9.16** (`maven.compiler.release=25`): build pass. Validation results:
+
+| Input | Java 25 |
+| --- | --- |
+| Bling authorized `1dcfe783…` / `a2485370…` | valid / valid |
+| Bling rejected (225) `eda4a927…` | invalid: `vUnComLiq` (same cause as SEFAZ) |
+| Golden, signed (throwaway PFX, container run) | valid |
+| Golden, unsigned | invalid: missing `Signature` (expected) |
+| Wrong package file | `XSD_PACKAGE_HASH_MISMATCH` |
+
+All five agree with .NET and TypeScript. Observation: JAXP diagnostics follow
+the host locale (pt-BR) and are printed in the console code page, producing
+mojibake in JSON output; a production Java service would need a fixed
+diagnostic locale and UTF-8 stdout.
+
 ## Remaining for T016
 
 - Generate the same golden XML in Java and TypeScript and compare bytes (or
   C14N output) with the .NET golden.
-- Repeat on Java 25/Maven (host has Java 19 and no Maven).

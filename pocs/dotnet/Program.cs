@@ -179,7 +179,15 @@ static async Task RunStatusAsync(IReadOnlyDictionary<string, string> options)
         }
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
         {
-            Fail("SEFAZ_TRANSPORT_FAILED", $"{exception.GetType().Name}: {exception.Message} {exception.InnerException?.Message}".Trim());
+            var causes = new List<string>();
+            for (Exception? current = exception; current is not null; current = current.InnerException)
+            {
+                causes.Add($"{current.GetType().Name}: {current.Message}");
+            }
+            Fail("SEFAZ_TRANSPORT_FAILED",
+                $"after {stopwatch.ElapsedMilliseconds} ms; pfxIntermediates={SefazClient.ClientIntermediates.Count}; " +
+                $"trustRoot={(string.IsNullOrEmpty(Environment.GetEnvironmentVariable(SefazClient.TrustRootVariable)) ? "os-store" : "pinned")}; " +
+                string.Join(" <- ", causes));
             return;
         }
 
@@ -215,8 +223,10 @@ static async Task RunStatusAsync(IReadOnlyDictionary<string, string> options)
                 certificate = new
                 {
                     sha256Fingerprint = certificate.GetCertHashString(HashAlgorithmName.SHA256).ToLowerInvariant(),
-                    notAfter = certificate.NotAfter.ToString("O")
+                    notAfter = certificate.NotAfter.ToString("O"),
+                    pfxIntermediates = SefazClient.ClientIntermediates.Count
                 },
+                trustRoot = string.IsNullOrEmpty(Environment.GetEnvironmentVariable(SefazClient.TrustRootVariable)) ? "os-store" : "pinned",
                 sefaz = result is null ? null : new
                 {
                     tpAmb = Field("tpAmb"),
@@ -681,6 +691,11 @@ static X509Certificate2 LoadA1(IReadOnlyDictionary<string, string> options)
         Fail("A1_LOAD_FAILED", "The PKCS#12 file could not be opened with the supplied password.");
         throw;
     }
+
+    // Keep CA certificates bundled in the PFX (not the leaf) to present the client
+    // chain without network access.
+    var bundle = X509CertificateLoader.LoadPkcs12CollectionFromFile(pfxPath, password);
+    SefazClient.ClientIntermediates = [.. bundle.Where(c => c.Thumbprint != certificate.Thumbprint && c.Subject != c.Issuer)];
 
     var now = DateTime.Now;
     if (!certificate.HasPrivateKey)
