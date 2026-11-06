@@ -1,6 +1,6 @@
 # XML/XSD POC evidence
 
-**Status:** IN PROGRESS — .NET generation done; Java/TypeScript generation pending  
+**Status:** IN PROGRESS — .NET and Java 25 generation byte-identical; TypeScript generation pending  
 **Checked:** 2026-08-18, updated 2026-11-06
 
 ## Frozen schema package
@@ -119,7 +119,25 @@ the host locale (pt-BR) and are printed in the console code page, producing
 mojibake in JSON output; a production Java service would need a fixed
 diagnostic locale and UTF-8 stdout.
 
+## Golden XML generation — Java 25 (2026-11-06)
+
+`pocs/java` `generate` mirrors the .NET contract (same arguments, refusals and
+output rules). It writes with StAX (`XMLStreamWriter`) rather than DOM so that
+element and attribute order are exactly as listed (the JDK DOM serializer
+reorders attributes, see `xmldsig-poc.md`). JSON input via Jackson 2.22.4.
+
+| Check | Result |
+| --- | --- |
+| Golden inputs, two runs | identical; SHA-256 `82e3ab6f…` = .NET golden, **byte-identical** |
+| `check-key` on 3 SEFAZ-issued keys / 1 altered key | valid / rejected |
+| Edge fixture (fractional quantities, 10-decimal unit price, banker's rounding of 0.9125 → 0.91, `&` and `<` escaping, UTF-8 accents, change/`vTroco`, `nNF` 987654321, December `dhEmi`) | Java and .NET **byte-identical** (SHA-256 `3a045602…`, 3582 bytes) |
+| Unsupported payment method | same `GENERATION_REFUSED` code and message in both |
+
+Rounding parity needed one explicit decision: the .NET POC uses `decimal.Round`
+(banker's rounding) for the item total check and away-from-zero for output
+formatting; Java mirrors both (`HALF_EVEN` and `HALF_UP`). A production service
+must define the rounding rule from the official layout, not from a runtime default.
+
 ## Remaining for T016
 
-- Generate the same golden XML in Java and TypeScript and compare bytes (or
-  C14N output) with the .NET golden.
+- TypeScript generation and byte comparison with the golden.

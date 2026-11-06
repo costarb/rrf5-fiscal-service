@@ -8,7 +8,7 @@
 | POC | Runtime dependencies | Development/build dependencies | Audit result |
 | --- | --- | --- | --- |
 | .NET 10 | `System.Security.Cryptography.Xml` 10.0.14 (Microsoft, MIT) for XMLDSig; transitive `System.Security.Cryptography.Pkcs` 10.0.14 | SDK 10.0.302 | `dotnet list package --include-transitive` on 2026-10-28: those two packages only; `dotnet list package --vulnerable`: none |
-| Java 25 target | JDK APIs only; no Maven dependency | Maven compiler configuration only | Maven/Java 25 execution unavailable on this host |
+| Java 25 target | `jackson-databind` 2.22.4 (+ `jackson-core` 2.22.4, `jackson-annotations` 2.22) for JSON input only; XML, XSD, XMLDSig and StAX from the JDK | Maven 3.9.16, `maven-dependency-plugin` 3.11.0 (copies runtime jars to `target/lib`) | Built and run on Temurin 25.0.5 on 2026-11-06; dependency vulnerability scan not yet run |
 | TypeScript XML | `xmllint-wasm` 5.2.0 | TypeScript 5.9.3, tsx 4.23.5 and type/build packages | npm audit previously passed with zero findings |
 | Contract sample | `openapi-fetch` 0.17.0 plus helper | openapi-typescript 7.13.0, Redocly CLI 1.34.19, TypeScript 5.9.2 | runtime audit: zero; full dev audit: 12 moderate, 2 high |
 | Uncertain-result simulation | Node.js standard library only | none | no package dependency |
@@ -26,6 +26,7 @@ from this table.
 | `xmllint-wasm` 5.2.0 | npm declares MIT; bundled libxml2 notices must remain in distribution review | Published approximately four months before this check; active package and no native runtime toolchain | Accept for isolated XSD POC only; validate bundled notices/SBOM before product use |
 | `openapi-fetch` 0.17.0 | npm/GitHub project uses MIT ecosystem licensing | Current release used by generated client; runtime audit clean | Accept for contract POC/client candidate |
 | Redocly CLI 1.34.19 | development CLI; license metadata retained in lock tree | Maintained v2 exists, but requires Node 22 | Restricted to trusted local contract lint in CI; not runtime-approved; migrate to v2/Node 22 |
+| Jackson 2.22.4 | Apache-2.0 (FasterXML) | Latest 2.x release on Maven Central on 2026-11-06 (metadata updated 2026-10-17); a 3.x line (3.2.4, `tools.jackson` packages, renamed APIs) also exists | Accept for POC JSON parsing; a Java foundation must choose 2.x vs 3.x deliberately |
 | Unimake.DFe | GitHub repository declares MIT and NFe/NFCe support | Repository shows continuing activity and extensive history | Candidate only; not installed or approved until T016–T020 prove current XSD, XMLDSig/A1, SOAP, RTC, DANFE/QR and SP behavior |
 | Java_NFe | GitHub declares MIT; Maven coordinates documented by project | v4.1.1 and recent history claim PL.010d/RTC work and tests | Candidate only; current official package frozen here is 010e v1.02, so coverage must be demonstrated rather than inferred |
 

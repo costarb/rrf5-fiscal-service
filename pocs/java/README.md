@@ -23,5 +23,11 @@ java -cp target/fiscal-java-poc-0.1.0-SNAPSHOT.jar com.rrf5.fiscal.poc.Main sign
 java -cp target/fiscal-java-poc-0.1.0-SNAPSHOT.jar com.rrf5.fiscal.poc.Main verify --xml <signed.xml> --cert-sha256 <A1 SHA-256>
 ```
 
-Pending gates: XML generation (golden byte comparison), SOAP mock and
-authorization, Linux container, DANFE/QR and dependency review.
+`generate` and `check-key` mirror the .NET POC and reproduce the golden XML byte
+for byte. Runtime jars are copied to `target/lib` at package time:
+
+```powershell
+java -cp "target/fiscal-java-poc-0.1.0-SNAPSHOT.jar;target/lib/*" com.rrf5.fiscal.poc.Main generate --case ../fixtures/nfce-minimal.json --profile ../fixtures/fiscal-profile-sp-sn-own-production-v1.json --issuer ../fixtures/issuer-synthetic.json --nnf 1 --cnf 12345678 --dhemi 2026-11-06T12:00:00-03:00 --out <path>
+```
+
+Pending gates: SOAP mock and authorization, Linux container, DANFE/QR and dependency review.

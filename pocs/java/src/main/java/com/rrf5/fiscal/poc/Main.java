@@ -48,8 +48,67 @@ public final class Main {
                 System.err.println("{\"dsigPolicy\":\"" + XmlDsigCommands.relaxPolicyForNfe() + "\"}");
                 XmlDsigCommands.verifyCommand(options);
             }
-            default -> fail("UNKNOWN_COMMAND", "Supported commands: validate, sign, verify.");
+            case "generate" -> generate(options);
+            case "check-key" -> {
+                String key = options.get("--key");
+                if (key == null || !key.matches("\\d{44}")) {
+                    fail("INVALID_KEY", "--key must be 44 digits.");
+                }
+                boolean valid = NfceGenerator.accessKeyCheckDigit(key.substring(0, 43)) == key.charAt(43) - '0';
+                System.out.printf("{\"candidate\":\"java\",\"command\":\"check-key\",\"checkDigitValid\":%b}%n", valid);
+            }
+            default -> fail("UNKNOWN_COMMAND", "Supported commands: validate, sign, verify, generate, check-key.");
         }
+    }
+
+    // T016: same contract as the .NET POC. A synthetic issuer (all-zero CNPJ) may
+    // write inside the repository and prints its access key; any other issuer is
+    // taxpayer data: output must go outside the repository and the key is not printed.
+    private static void generate(Map<String, String> options) throws Exception {
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var fixture = mapper.readTree(Files.readAllBytes(requiredFile(options, "--case")));
+        var profile = mapper.readTree(Files.readAllBytes(requiredFile(options, "--profile")));
+        var issuer = mapper.readTree(Files.readAllBytes(requiredFile(options, "--issuer")));
+        boolean synthetic = "00000000000000".equals(issuer.path("cnpj").asText());
+
+        int nNF;
+        java.time.OffsetDateTime dhEmi;
+        String cNF = options.get("--cnf");
+        try {
+            nNF = Integer.parseInt(options.getOrDefault("--nnf", ""));
+            dhEmi = java.time.OffsetDateTime.parse(options.getOrDefault("--dhemi", ""),
+                    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx"));
+            if (cNF == null) {
+                throw new IllegalArgumentException();
+            }
+        } catch (RuntimeException exception) {
+            fail("INVALID_ARGUMENTS", "--nnf <int>, --cnf <8 digits> and --dhemi <yyyy-MM-ddTHH:mm:ss+hh:mm> are required; nothing is taken from the clock or RNG.");
+            return;
+        }
+
+        NfceGenerator.Result result;
+        try {
+            result = NfceGenerator.generate(fixture, profile, issuer, nNF, cNF, dhEmi);
+        } catch (NfceGenerator.RefusedException exception) {
+            fail("GENERATION_REFUSED", exception.getMessage());
+            return;
+        }
+
+        if (options.containsKey("--out")) {
+            Path out = Path.of(options.get("--out")).toAbsolutePath().normalize();
+            if (!synthetic && insideRepository(out)) {
+                fail("OUTPUT_INSIDE_REPOSITORY", "A document for a real issuer carries taxpayer data; write it outside the repository.");
+            }
+            Files.write(out, result.xml());
+        } else if (!synthetic) {
+            fail("OUT_REQUIRED", "A real issuer requires --out outside the repository; the XML is not printed.");
+        }
+
+        System.out.printf("{\"candidate\":\"java\",\"command\":\"generate\",\"profile\":\"%s\",\"syntheticIssuer\":%b,"
+                        + "\"accessKey\":%s,\"xmlSha256\":\"%s\",\"bytes\":%d}%n",
+                jsonEscape(profile.path("profileId").asText()), synthetic,
+                synthetic ? "\"" + result.accessKey() + "\"" : "null",
+                XmlDsigCommands.sha256(result.xml()), result.xml().length);
     }
 
     private static void validate(Map<String, String> options) {
