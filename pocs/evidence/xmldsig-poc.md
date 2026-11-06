@@ -1,6 +1,6 @@
 # XMLDSig/A1 POC evidence
 
-**Status:** IN PROGRESS — T017 remains open (Java and TypeScript pending)  
+**Status:** IN PROGRESS — .NET and Java 25 pass; TypeScript pending; MOC algorithm reference pending  
 **Scope:** enveloped signature over a synthetic, non-fiscal `infNFe`; nothing transmitted
 
 ## .NET 10 — PASS with the issuer A1
@@ -58,6 +58,57 @@ Two of them carry an authorization protocol whose `digVal` equals the signed
 digest. This is practical evidence that SEFAZ-SP accepts this profile for this A1.
 It does not replace the MOC confirmation below.
 
+## Java 25 — PASS with a throwaway key (2026-11-06)
+
+**Runtime:** Temurin 25.0.5+8 LTS, Maven 3.9.16. **Library:** JDK built-in
+`javax.xml.crypto.dsig` (JSR 105); no third-party dependency.
+**Commands:** `sign --pfx <pfx> [--xml <unsigned> --out <path>]`, `verify --xml <path> --cert-sha256 <fp>`.
+
+### Finding 1: JDK 25 secure validation forbids the NF-e algorithms
+
+With default settings, verification fails:
+`MarshalException: It is forbidden to use algorithm http://www.w3.org/2000/09/xmldsig#rsa-sha1 when secure validation is enabled`.
+The JDK's `jdk.xml.dsig.secureValidationPolicy` disallows `xmldsig#sha1` and
+`xmldsig#rsa-sha1`, both mandated by the NF-e signature profile.
+
+Resolution in the POC: at start-up, remove **only** those two entries from the
+policy and keep the other 15 rules (transform/reference limits, no `file`/`http`/
+`https` reference URIs, minimum key sizes, no duplicate Ids, no RetrievalMethod
+loops). Secure validation is not disabled. A JDK upgrade that changes the policy
+format or removes SHA-1 support entirely is a recurring maintenance risk for a
+Java stack.
+
+### Finding 2: JDK wraps Base64 in the signature
+
+By default the JDK writes `SignatureValue` and `X509Certificate` wrapped every 76
+characters with `&#13;` + line feed (17 occurrences in the golden). SEFAZ-authorized
+documents carry unwrapped values. Setting
+`com.sun.org.apache.xml.internal.security.ignoreLineBreaks=true` (an internal
+JDK property) removes the wrapping; `standalone="no"` was also removed from the
+declaration.
+
+### Results
+
+A throwaway self-signed PFX (deleted afterwards) was used for signing in both runtimes.
+
+| Check | Result |
+| --- | --- |
+| Synthetic payload: sign, verify, mutation rejected (cryptographic) | pass |
+| Golden NFC-e: sign, verify, `vNF` mutation rejected (cryptographic) | pass |
+| Same key, same golden: Java vs .NET `DigestValue` / `SignatureValue` | **identical** |
+| Signed bytes Java vs .NET | identical except attribute order in `infNFe` (Java DOM writes `Id` before `versao`); C14N output is the same |
+| Java verifies .NET-signed golden | pass |
+| .NET verifies Java-signed golden | pass |
+| Java verifies the three Bling-signed NFC-e (issuer A1) | pass, pass, pass |
+| Java verifies our SEFAZ-authorized `nfeProc` (series 2, nNF 1) | pass; `digVal` matches, `cStat` 100 |
+| Wrong `--cert-sha256` | `certificateSha256Matches=false` |
+| Mutation test counts only a cryptographic failure (not an exception) | yes |
+
+Because RSA PKCS#1 v1.5 is deterministic, identical `SignatureValue` across
+runtimes shows the Java canonicalization equals the .NET one byte for byte.
+Signing the already-authorized document with the real A1 in Java must therefore
+reproduce the authorized `SignatureValue` (operator check pending).
+
 ## Not proven
 
 - SEFAZ acceptance of a signature produced by **our** code; only an
@@ -71,5 +122,6 @@ It does not replace the MOC confirmation below.
 
 ## Remaining for T017
 
-- Java 25 and TypeScript candidates: same synthetic payload, same checks.
+- TypeScript candidate: same payload, same checks.
+- Java with the real A1: re-sign the unsigned series 2 nNF 1 document and compare with the authorized `SignatureValue`.
 - Confirm algorithms against MOC 7.0 and record the section reference here.
