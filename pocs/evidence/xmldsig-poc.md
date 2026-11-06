@@ -1,6 +1,6 @@
 # XMLDSig/A1 POC evidence
 
-**Status:** IN PROGRESS — .NET and Java 25 pass; TypeScript pending; MOC algorithm reference pending  
+**Status:** IN PROGRESS — .NET and Java 25 pass (both match a SEFAZ-authorized signature); TypeScript spike pending; MOC algorithm reference pending  
 **Scope:** enveloped signature over a synthetic, non-fiscal `infNFe`; nothing transmitted
 
 ## .NET 10 — PASS with the issuer A1
@@ -106,8 +106,22 @@ A throwaway self-signed PFX (deleted afterwards) was used for signing in both ru
 
 Because RSA PKCS#1 v1.5 is deterministic, identical `SignatureValue` across
 runtimes shows the Java canonicalization equals the .NET one byte for byte.
-Signing the already-authorized document with the real A1 in Java must therefore
-reproduce the authorized `SignatureValue` (operator check pending).
+
+### Java with the issuer A1 — PASS (operator run, 2026-11-06)
+
+Java re-signed the unsigned series 2 `nNF` 1 document (the one authorized in
+`homologation.md` run 3) with the issuer A1; nothing was transmitted.
+
+| Check | Result |
+| --- | --- |
+| A1 fingerprint | `62cb2f73…` |
+| `sign`: verified / mutation rejected | pass / pass |
+| `verify` (file SHA-256 `be856cf1…`): certificate matches / signature verified | pass / pass |
+| `DigestValue` identical to the SEFAZ-authorized document | **true** |
+| `SignatureValue` identical to the SEFAZ-authorized document | **true** |
+
+The Java signature is therefore byte-identical to one SEFAZ-SP homologation
+authorized (`cStat` 100), without spending a new number.
 
 ## Not proven
 
@@ -123,5 +137,4 @@ reproduce the authorized `SignatureValue` (operator check pending).
 ## Remaining for T017
 
 - TypeScript candidate: same payload, same checks.
-- Java with the real A1: re-sign the unsigned series 2 nNF 1 document and compare with the authorized `SignatureValue`.
 - Confirm algorithms against MOC 7.0 and record the section reference here.
