@@ -1,6 +1,6 @@
 # Linux container POC (.NET) — portability gate
 
-**Status:** PASS for local operations and TLS trust; real A1 call from the container pending (operator)  
+**Status:** PASS — local operations, pinned TLS trust and real A1 call to SEFAZ-SP from the container  
 **Executed:** 2026-11-06, Docker 29.9.2 (Linux engine) on the Windows development host
 
 ## Image
@@ -59,7 +59,35 @@ Design consequences for the foundation:
 - Production images must not "fix" this by disabling validation or by adding
   ICP-Brasil to the global store for all outbound traffic.
 
+## Real A1 from the container (PASS, 2026-11-06)
+
+First operator attempt: `SEFAZ_TRANSPORT_FAILED` — `TaskCanceledException`,
+connection not established within the 10 s `ConnectTimeout` (TCP + TLS). From
+the same container, the ICP AIA/CRL URLs answered in < 0.6 s and a TLS
+connection to the SEFAZ host took about 1 s, so the cause was not isolated.
+
+Change made in response: when the A1 PKCS#12 bundles CA certificates, the
+client chain is presented offline via `SslStreamCertificateContext.Create(...,
+offline: true)`; transport failures now report elapsed time, intermediate count,
+trust mode and the full inner-exception chain.
+
+Second attempt (operator, image rebuilt, same script, A1 mounted read-only,
+password via environment, `RRF5_SEFAZ_TRUST_ROOT` pinned):
+
+| Field | Value |
+| --- | --- |
+| HTTP status / elapsed | 200 / 3767 ms (Windows run 1: 462 ms) |
+| A1 fingerprint / intermediates in PFX | `62cb2f73…` / 2 |
+| Trust mode | pinned ICP-Brasil v10 |
+| `cStat` / `xMotivo` | 107 / Serviço em Operação |
+| `verAplic` / `tMed` | `SP_NFCE_PL_009_V400` / 60 |
+
+Whether the offline client chain fixed the first failure or it was transient is
+**not proven** (one failure, one success). The higher latency in the container
+should be measured over several runs before setting production timeouts.
+
 ## Pending
 
-- `status`/`authorize` from the container with the real A1 (operator run).
+- `authorize` from the container (only `status` was run with the real A1).
+- Repeated runs to characterise container latency and the first-attempt timeout.
 - Container build in CI and a Java/TypeScript equivalent.
