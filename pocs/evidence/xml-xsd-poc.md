@@ -1,7 +1,7 @@
 # XML/XSD POC evidence
 
-**Status:** IN PROGRESS  
-**Checked:** 2026-08-18
+**Status:** IN PROGRESS — .NET generation done; Java/TypeScript generation pending  
+**Checked:** 2026-08-18, updated 2026-11-06
 
 ## Frozen schema package
 
@@ -61,13 +61,48 @@ Findings:
   a CRT 1 issuer in 2026 is a business rule (see `fiscal-profile.md`), not
   decided by the schema.
 
-## Blocking input for the positive golden XML
+## Golden XML generation — .NET (2026-11-06)
 
-T016 is not complete. XML generation requires an attributable, approved
-synthetic fiscal profile containing at least issuer regime and the applicable
-CFOP, NCM and CST/CSOSN choices. `nfce-minimal.json` intentionally contains no
-such tax assertions. They must not be inferred from its synthetic product.
+**Inputs (all in Git, synthetic):** `pocs/fixtures/nfce-minimal.json`,
+`pocs/fixtures/fiscal-profile-sp-sn-own-production-v1.json` (interim
+operator-approved profile, see `fiscal-profile.md`) and
+`pocs/fixtures/issuer-synthetic.json` (all-zero CNPJ/IE, never transmitted).
 
-After approval, add the profile outside sensitive evidence, generate the same
-deterministic XML in all candidates, validate it with the frozen XSD, compare
-canonical output and record exact results here.
+**Command:**
+
+```text
+dotnet run --project pocs/dotnet -- generate --case pocs/fixtures/nfce-minimal.json   --profile pocs/fixtures/fiscal-profile-sp-sn-own-production-v1.json   --issuer pocs/fixtures/issuer-synthetic.json   --nnf 1 --cnf 12345678 --dhemi 2026-11-06T12:00:00-03:00 --out <path>
+```
+
+**Golden output:** `pocs/fixtures/golden/nfce-minimal-sp-sn-v1.unsigned.xml`,
+2307 bytes, SHA-256 `82e3ab6f83b85555f551d597afad93cba6a9d6557ad03b4ac34e77b255a504b1`.
+
+| Check | Result |
+| --- | --- |
+| Determinism: two runs, byte comparison | identical |
+| No clock/RNG input (`dhEmi`, `cNF`, `nNF` are explicit arguments) | yes |
+| Access-key check digit vs. 3 SEFAZ-issued keys (`check-key`) | 3/3 valid; one altered key rejected |
+| Unsigned XML against 010e v1.02 | only error: missing `Signature` (expected; schema requires it) |
+| Signed with a throwaway self-signed PFX (deleted after), XSD .NET / Java / TypeScript | valid / valid / valid |
+| Signature verified, `vNF` mutation rejected | pass / pass |
+| Signed output inside the repository refused | pass (`OUTPUT_INSIDE_REPOSITORY`) |
+
+Content decisions encoded (each traceable, none inferred by the code):
+
+- fiscal values (CRT, NCM, CFOP, CSOSN, PIS/COFINS CST/rate, `natOp`) come
+  only from the profile file; unsupported groups fail closed;
+- no `IBSCBS`/`IBSCBSTot`, no `vItem`/`vNFTot`, no `vTotTrib` (profile flags;
+  all `minOccurs="0"` in 010e v1.02);
+- homologation first-item `xProd`, `tpImp=4`, `modFrete=9`, no `dest` and
+  element order follow the SEFAZ-SP-authorized reference documents;
+- `infNFeSupl` uses the QR Code v3 online format observed in those documents
+  (`<url>?p=<chave>|3|<tpAmb>`); confirmation against the frozen QR manual/NT
+  is still pending;
+- `infRespTec` is written only when the issuer file provides it (absent in the
+  synthetic issuer).
+
+## Remaining for T016
+
+- Generate the same golden XML in Java and TypeScript and compare bytes (or
+  C14N output) with the .NET golden.
+- Repeat on Java 25/Maven (host has Java 19 and no Maven).

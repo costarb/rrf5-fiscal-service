@@ -1,0 +1,19 @@
+{
+  "comment": "Synthetic issuer for deterministic golden XML only. Never transmitted. The real issuer file lives outside Git with the same shape.",
+  "cnpj": "00000000000000",
+  "ie": "000000000000",
+  "name": "EMITENTE SINTETICO POC",
+  "address": {
+    "street": "RUA SINTETICA",
+    "number": "0",
+    "district": "BAIRRO SINTETICO",
+    "cityCode": "3550308",
+    "city": "Sao Paulo",
+    "uf": "SP",
+    "zip": "00000000"
+  },
+  "series": "1",
+  "qrCodeUrl": "https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode",
+  "consultationUrl": "https://www.homologacao.nfce.fazenda.sp.gov.br/consulta",
+  "technicalResponsible": null
+}

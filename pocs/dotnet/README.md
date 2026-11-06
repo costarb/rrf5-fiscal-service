@@ -40,9 +40,15 @@ or issuer data.
 dotnet run -- verify --xml <path outside the repository>\nfce.xml --cert-sha256 <A1 SHA-256>
 ```
 
-XML generation remains blocked until a responsible fiscal stakeholder supplies
-or approves the synthetic issuer and fiscal profile (CFOP, NCM, CRT and
-CST/CSOSN). The POC must not infer those values from the product description.
+The `generate` command (T016) builds an unsigned NFC-e from the normalized
+fixture, a fiscal profile file and an issuer file. `dhEmi`, `cNF` and `nNF` are
+explicit so output is deterministic. A real issuer requires `--out` outside the
+repository. `check-key` validates an access key check digit.
 
-Pending gates: approved fiscal profile and golden XML generation, XMLDSig with the real A1,
-SOAP mock, Linux container, DANFE/QR and dependency review.
+```powershell
+dotnet run -- generate --case ../fixtures/nfce-minimal.json --profile ../fixtures/fiscal-profile-sp-sn-own-production-v1.json --issuer ../fixtures/issuer-synthetic.json --nnf 1 --cnf 12345678 --dhemi 2026-11-06T12:00:00-03:00 --out <path>
+dotnet run -- sign --pfx <outside repository>\a1.pfx --xml <unsigned.xml> --out <outside repository>\signed.xml
+```
+
+Pending gates: SOAP mock and homologation authorization, Linux container,
+DANFE/QR and dependency review.

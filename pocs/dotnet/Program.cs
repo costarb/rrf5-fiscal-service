@@ -24,9 +24,29 @@ if (args.Length == 0)
             "validate --xml <path> --xsd <nfe_v4.00.xsd> --package <official.zip>",
             "status --pfx <a1.pfx outside the repository> (password from RRF5_A1_PASSWORD)",
             "sign --pfx <a1.pfx outside the repository> [--out <signed.xml outside the repository>]",
-            "verify --xml <authorized nfeProc outside the repository> --cert-sha256 <expected A1 fingerprint>"
+            "verify --xml <authorized nfeProc outside the repository> --cert-sha256 <expected A1 fingerprint>",
+            "generate --case <fixture.json> --profile <profile.json> --issuer <issuer.json> --nnf <n> --cnf <8 digits> --dhemi <ISO-8601> [--out <path>]",
+            "check-key --key <44-digit access key>"
         }
     });
+    return;
+}
+
+if (string.Equals(args[0], "generate", StringComparison.Ordinal))
+{
+    RunGenerate(ParseOptions(args[1..]));
+    return;
+}
+
+if (string.Equals(args[0], "check-key", StringComparison.Ordinal))
+{
+    var keyOptions = ParseOptions(args[1..]);
+    if (!keyOptions.TryGetValue("--key", out var key) || key.Length != 44 || !key.All(char.IsAsciiDigit))
+    {
+        Fail("INVALID_KEY", "--key must be 44 digits.");
+    }
+    var expectedDv = NfceGenerator.AccessKeyCheckDigit(key![..43]);
+    WriteResult(new { candidate = "dotnet", command = "check-key", checkDigitValid = expectedDv == key[43] - '0' });
     return;
 }
 
@@ -50,7 +70,7 @@ if (string.Equals(args[0], "sign", StringComparison.Ordinal))
 
 if (!string.Equals(args[0], "validate", StringComparison.Ordinal))
 {
-    Fail("UNKNOWN_COMMAND", "Supported commands: validate, status, sign, verify.");
+    Fail("UNKNOWN_COMMAND", "Supported commands: validate, status, sign, verify, generate, check-key.");
 }
 
 var options = ParseOptions(args[1..]);
@@ -212,7 +232,6 @@ static async Task RunStatusAsync(IReadOnlyDictionary<string, string> options)
 static void RunSign(IReadOnlyDictionary<string, string> options)
 {
     const string NfeNamespace = "http://www.portalfiscal.inf.br/nfe";
-    const string ReferenceId = "NFe00000000000000000000000000000000000000000000";
 
     using var certificate = LoadA1(options);
     using var privateKey = certificate.GetRSAPrivateKey();
@@ -222,11 +241,35 @@ static void RunSign(IReadOnlyDictionary<string, string> options)
         return;
     }
 
+    // Without --xml: synthetic non-fiscal payload. With --xml: an unsigned NFe
+    // produced by `generate`; the Signature is appended to NFe after infNFeSupl.
     var document = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
-    document.LoadXml(
-        $"<NFe xmlns=\"{NfeNamespace}\"><infNFe Id=\"{ReferenceId}\" versao=\"4.00\">" +
-        "<poc>SYNTHETIC NON-FISCAL XMLDSIG TEST - NO TAX CONTENT</poc><vTest>10.00</vTest>" +
-        "</infNFe></NFe>");
+    var documentMode = options.TryGetValue("--xml", out var inputXml);
+    if (documentMode)
+    {
+        if (!options.ContainsKey("--out"))
+        {
+            Fail("OUT_REQUIRED", "Signing a document requires --out outside the repository.");
+        }
+        document.Load(RequiredFile(options, "--xml"));
+    }
+    else
+    {
+        document.LoadXml(
+            $"<NFe xmlns=\"{NfeNamespace}\"><infNFe Id=\"NFe00000000000000000000000000000000000000000000\" versao=\"4.00\">" +
+            "<poc>SYNTHETIC NON-FISCAL XMLDSIG TEST - NO TAX CONTENT</poc><vTest>10.00</vTest>" +
+            "</infNFe></NFe>");
+    }
+    var signNamespaces = new XmlNamespaceManager(document.NameTable);
+    signNamespaces.AddNamespace("nfe", NfeNamespace);
+    signNamespaces.AddNamespace("ds", SignedXml.XmlDsigNamespaceUrl);
+    var infNfeNodes = document.SelectNodes("/nfe:NFe/nfe:infNFe", signNamespaces)!;
+    if (infNfeNodes.Count != 1 || document.SelectNodes("//ds:Signature", signNamespaces)!.Count != 0)
+    {
+        Fail("UNEXPECTED_STRUCTURE", "Expected one NFe/infNFe and no existing Signature.");
+    }
+    var ReferenceId = ((XmlElement)infNfeNodes[0]!).GetAttribute("Id");
+    var mutationPath = documentMode ? "//nfe:infNFe/nfe:total/nfe:ICMSTot/nfe:vNF" : "//nfe:vTest";
 
     var signedXml = new SignedXml(document) { SigningKey = privateKey };
     signedXml.SignedInfo!.CanonicalizationMethod = SignedXml.XmlDsigC14NTransformUrl;
@@ -248,7 +291,8 @@ static void RunSign(IReadOnlyDictionary<string, string> options)
     mutated.LoadXml(signedText);
     var namespaces = new XmlNamespaceManager(mutated.NameTable);
     namespaces.AddNamespace("nfe", NfeNamespace);
-    mutated.SelectSingleNode("//nfe:vTest", namespaces)!.InnerText = "10.01";
+    var mutationTarget = mutated.SelectSingleNode(mutationPath, namespaces)!;
+    mutationTarget.InnerText = mutationTarget.InnerText == "10.01" ? "10.02" : "10.01";
     var mutationRejected = !VerifyNfeSignature(mutated.OuterXml, ReferenceId, certificate);
 
     if (options.TryGetValue("--out", out var outPath))
@@ -265,11 +309,11 @@ static void RunSign(IReadOnlyDictionary<string, string> options)
     {
         candidate = "dotnet",
         command = "sign",
-        scope = "synthetic-non-fiscal-xml",
+        scope = documentMode ? "generated-nfe-document" : "synthetic-non-fiscal-xml",
         signatureMethod = SignedXml.XmlDsigRSASHA1Url,
         digestMethod = SignedXml.XmlDsigSHA1Url,
         canonicalization = SignedXml.XmlDsigC14NTransformUrl,
-        reference = $"#{ReferenceId}",
+        reference = documentMode ? "#NFe<access key>" : $"#{ReferenceId}",
         certificateSha256 = certificate.GetCertHashString(HashAlgorithmName.SHA256).ToLowerInvariant(),
         signatureVerified = verified,
         mutationRejected
@@ -279,6 +323,65 @@ static void RunSign(IReadOnlyDictionary<string, string> options)
     {
         Environment.ExitCode = 2;
     }
+}
+
+// T016: deterministic NFC-e generation. A synthetic issuer (all-zero CNPJ) may
+// write inside the repository and prints its access key; any other issuer is
+// treated as taxpayer data: output must go outside the repository and the access
+// key (which embeds the CNPJ) is not printed.
+static void RunGenerate(IReadOnlyDictionary<string, string> options)
+{
+    JsonElement Load(string name) => JsonDocument.Parse(File.ReadAllBytes(RequiredFile(options, name))).RootElement;
+
+    var fixture = Load("--case");
+    var profile = Load("--profile");
+    var issuer = Load("--issuer");
+    var synthetic = issuer.GetProperty("cnpj").GetString() == "00000000000000";
+
+    if (!options.TryGetValue("--nnf", out var nnfText) || !int.TryParse(nnfText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var nNF)
+        || !options.TryGetValue("--cnf", out var cNF)
+        || !options.TryGetValue("--dhemi", out var dhEmiText)
+        || !DateTimeOffset.TryParseExact(dhEmiText, "yyyy-MM-dd'T'HH:mm:sszzz", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var dhEmi))
+    {
+        Fail("INVALID_ARGUMENTS", "--nnf <int>, --cnf <8 digits> and --dhemi <yyyy-MM-ddTHH:mm:ss+hh:mm> are required; nothing is taken from the clock or RNG.");
+        return;
+    }
+
+    NfceGenerator.Result result;
+    try
+    {
+        result = NfceGenerator.Generate(fixture, profile, issuer, nNF, cNF!, dhEmi);
+    }
+    catch (Exception exception) when (exception is InvalidDataException or KeyNotFoundException or FormatException or InvalidOperationException)
+    {
+        Fail("GENERATION_REFUSED", exception.Message);
+        return;
+    }
+
+    if (options.TryGetValue("--out", out var outPath))
+    {
+        var fullOut = Path.GetFullPath(outPath);
+        if (!synthetic && fullOut.StartsWith(RepositoryRoot(), StringComparison.OrdinalIgnoreCase))
+        {
+            Fail("OUTPUT_INSIDE_REPOSITORY", "A document for a real issuer carries taxpayer data; write it outside the repository.");
+        }
+        File.WriteAllText(fullOut, result.Xml, new UTF8Encoding(false));
+    }
+    else if (!synthetic)
+    {
+        Fail("OUT_REQUIRED", "A real issuer requires --out outside the repository; the XML is not printed.");
+    }
+
+    WriteResult(new
+    {
+        candidate = "dotnet",
+        command = "generate",
+        profile = profile.GetProperty("profileId").GetString(),
+        syntheticIssuer = synthetic,
+        accessKey = synthetic ? result.AccessKey : null,
+        xmlSha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(result.Xml))).ToLowerInvariant(),
+        bytes = Encoding.UTF8.GetByteCount(result.Xml)
+    });
 }
 
 // T017 cross-check: verifies the XMLDSig of a document already authorized by

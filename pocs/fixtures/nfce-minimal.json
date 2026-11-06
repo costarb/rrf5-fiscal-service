@@ -12,7 +12,7 @@
       "quantity": "1.0000",
       "unitPrice": "10.00",
       "totalPrice": "10.00",
-      "fiscalProfileId": "FISCAL-PROFILE-APPROVAL-REQUIRED"
+      "fiscalProfileId": "SP-SN-OWN-PRODUCTION-V1"
     }
   ],
   "payments": [
