@@ -12,10 +12,14 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
+    "@types/node-forge": "1.3.14",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   },
   "dependencies": {
+    "@xmldom/xmldom": "0.9.12",
+    "node-forge": "1.4.3",
+    "xml-crypto": "6.4.0",
     "xmllint-wasm": "5.2.0"
   }
 }
