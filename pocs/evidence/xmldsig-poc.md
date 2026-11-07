@@ -1,6 +1,6 @@
 # XMLDSig/A1 POC evidence
 
-**Status:** IN PROGRESS — .NET and Java 25 pass (both match a SEFAZ-authorized signature); TypeScript spike pending; MOC algorithm reference pending  
+**Status:** COMPLETE (T017) — .NET and Java 25 match a SEFAZ-authorized signature; TypeScript identical with a throwaway key; MOC section reference carried as a limitation to `discovery-results.md`  
 **Scope:** enveloped signature over a synthetic, non-fiscal `infNFe`; nothing transmitted
 
 ## .NET 10 — PASS with the issuer A1
@@ -134,7 +134,10 @@ authorized (`cStat` 100), without spending a new number.
   frozen MOC bytes before T017 is closed.
 - Linux/container execution and certificate handling in a secret store.
 
-## Remaining for T017
+## T017 closure (2026-11-07)
 
-- TypeScript candidate: same payload, same checks.
-- Confirm algorithms against MOC 7.0 and record the section reference here.
+- TypeScript: same payload and checks pass with a throwaway key; signatures are
+  identical to .NET and Java with the same key (`typescript-spike.md`).
+- The algorithms are proven in practice: SEFAZ-SP authorized a document signed by
+  the .NET POC (`homologation.md`). The MOC 7.0 section reference was not recorded
+  because the PDF is not on this host; it is listed in `discovery-results.md`.

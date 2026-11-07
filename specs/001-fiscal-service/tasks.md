@@ -27,9 +27,9 @@
 - [x] T013 [P] [US1] Scaffold isolated Java 25 POC in `pocs/java/`
 - [x] T014 [P] [US1] Scaffold TypeScript baseline POC in `pocs/typescript/`
 - [x] T015 [US1] Create one normalized sanitized NFC-e fixture in `pocs/fixtures/nfce-minimal.json`
-- [ ] T016 [US1] Implement XML generation and official XSD validation in each candidate under `pocs/*/`
-- [ ] T017 [US1] Implement A1 loading, XML signing, signature verification and mutation-negative test in `pocs/*/`
-- [ ] T018 [US1] Implement mock SOAP authorization and sanitized tracing in `pocs/*/`
+- [x] T016 [US1] Implement XML generation and official XSD validation in each candidate under `pocs/*/`
+- [x] T017 [US1] Implement A1 loading, XML signing, signature verification and mutation-negative test in `pocs/*/`
+- [x] T018 [US1] Implement mock SOAP authorization and sanitized tracing in `pocs/*/`
 - [x] T019 [US1] Execute controlled SEFAZ-SP homologation test and record evidence in `pocs/evidence/homologation.md`
 - [x] T020 [US1] Validate DANFE/QR capability or blocking gaps in `pocs/evidence/danfe-qr.md`
 
@@ -56,7 +56,7 @@
 - [x] T030 [US6] Produce license/SBOM/maintenance review in `pocs/evidence/dependency-review.md`
 - [x] T031 [US6] Update `docs/fiscal-service/adr/ADR-011-fiscal-library.md` with the accepted library strategy
 - [x] T032 [US6] Update `docs/fiscal-service/adr/ADR-012-technology-stack.md` with the accepted stack
-- [ ] T033 [US6] Record POC limitations and external blockers in `specs/001-fiscal-service/discovery-results.md`
+- [x] T033 [US6] Record POC limitations and external blockers in `specs/001-fiscal-service/discovery-results.md`
 - [ ] T034 [US6] Create the foundation entry checklist in `specs/001-fiscal-service/checklists/foundation-entry.md`
 
 ## Phase 8 — Quality gate

@@ -1,7 +1,7 @@
 # XML/XSD POC evidence
 
-**Status:** IN PROGRESS — .NET and Java 25 generation byte-identical; TypeScript generation pending  
-**Checked:** 2026-08-18, updated 2026-11-06
+**Status:** COMPLETE (T016) — .NET, Java 25 and TypeScript generation byte-identical and XSD-valid  
+**Checked:** 2026-08-18, updated 2026-11-07
 
 ## Frozen schema package
 
@@ -138,6 +138,7 @@ Rounding parity needed one explicit decision: the .NET POC uses `decimal.Round`
 formatting; Java mirrors both (`HALF_EVEN` and `HALF_UP`). A production service
 must define the rounding rule from the official layout, not from a runtime default.
 
-## Remaining for T016
+## T016 closure (2026-11-07)
 
-- TypeScript generation and byte comparison with the golden.
+TypeScript generation is byte-identical to the golden and to the edge fixture
+(`typescript-spike.md`). Nothing remains for T016.
