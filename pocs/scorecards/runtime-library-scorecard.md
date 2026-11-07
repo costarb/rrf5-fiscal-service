@@ -1,6 +1,6 @@
 # Runtime and library scorecard (T029)
 
-**Status:** SCORED — recommendation .NET 10; acceptance blocked only by gates open for all candidates (T020, T030/ADR-011)  
+**Status:** SCORED — .NET 10 accepted in ADR-012 on 2026-11-07, after T020, T030 and ADR-011 (own implementation) closed. Sections 1 and 3 below are the 2026-11-06 snapshot  
 **Date:** 2026-11-06  
 **Context decided by the operator (2026-11-06):** independent service (spec FR-001, ADR-001); language chosen here.
 **Operator inputs (2026-11-06):** solo developer assisted by LLM tools; working knowledge of all three languages,
