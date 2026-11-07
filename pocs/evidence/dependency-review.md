@@ -1,35 +1,49 @@
 # Dependency, license, SBOM and maintenance review
 
-**Status:** IN PROGRESS — T030 remains open  
-**Checked:** 2026-08-18
+**Status:** COMPLETE for discovery (T030) — remaining items are accepted
+external blockers carried to `specs/001-fiscal-service/discovery-results.md` (T033)  
+**Checked:** 2026-11-07 (first pass 2026-08-18)
 
 ## Current dependency inventory
 
-| POC | Runtime dependencies | Development/build dependencies | Audit result |
+| POC | Runtime dependencies | Development/build dependencies | Audit result (2026-11-07) |
 | --- | --- | --- | --- |
-| .NET 10 | `System.Security.Cryptography.Xml` 10.0.14 (Microsoft, MIT) for XMLDSig; transitive `System.Security.Cryptography.Pkcs` 10.0.14; `QRCoder` 1.8.1 (MIT) for the DANFE QR (T020), which pulls `System.Drawing.Common` 6.0.0 and `Microsoft.Win32.SystemEvents` 6.0.0 transitively | SDK 10.0.302 | `dotnet list package --include-transitive --vulnerable` on 2026-11-06: no vulnerable package |
-| Java 25 target | `jackson-databind` 2.22.4 (+ `jackson-core` 2.22.4, `jackson-annotations` 2.22) for JSON input only; XML, XSD, XMLDSig and StAX from the JDK | Maven 3.9.16, `maven-dependency-plugin` 3.11.0 (copies runtime jars to `target/lib`) | Built and run on Temurin 25.0.5 on 2026-11-06; dependency vulnerability scan not yet run |
-| TypeScript XML | `xmllint-wasm` 5.2.0 | TypeScript 5.9.3, tsx 4.23.5 and type/build packages | npm audit previously passed with zero findings |
-| Contract sample | `openapi-fetch` 0.17.0 plus helper | openapi-typescript 7.13.0, Redocly CLI 1.34.19, TypeScript 5.9.2 | runtime audit: zero; full dev audit: 12 moderate, 2 high |
+| .NET 10 | `System.Security.Cryptography.Xml` 10.0.14 (Microsoft, MIT) for XMLDSig; transitive `System.Security.Cryptography.Pkcs` 10.0.14; `QRCoder` 1.8.1 (MIT) for the DANFE QR (T020); `System.Drawing.Common` pinned to 10.0.14 (was transitive 6.0.0, out of support) | SDK 10.0.302 | `dotnet list package --vulnerable --include-transitive`: none. Trivy on SBOM: 0 |
+| Java 25 target | `jackson-databind` 2.22.4 (+ `jackson-core` 2.22.4, `jackson-annotations` 2.22) for JSON input only; XML, XSD, XMLDSig and StAX from the JDK | Maven 3.9.16, `maven-dependency-plugin` 3.11.0 | Trivy on CycloneDX SBOM: 0 |
+| TypeScript XML | `xmllint-wasm` 5.2.0 | TypeScript 5.9.3, tsx 4.23.5 and type/build packages | `npm audit` (full tree): 0. Trivy on SBOM: 0 |
+| Contract sample | `openapi-fetch` 0.17.0 plus helper | openapi-typescript 7.13.0, Redocly CLI 1.34.24, TypeScript 5.9.2 | runtime audit: 0; full dev audit: 3 high (all via Redocly v1 → `faker`) |
 | Uncertain-result simulation | Node.js standard library only | none | no package dependency |
+| .NET container (`pocs/dotnet/Dockerfile`) | `mcr.microsoft.com/dotnet/runtime:10.0` (Ubuntu 24.04) + published app | `mcr.microsoft.com/dotnet/sdk:10.0` (build stage only) | Trivy image: .NET layers 0; OS packages 28 (2 high, 21 medium, 5 low; 9 with upstream fix) |
 
-NPM lockfiles are the reproducible package inventories for the two npm POCs.
-The Java POM is an empty runtime manifest; the .NET project file pins only the
-Microsoft XMLDSig package. A release SBOM
-must be emitted from the final restored/published artifacts, not reconstructed
-from this table.
+## SBOMs
+
+CycloneDX JSON, generated on 2026-11-07 from restored/published trees, stored in
+[`sbom/`](sbom/):
+
+| File | Generator | Components |
+| --- | --- | --- |
+| `dotnet.cdx.json` | CycloneDX for .NET (`dotnet-CycloneDX`) | 5 NuGet packages |
+| `java.cdx.json` | `org.cyclonedx:cyclonedx-maven-plugin` 2.9.1 (`makeBom`) | 3 Maven artifacts |
+| `typescript.cdx.json` | `npm sbom --sbom-format cyclonedx --omit=dev` | 7 npm packages |
+| `contract.cdx.json` | `npm sbom --sbom-format cyclonedx --omit=dev` | 2 npm packages |
+| `container-dotnet.cdx.json` | Trivy 0.76.1 (`trivy image --format cyclonedx`) | 107 OS + .NET components |
+
+These are discovery evidence. The release SBOM must still be emitted by the
+release pipeline from the final published artifacts and attached to build
+provenance; it must not be copied from this folder.
 
 ## License and maintenance observations
 
 | Component/candidate | License evidence | Maintenance evidence | Decision at this stage |
 | --- | --- | --- | --- |
-| `xmllint-wasm` 5.2.0 | npm declares MIT; bundled libxml2 notices must remain in distribution review | Published approximately four months before this check; active package and no native runtime toolchain | Accept for isolated XSD POC only; validate bundled notices/SBOM before product use |
-| `openapi-fetch` 0.17.0 | npm/GitHub project uses MIT ecosystem licensing | Current release used by generated client; runtime audit clean | Accept for contract POC/client candidate |
-| Redocly CLI 1.34.19 | development CLI; license metadata retained in lock tree | Maintained v2 exists, but requires Node 22 | Restricted to trusted local contract lint in CI; not runtime-approved; migrate to v2/Node 22 |
-| Jackson 2.22.4 | Apache-2.0 (FasterXML) | Latest 2.x release on Maven Central on 2026-11-06 (metadata updated 2026-10-17); a 3.x line (3.2.4, `tools.jackson` packages, renamed APIs) also exists | Accept for POC JSON parsing; a Java foundation must choose 2.x vs 3.x deliberately |
-| `QRCoder` 1.8.1 | nuspec license expression MIT; repository `github.com/Shane32/QRCoder` | The most-used .NET QR encoder (about 94 M NuGet downloads); `QRCoder.Core` is an unrelated third-party fork and was not used | Accept for the DANFE POC. Only `QRCodeGenerator` is used, never the drawing API. Its net6.0 dependency group pulls `System.Drawing.Common` 6.0.0: Windows-only, out of support and unused here. The foundation must remove it from the shipped tree (a QRCoder release without it, an explicit trimmed reference, or another encoder) before release |
-| Unimake.DFe | GitHub repository declares MIT and NFe/NFCe support | Repository shows continuing activity and extensive history | Candidate only; not installed or approved until T016–T020 prove current XSD, XMLDSig/A1, SOAP, RTC, DANFE/QR and SP behavior |
-| Java_NFe | GitHub declares MIT; Maven coordinates documented by project | v4.1.1 and recent history claim PL.010d/RTC work and tests | Candidate only; current official package frozen here is 010e v1.02, so coverage must be demonstrated rather than inferred |
+| `xmllint-wasm` 5.2.0 | npm declares MIT; bundled libxml2 notices must remain in distribution review | Active package; no native runtime toolchain | Accept for isolated XSD POC only; validate bundled notices before product use |
+| `openapi-fetch` 0.17.0 | MIT | Current release used by generated client; runtime audit clean | Accept for contract POC/client candidate |
+| Redocly CLI 1.34.24 | development CLI; license metadata retained in lock tree | Latest 1.x; maintained v2 requires Node 22 | Restricted to trusted local contract lint in CI; not runtime-approved; migrate to v2/Node 22 |
+| Jackson 2.22.4 | Apache-2.0 (FasterXML) | Latest 2.x on Maven Central; a 3.x line (`tools.jackson`, renamed APIs) also exists | Accept for POC JSON parsing; a Java foundation must choose 2.x vs 3.x deliberately |
+| `QRCoder` 1.8.1 | MIT; `github.com/Shane32/QRCoder` | The most-used .NET QR encoder; `QRCoder.Core` is an unrelated fork and was not used | Accept for the DANFE POC. Only `QRCodeGenerator` is used, never the drawing API |
+| `System.Drawing.Common` | MIT (Microsoft) | 10.0.14 is in the supported .NET 10 servicing line | Pinned explicitly so the out-of-support 6.0.0 no longer resolves. Unused by the code; the foundation should still drop it from the shipped tree when QRCoder or the chosen encoder allows |
+| Unimake.DFe | GitHub declares MIT and NFe/NFCe support | Continuing activity | Candidate only; not installed |
+| Java_NFe | GitHub declares MIT | v4.1.1 claims PL.010d/RTC work | Candidate only; current frozen package is 010e v1.02, so coverage must be demonstrated |
 
 Project README claims, stars, test counts and release notes are maintenance
 signals, not proof of fiscal correctness. Official schema/manual hashes and
@@ -37,51 +51,67 @@ homologation evidence prevail.
 
 ## Vulnerability disposition
 
-`openapi-fetch`, the only runtime dependency of the sample client, has zero npm
-audit findings. Redocly v1.34.19 brings 14 transitive development findings (12
-moderate, 2 high) through its telemetry/HTTP tooling. It runs only in CI against
-the repository-owned OpenAPI file and is neither imported nor shipped.
+**Application runtimes:** zero findings in every POC runtime tree (npm audit,
+`dotnet list package --vulnerable`, Trivy against all four application SBOMs).
 
-This is a time-bounded discovery exception, not production acceptance:
+**Contract tooling (development only):** Redocly was raised from 1.34.19 to
+1.34.24 and safe `npm audit fix` applied, taking the full dev tree from 21
+findings (3 critical) to 3 high, all through `faker` inside Redocly v1. The
+contract still lints clean with 1.34.24. This remains a time-bounded discovery
+exception, not production acceptance:
 
 - do not expose the CLI as a service or feed it untrusted remote specifications;
 - keep `npm audit --omit=dev` as a release gate;
-- run full audit visibly and track the development exception;
 - move contract tooling to Node 22 and Redocly v2 before foundation release, or
   select another OpenAPI 3.1 validator with a clean maintained tree.
 
-Testing Redocly 1.27.2 did not solve the issue: it retained two high findings,
-including prototype pollution in `redoc`, so the tested 1.34.19 pin was restored.
+**Container OS layer:** all 28 findings are Ubuntu 24.04 packages of the
+official `runtime:10.0` base, still present after `docker build --pull`
+(base digest `sha256:4f1f30cf0bb4…`). The two high ones are
+CVE-2026-109518 in `apt`/`libapt-pkg6.0t64` 2.8.3 (fixed in 2.8.4ubuntu0.1),
+which the service never invokes at runtime. The chiseled variant
+`mcr.microsoft.com/dotnet/runtime:10.0-noble-chiseled` has no package manager
+or shell and scans at **2 medium, 0 high**, at 97 MB versus 203 MB.
+Recommendation for the foundation image: chiseled runtime base, rebuilt on
+every base-image update, with an image scan as a release gate (fail on
+fixable high/critical). The POC Dockerfile was left unchanged because the
+SEFAZ-SP chain diagnostics in `container-poc.md` used shell tools.
 
-## Reproducible inventory commands
+## Reproducible commands
 
 ```text
-dotnet list pocs/dotnet/Rrf5.Fiscal.Poc.csproj package --include-transitive
-npm --prefix pocs/typescript ls --all --json
-npm --prefix pocs/typescript audit
-npm --prefix pocs/contract ls --all --json
+dotnet list pocs/dotnet/Rrf5.Fiscal.Poc.csproj package --include-transitive --vulnerable
+dotnet-CycloneDX pocs/dotnet/Rrf5.Fiscal.Poc.csproj --output-format Json --filename dotnet.cdx.json --output <dir>
+mvn -f pocs/java/pom.xml "org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeBom" "-DoutputFormat=json" "-DoutputName=java.cdx"
+npm --prefix pocs/typescript sbom --sbom-format cyclonedx --omit=dev
+npm --prefix pocs/contract sbom --sbom-format cyclonedx --omit=dev
 npm --prefix pocs/contract audit --omit=dev
 npm --prefix pocs/contract audit
+trivy sbom <file>.cdx.json
+docker build --pull -t rrf5-fiscal-poc-dotnet:t030 pocs/dotnet
+trivy image --format cyclonedx --output container-dotnet.cdx.json rrf5-fiscal-poc-dotnet:t030
+trivy image mcr.microsoft.com/dotnet/runtime:10.0-noble-chiseled
 ```
 
-For final delivery, generate CycloneDX JSON for every published application and
-container, preserve package hashes/licenses, and attach it to build provenance.
-An npm lockfile alone is not the final multi-runtime SBOM.
+Note: on PowerShell 5, write SBOMs without a UTF-8 BOM (Trivy rejects them
+otherwise) and quote Maven `-D` arguments containing dots.
 
-## Remaining T030 blockers
+## Closed since the first pass
 
-- no fiscal library has been added to .NET or Java, so its complete transitive
-  license/vulnerability tree cannot yet be reviewed;
-- Java 25/Maven are unavailable on this host;
-- DANFE/QR: QRCoder 1.8.1 selected for the POC (T020). The transitive
-  `System.Drawing.Common` 6.0.0 still has to be removed from the foundation
-  tree;
-- no container image exists for OS-package SBOM and layer scanning;
-- Unimake.DFe and Java_NFe must be tested against the frozen official artifacts,
-  not approved from metadata;
-- commercial/legal review must confirm redistribution obligations for normative
-  artifacts and bundled native/WASM notices.
+- Java 25/Maven available on this host; Java SBOM generated and scanned.
+- `System.Drawing.Common` 6.0.0 no longer resolves (pinned to 10.0.14).
+- Container image built, SBOM generated and OS layers scanned.
+- Contract tooling raised to Redocly 1.34.24; critical findings removed.
 
-T030 may be checked only after these blockers are closed or recorded as accepted
-external blockers in discovery results. This document intentionally does not
-select a runtime or fiscal library.
+## Accepted external blockers (carried to T033)
+
+- No fiscal library has been added to .NET or Java; its transitive
+  license/vulnerability tree can only be reviewed after the runtime decision.
+  Unimake.DFe and Java_NFe must then be tested against the frozen official
+  artifacts, not approved from metadata.
+- Commercial/legal review must confirm redistribution obligations for
+  normative artifacts and bundled native/WASM notices (libxml2 in
+  `xmllint-wasm`, OS packages in the container image).
+- Redocly v2 migration depends on moving contract tooling to Node 22.
+
+This document intentionally does not select a runtime or fiscal library.
