@@ -57,7 +57,7 @@
 - [x] T031 [US6] Update `docs/fiscal-service/adr/ADR-011-fiscal-library.md` with the accepted library strategy
 - [x] T032 [US6] Update `docs/fiscal-service/adr/ADR-012-technology-stack.md` with the accepted stack
 - [x] T033 [US6] Record POC limitations and external blockers in `specs/001-fiscal-service/discovery-results.md`
-- [ ] T034 [US6] Create the foundation entry checklist in `specs/001-fiscal-service/checklists/foundation-entry.md`
+- [x] T034 [US6] Create the foundation entry checklist in `specs/001-fiscal-service/checklists/foundation-entry.md`
 
 ## Phase 8 — Quality gate
 
