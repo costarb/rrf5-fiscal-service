@@ -15,4 +15,33 @@ The authoritative URLs, scope and checked date are stored in `regulatory/catalog
 
 The 2026-08-18 recheck invalidated the earlier assumption that NT 2025.002 v1.40 and XSD 010e v1.01 were current. No XML/XSD POC may pin those superseded versions merely because they appear in the initial catalog snapshot.
 
+## 2026-11-07 recheck: 010g v1.03
+
+The operator confirmed from an official source that the XSD package in use is
+**010g v1.03** (an intermediate **010f v1.04** also exists). Both supersede
+010e v1.02. Only the extracted XSDs were obtained (kept outside Git under
+`rrf5-private/sefaz/schemas/`); the official ZIP, its URL, publication date and
+included NTs are still needed to freeze the package under the rule above.
+Catalog entry `xsd-nfe-010g-1-03` has `hashStatus: PENDING_ARTIFACT`.
+
+Interim per-file SHA-256 (extracted XSDs, not the ZIP):
+
+| File | SHA-256 |
+| --- | --- |
+| `NFe/nfe_v4.00.xsd` | `adce3646c13ceb54922ec3142fc1dc45bd4fb839ac35ad583e86c733c07d27df` |
+| `NFe/leiauteNFe_v4.00.xsd` | `e8470f5d85ded3d99010676087907214aef71c9626140b672abbafa72656c0f5` |
+| `NFe/DFeTiposBasicos_v1.00.xsd` | `2da0785a6c70db4f93571187a28514dde715cfd0b0f41e746176fbf3444549f2` |
+| `NFe/tiposBasico_v4.00.xsd` | `772619c85723e598840667ca66e7298a250442df47eeb94b397d2a333ce62047` |
+| `NFe/xmldsig-core-schema_v1.01.xsd` | `f56744a5f51c03f027de13f39f869307091781a9ef1d91b1ebe14719ce28e1ac` |
+| `Evento/e110001_v1.00.xsd` | `3a46fcc6db6c673ae7bbf9767df5fa99d1f4e5b7fbec6bb9575ae358c95b1616` |
+| `Evento/e110300_v1.00.xsd` | `3def9bd3e19dfb3e78688afc540c049dc77f6fb11ae2603d85b6e759a7908fa6` |
+| `Evento/tiposBasico_v1.03.xsd` | `88bae738184e4af32286a4825392adf7da458dc1fa763e2feca3b90708aa7fff` |
+
+Diagnostic result (not a freeze): the golden NFC-e (SHA-256 `82e3ab6f…`), signed
+with a throwaway key, is schema-valid against 010e v1.02, 010f v1.04 and
+010g v1.03. 010g adds optional elements (`vUnComLiq`, `vProdLiqTot`, `gPgtoVinc`,
+`ICMSPrevistoPagtoAntecip`), makes `IE` optional and restructures the
+`gIBSCBS`/`gIBSCBSMono` choice. The POCs still pin the 010e ZIP hash until the
+010g ZIP is frozen.
+
 No row in this snapshot is an approval of tax treatment. Effective dates and applicability must be reviewed against later technical notes and by the responsible fiscal stakeholder.

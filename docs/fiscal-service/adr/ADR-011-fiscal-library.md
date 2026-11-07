@@ -29,7 +29,7 @@ recursos lidos por *reflection-only*), e repositório `github.com/Unimake/DFe`.
 | Licença | MIT no GitHub; o nuspec não declara licença (sem `license`/`licenseUrl`) |
 | Manutenção | Muito ativa: 722 versões, publicação diária, 1 issue aberta. Versionamento por data, sem semver nem canal estável |
 | Resposta a NT | Pacote oficial 010e v1.02 (publicado 2026-07-10) incorporado em 2026-07-14 |
-| Fidelidade aos XSD oficiais | **Diverge.** Dos 5 XSD do pacote 010e v1.02, 3 são idênticos; `leiauteNFe_v4.00.xsd` (+53/−7) e `DFeTiposBasicos_v1.00.xsd` (+454/−174) foram editados pela biblioteca em 2026-09-08 e 2026-10-26: acrescentam `vUnComLiq`, `vProdLiqTot`, `gPgtoVinc`, `ICMSPrevistoPagtoAntecip`, tornam `IE` opcional, trocam a escolha `gIBSCBS`/`gIBSCBSMono` e removem `TRBSN`. Em 2026-06-30 o schema já fora relaxado para aceitar `tpNFCredito` 06 antes do pacote oficial. Não foi verificado se essas mudanças correspondem a uma NT posterior ainda sem pacote XSD |
+| Fidelidade aos XSD oficiais | **Corrigido em 2026-11-07 (ver Emenda).** Segue o pacote oficial vigente 010g v1.03: 4 dos 5 XSD de NF-e são iguais ao oficial; em `leiauteNFe_v4.00.xsd` a única diferença é um prefixo de namespace no XPath das duas restrições `xs:unique` de `gPgto`, que torna efetiva a unicidade que o seletor oficial sem prefixo não aplica. Em 2026-06-30 o schema foi relaxado para aceitar `tpNFCredito` 06 antes do pacote oficial |
 | Empacotamento | `netstandard2.0`, DLL única de 24,6 MB com todos os DF-e (NF-e, CT-e, MDF-e, NFS-e etc.) e 1.687 recursos; dependências `Unimake.Utils`, `Unimake.Extensions`, `Unimake.Cryptography`, `System.Net.Http.WinHttpHandler` |
 | Linux/container | Não provado; `WinHttpHandler` é específico de Windows |
 | Prova na nossa POC | Nenhuma: não instalado, sem homologação, sem comparação com o golden XML |
@@ -57,9 +57,10 @@ Java_NFe não foi avaliado: só se aplica se o ADR-012 escolher Java.
 
 - A implementação própria já passou por todos os gates de US1 contra a SEFAZ-SP; a
   biblioteca não passou por nenhum.
-- A biblioteca altera os XSD oficiais, o que contraria a regra do projeto de que a
-  documentação oficial prevalece e tornaria a validação não reprodutível contra a
-  baseline congelada.
+- A biblioteca embute os XSD e os ajusta pontualmente (unicidade de `gPgto`,
+  aceite antecipado de `tpNFCredito` 06); a validação do serviço precisa ser
+  reprodutível contra o pacote oficial congelado com hash, não contra uma cópia
+  embutida que muda a cada publicação diária.
 - Superfície e cadeia de fornecimento menores: 4 pacotes contra uma DLL de 24,6 MB com
   dependências próprias e sem versionamento semântico, num serviço que guarda
   certificado A1.
@@ -74,5 +75,17 @@ Java_NFe não foi avaliado: só se aplica se o ADR-012 escolher Java.
   homologados; são o maior risco do caminho próprio.
 - Revisar esta decisão se o custo de manutenção por NT ficar acima do planejado ou se
   surgir biblioteca que use os XSD oficiais sem alteração e prove Linux + homologação SP.
-- Ação derivada: verificar no portal se existe pacote XSD oficial posterior ao
-  010e v1.02 que explique as mudanças observadas no Unimake (atualização da baseline).
+## Emenda — 2026-11-07
+
+A versão aceita desta ADR afirmava que o Unimake.DFe editava os XSD oficiais. A
+comparação tinha sido feita contra a baseline 010e v1.02, que estava desatualizada. O
+operador confirmou em fonte oficial que o pacote vigente é o **010g v1.03** (com o
+intermediário 010f v1.04), e as mudanças atribuídas à biblioteca estão nesse pacote
+oficial. A linha de fidelidade e a justificativa correspondente foram corrigidas acima.
+
+Efeito na avaliação: a resposta a NT do Unimake é melhor do que registrado, pois
+acompanhou 010f e 010g antes da nossa baseline. Os demais fundamentos da decisão não
+dependem desse ponto: implementação própria provada em homologação SP e container,
+cadeia de fornecimento menor e portabilidade Linux não provada na biblioteca. O
+Unimake passa a ser também a referência prática para detectar novos pacotes XSD.
+O operador foi informado da correção para reconfirmar a decisão.

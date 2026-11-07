@@ -60,7 +60,7 @@ Isso é uma limitação aceita, não um gate reprovado.
 | E2 | Fonte de `vTotTrib` (IBPT ou outra): tabela, licença e cadência de atualização | Operador + contador | Bloqueia o cálculo exibido no DANFE em produção |
 | E3 | Revisão jurídica de redistribuição dos artefatos normativos e dos avisos empacotados (libxml2 no `xmllint-wasm`, pacotes do SO na imagem) | Jurídico/comercial | Bloqueia distribuição; artefatos normativos seguem fora do Git |
 | E4 | Confirmar no portal oficial qual pacote de schema a SEFAZ-SP valida: `verAplic` informa `SP_NFCE_PL_009_V400` e a baseline congelada é 010e v1.02 | Operador, via portal SEFAZ-SP/NF-e | Bloqueia fixar o comportamento do golden XML em produção |
-| E5 | Verificar se existe pacote XSD oficial posterior ao 010e v1.02; o Unimake.DFe já incorpora elementos ausentes nele (`vUnComLiq`, `gPgtoVinc` etc.) | Operador, via portal NF-e | Pode exigir nova baseline congelada antes da fundação |
+| E5 | Pacote vigente confirmado pelo operador em 2026-11-07: **010g v1.03** (golden XML válido nele). Falta o ZIP oficial, com URL, data e NTs, para congelar o hash (`normative-baseline.md`) | Operador, via portal NF-e | Bloqueia trocar o hash fixado nas POCs e na fundação |
 | E6 | Aplicabilidade, ativação e saída da contingência offline da NFC-e/SP | Responsável fiscal | Contingência continua fora do MVP até aprovação |
 
 ## 5. Não-objetivos mantidos

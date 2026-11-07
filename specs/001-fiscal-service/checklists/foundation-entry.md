@@ -16,7 +16,8 @@ prevalecem sobre este checklist.
 - [ ] Todos os testes, builds de container, validação OpenAPI e scans de segredo do `quickstart.md` passam (T035)
 - [ ] Auditoria confirma que nenhum certificado, CSC, XML com dados pessoais ou credencial está versionado (T036)
 - [ ] Sign-off da discovery registrado e merge em `develop` aprovado (T037)
-- [ ] Baseline normativa reconferida no portal oficial: existe ou não pacote XSD posterior ao 010e v1.02; se existir, congelado com hash em `normative-baseline.md` (E5)
+- [x] Baseline normativa reconferida em fonte oficial: pacote vigente 010g v1.03; golden XML válido nele (E5, 2026-11-07)
+- [ ] ZIP oficial do 010g v1.03 congelado com hash, URL, data e NTs em `normative-baseline.md` e `catalog.json` (E5)
 - [ ] Pacote de schema validado pela SEFAZ-SP confirmado em fonte oficial, explicando `verAplic` `SP_NFCE_PL_009_V400` (E4)
 
 ## B. Antes da primeira emissão em homologação pela fundação

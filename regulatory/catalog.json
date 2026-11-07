@@ -72,7 +72,25 @@
       "hashStatus": "VERIFIED",
       "checkedAt": "2026-08-18",
       "impact": "Pacote XSD oficial usado na validacao do XML NF-e/NFC-e 4.00 da POC.",
-      "notes": "ZIP mantido fora do Git; a POC recebe o caminho local por argumento ou variavel de ambiente."
+      "notes": "ZIP mantido fora do Git; a POC recebe o caminho local por argumento ou variavel de ambiente. Superado por 010g v1.03 (identificado em 2026-11-07)."
+    },
+    {
+      "id": "xsd-nfe-010g-1-03",
+      "title": "Schemas XML NF-e - Pacote 010g v1.03",
+      "authority": "Portal Nacional da NF-e",
+      "sourceUrl": null,
+      "documentVersion": "010g v1.03",
+      "publishedAt": null,
+      "effectiveFrom": null,
+      "effectiveTo": null,
+      "models": ["55", "65"],
+      "states": ["BR"],
+      "artifactSha256": null,
+      "sourcePageSha256": null,
+      "hashStatus": "PENDING_ARTIFACT",
+      "checkedAt": "2026-11-07",
+      "impact": "Pacote XSD vigente segundo fonte oficial consultada pelo operador; substitui 010e v1.02 como baseline apos congelamento.",
+      "notes": "Operador obteve os XSD extraidos (fora do Git); falta o ZIP oficial para fixar artifactSha256, alem de URL, data de publicacao e NTs incluidas. Hashes provisorios por arquivo em pocs/evidence/normative-baseline.md. Pacote intermediario 010f v1.04 tambem identificado."
     },
     {
       "id": "danfe-nfce-qr",
