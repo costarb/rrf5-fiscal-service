@@ -6,7 +6,7 @@ using System.Xml;
 // T016: deterministic NFC-e 4.00 generation from the normalized fixture, an
 // explicit fiscal profile and issuer configuration. No tax decision is made here:
 // every fiscal value comes from the profile file. Element order mirrors the
-// leiaute in the frozen 010e v1.02 package. Discovery-only code.
+// leiaute in the frozen 010g v1.03 package (output unchanged since 010e v1.02). Discovery-only code.
 static class NfceGenerator
 {
     public const string NfeNamespace = "http://www.portalfiscal.inf.br/nfe";

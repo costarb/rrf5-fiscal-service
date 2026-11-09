@@ -8,7 +8,7 @@ The `validate` command validates an XML against the catalogued official XSD and
 refuses a package whose SHA-256 differs from the frozen catalog value:
 
 ```powershell
-dotnet run -- validate --xml <document.xml> --xsd <schemas>/nfe_v4.00.xsd --package <schemas-010e-v1.02.zip>
+dotnet run -- validate --xml <document.xml> --xsd <schemas>/nfe_v4.00.xsd --package <PL_010g_v1.03.zip>
 ```
 
 The `status` command performs a read-only `NFeStatusServico4` probe against

@@ -1,7 +1,7 @@
 # Full discovery validation run (T035)
 
-**Status:** PASS except the gitleaks history scan, which is pending (see "Open")  
-**Executed:** 2026-11-07, Windows 11 host + Docker Desktop (Linux engine 29.9.2)  
+**Status:** PASS  
+**Executed:** 2026-11-07, Windows 11 host + Docker Desktop (Linux engine 29.9.2); gitleaks and 010g revalidation on 2026-11-08  
 **Inputs:** synthetic fixtures only; throwaway self-signed key marked "NOT AN A1",
 created per run outside the repository and deleted after use. No real A1 or CSC.
 
@@ -11,7 +11,8 @@ created per run outside the repository and deleted after use. No real A1 or CSC.
 | --- | --- | --- |
 | Repository | JSON parse of every tracked JSON + unique task IDs (CI step) | PASS — 37 tasks |
 | Repository | `python scripts/verify_secret_boundaries.py` | PASS |
-| Repository | gitleaks full-history scan | **OPEN** — not installed locally; CI not running |
+| Repository | gitleaks 8.30.1 `git` (full history, 25 commits) and `dir` (working tree) | PASS — 4 `generic-api-key` hits reviewed as false positives (two `PrivateKey key` parameter declarations in Java; synthetic idempotency key `POC-UNCERTAIN-001` in the uncertain-result demo/test) and listed by exact fingerprint in `.gitleaksignore`; rescan: no leaks |
+| All POCs | `validate` against the 010g v1.03 ZIP after re-pinning (2026-11-08) | PASS in .NET, Java and TypeScript; the 010e ZIP is now rejected with `XSD_PACKAGE_HASH_MISMATCH` |
 | .NET 10 | `dotnet build -c Release` | PASS — 0 warnings, 0 errors |
 | .NET 10 | `generate` golden | PASS — SHA-256 `82e3ab6f83b85555f551d597afad93cba6a9d6557ad03b4ac34e77b255a504b1` |
 | .NET 10 | `sign` (throwaway key) | PASS — `signatureVerified: true`, `mutationRejected: true` |
@@ -71,10 +72,9 @@ copy outside OneDrive because OneDrive locks a stale temp folder in its
 
 ## Open
 
-- **gitleaks full-history scan.** Not installed locally. The two CI runs of
-  `discovery-validation.yml` on this branch (2026-08-04) ended with no job started,
-  which points to Actions being disabled or blocked by account billing, not to a
-  workflow error. The branch is 20+ commits ahead of `origin` and has not been
-  pushed since. Close by running gitleaks locally or by restoring CI and pushing.
+- **CI.** The two runs of `discovery-validation.yml` on this branch (2026-08-04)
+  ended with no job started, which points to Actions being disabled or blocked by
+  account billing, not to a workflow error. Local runs above replace it for T035;
+  CI must run green before the merge (T037).
 - Not run in T035 by design: SEFAZ homologation calls with the real A1 (done in
   T019, `homologation.md`) and the chiseled base image (foundation item, L3).

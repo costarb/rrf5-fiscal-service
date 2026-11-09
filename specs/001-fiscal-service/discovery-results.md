@@ -21,7 +21,7 @@ configuração fiscal aprovada prevalecem.
 
 | Gate | .NET 10 (escolhido) | Java 25 | TypeScript |
 | --- | --- | --- | --- |
-| XML determinístico + XSD 010e v1.02 | PASS | PASS (byte-idêntico) | PASS (byte-idêntico) |
+| XML determinístico + XSD (010e v1.02; revalidado em 010g v1.03 em 2026-11-08) | PASS | PASS (byte-idêntico) | PASS (byte-idêntico) |
 | XMLDSig, verificação, mutação rejeitada | PASS (A1 real, aceita pela SEFAZ) | PASS (A1 real, idêntica à autorizada) | PASS (chave descartável) |
 | SOAP mock + homologação SEFAZ-SP | PASS (cStat 100 + consulta) | não feito | só TLS |
 | Resultado incerto: consultar antes de reenviar | PASS | simulação compartilhada (Node) | simulação compartilhada (Node) |
@@ -60,7 +60,7 @@ Isso é uma limitação aceita, não um gate reprovado.
 | E2 | Fonte de `vTotTrib` (IBPT ou outra): tabela, licença e cadência de atualização | Operador + contador | Bloqueia o cálculo exibido no DANFE em produção |
 | E3 | Revisão jurídica de redistribuição dos artefatos normativos e dos avisos empacotados (libxml2 no `xmllint-wasm`, pacotes do SO na imagem) | Jurídico/comercial | Bloqueia distribuição; artefatos normativos seguem fora do Git |
 | E4 | Confirmar no portal oficial qual pacote de schema a SEFAZ-SP valida: `verAplic` informa `SP_NFCE_PL_009_V400` e a baseline congelada é 010e v1.02 | Operador, via portal SEFAZ-SP/NF-e | Bloqueia fixar o comportamento do golden XML em produção |
-| E5 | Pacote vigente confirmado pelo operador em 2026-11-07: **010g v1.03** (golden XML válido nele). Falta o ZIP oficial, com URL, data e NTs, para congelar o hash (`normative-baseline.md`) | Operador, via portal NF-e | Bloqueia trocar o hash fixado nas POCs e na fundação |
+| E5 | **Resolvido em 2026-11-08.** Pacote vigente 010g v1.03 (NT 2026.006 e NT 2026.008, publicado 2026-10-26) congelado com hash do ZIP oficial e fixado nas três POCs (`normative-baseline.md`) | Operador | — |
 | E6 | Aplicabilidade, ativação e saída da contingência offline da NFC-e/SP | Responsável fiscal | Contingência continua fora do MVP até aprovação |
 
 ## 5. Não-objetivos mantidos

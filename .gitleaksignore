@@ -1,0 +1,12 @@
+# Reviewed gitleaks false positives (T035, 2026-11-08). Exact fingerprints only;
+# rules stay active for any new finding.
+# - Bench.java / XmlDsigCommands.java: `PrivateKey key` parameter declarations, no value.
+# - uncertain-result demo/test: synthetic idempotency key "POC-UNCERTAIN-001".
+a7f7b6e7d67a8520854bf794677e823b2ecefce8:pocs/java/src/main/java/com/rrf5/fiscal/poc/Bench.java:generic-api-key:75
+a7f7b6e7d67a8520854bf794677e823b2ecefce8:pocs/java/src/main/java/com/rrf5/fiscal/poc/XmlDsigCommands.java:generic-api-key:161
+7f49f4cac7c3e58e058141cc7b21f40475d059bf:pocs/shared/uncertain-result/src/demo.mjs:generic-api-key:4
+7f49f4cac7c3e58e058141cc7b21f40475d059bf:pocs/shared/uncertain-result/test/reconciler.test.mjs:generic-api-key:6
+pocs/java/src/main/java/com/rrf5/fiscal/poc/Bench.java:generic-api-key:75
+pocs/java/src/main/java/com/rrf5/fiscal/poc/XmlDsigCommands.java:generic-api-key:161
+pocs/shared/uncertain-result/src/demo.mjs:generic-api-key:4
+pocs/shared/uncertain-result/test/reconciler.test.mjs:generic-api-key:6

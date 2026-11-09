@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Xml;
 using System.Xml.Schema;
 
-const string ExpectedPackageSha256 = "d44ae5aa6a0d1cabf6235d2d2d47b75be5dd87bc6b90a7ec3dcec99c3d41bda1";
+const string ExpectedPackageSha256 = "b329ecbe7e4c05a41bfbc1527f105defb7047328acfeada7c77e1666da485eaf";
 
 if (args.Length == 0)
 {

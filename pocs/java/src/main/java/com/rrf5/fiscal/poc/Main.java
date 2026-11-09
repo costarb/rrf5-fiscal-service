@@ -19,7 +19,7 @@ import org.xml.sax.SAXParseException;
 
 public final class Main {
     private static final String EXPECTED_PACKAGE_SHA256 =
-            "d44ae5aa6a0d1cabf6235d2d2d47b75be5dd87bc6b90a7ec3dcec99c3d41bda1";
+            "b329ecbe7e4c05a41bfbc1527f105defb7047328acfeada7c77e1666da485eaf";
 
     private Main() {}
 

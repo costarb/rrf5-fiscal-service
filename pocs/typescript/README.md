@@ -9,7 +9,7 @@ against the catalogued official XSD. It preloads all local XSD dependencies and
 refuses a package whose SHA-256 differs from the frozen catalog value:
 
 ```powershell
-npm run start -- validate --xml <document.xml> --xsd <schemas>/nfe_v4.00.xsd --package <schemas-010e-v1.02.zip>
+npm run start -- validate --xml <document.xml> --xsd <schemas>/nfe_v4.00.xsd --package <PL_010g_v1.03.zip>
 ```
 
 XML generation remains blocked until a responsible fiscal stakeholder supplies

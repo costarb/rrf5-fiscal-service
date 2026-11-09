@@ -6,7 +6,9 @@ Snapshot initially checked on **2026-08-04** for the NFC-e model 65 / São Paulo
 | --- | --- | --- | --- | --- |
 | MOC | 7.0 | Common NF-e/NFC-e architecture and processing | `f664dcf94b77cabb32311620d85a7eb02cdf86adb2d4632ce178af2572dd2ad1` | Verified from official PDF on 2026-08-18 |
 | MOC Annex I | layout 4.00 | XML fields and validation rules | `5eb4cf2010b10b0b62f78197c4eb64025f24535d4c6e61158bc7806dd008f55d` | Verified from official PDF on 2026-08-18 |
-| Official XSD package | 010e v1.02, published 2026-07-10 | Golden XML validation; includes NT 2025.002 v1.40, NT 2026.002 v1.0 and NT 2026.003 v1.0 | `d44ae5aa6a0d1cabf6235d2d2d47b75be5dd87bc6b90a7ec3dcec99c3d41bda1` | Verified from official ZIP on 2026-08-18 |
+| Official XSD package (**current baseline**) | 010g v1.03, published 2026-10-26 | Golden XML validation; NT 2026.006 v1.00 and NT 2026.008 v1.00 | `b329ecbe7e4c05a41bfbc1527f105defb7047328acfeada7c77e1666da485eaf` | Verified from official ZIP on 2026-11-08; pinned in all POCs |
+| Official XSD package | 010f v1.04, published 2026-08-31 | Intermediate; NT 2025.002 v1.50 and NT 2026.007 v1.00 | `b8589490a58a09a993a80e6ac4d7ed10f20892061ecfc56719337098d4b95998` | Verified from official ZIP on 2026-11-08; traceability only |
+| Official XSD package (superseded) | 010e v1.02, published 2026-07-10 | Baseline until 2026-11-08; NT 2025.002 v1.40, NT 2026.002 v1.0 and NT 2026.003 v1.0 | `d44ae5aa6a0d1cabf6235d2d2d47b75be5dd87bc6b90a7ec3dcec99c3d41bda1` | Verified from official ZIP on 2026-08-18 |
 | NT 2025.002 | 1.51, published 2026-08-04 | RTC fields and validation changes | `a4aaaa181522b43cd90b502f8ccb9e4bdabea30fed838e2d0790be5ba77254a4` | Verified from official PDF on 2026-08-18 |
 | DANFE NFC-e / QR Code | 6.0, March 2025 | DANFE rendering and QR Code | `bf906cc212f1edd19b1df7d1cdf4fbf5e73c3fec77567b6e69fa74453c95db5e` | Verified from official PDF on 2026-08-18 |
 | NFC-e offline contingency | 2.0 | Fiscal offline workflow for model 65 | `5ff5c8fdc8a55ae91f2f6e7c29566a45ca7e3867c7b76877deb48911071cf06c` | Verified from official PDF on 2026-08-18 |
@@ -41,7 +43,13 @@ Diagnostic result (not a freeze): the golden NFC-e (SHA-256 `82e3ab6f…`), sign
 with a throwaway key, is schema-valid against 010e v1.02, 010f v1.04 and
 010g v1.03. 010g adds optional elements (`vUnComLiq`, `vProdLiqTot`, `gPgtoVinc`,
 `ICMSPrevistoPagtoAntecip`), makes `IE` optional and restructures the
-`gIBSCBS`/`gIBSCBSMono` choice. The POCs still pin the 010e ZIP hash until the
-010g ZIP is frozen.
+`gIBSCBS`/`gIBSCBSMono` choice.
+
+**Frozen on 2026-11-08.** The operator supplied `PL_010g_v1.03.zip` and
+`PL_010f_v1.04.zip`; both were downloaded again from the official portal
+("Versões oficiais (em uso)") and are byte-identical. The ZIP entries equal the
+extracted XSDs hashed above. All three POCs now pin the 010g ZIP hash: they
+validate the signed golden against it and reject the 010e ZIP with
+`XSD_PACKAGE_HASH_MISMATCH`.
 
 No row in this snapshot is an approval of tax treatment. Effective dates and applicability must be reviewed against later technical notes and by the responsible fiscal stakeholder.

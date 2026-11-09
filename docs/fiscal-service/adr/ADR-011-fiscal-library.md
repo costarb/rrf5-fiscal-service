@@ -88,4 +88,7 @@ acompanhou 010f e 010g antes da nossa baseline. Os demais fundamentos da decisã
 dependem desse ponto: implementação própria provada em homologação SP e container,
 cadeia de fornecimento menor e portabilidade Linux não provada na biblioteca. O
 Unimake passa a ser também a referência prática para detectar novos pacotes XSD.
-O operador foi informado da correção para reconfirmar a decisão.
+O operador reconfirmou a decisão em 2026-11-08, após a correção. O pacote 010g
+v1.03 foi congelado nessa data (NT 2026.006 e NT 2026.008, publicado em 2026-10-26),
+e as datas de publicação de 010f (2026-08-31) e 010g coincidem com os commits do
+Unimake de 2026-09-08 e 2026-10-26.
