@@ -41,7 +41,8 @@ jobs:
       - name: Validate fiscal secret boundaries
         run: python scripts/verify_secret_boundaries.py
       - name: Validate OpenAPI YAML syntax
-        run: ruby -e "require 'yaml'; YAML.safe_load(File.read('specs/001-fiscal-service/contracts/openapi.yaml'), aliases: true)"
+        run: |
+          ruby -e "require 'yaml'; YAML.safe_load(File.read('specs/001-fiscal-service/contracts/openapi.yaml'), aliases: true)"
       - name: Validate OpenAPI and generated sample client
         working-directory: pocs/contract
         run: |
