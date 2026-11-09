@@ -72,9 +72,10 @@ copy outside OneDrive because OneDrive locks a stale temp folder in its
 
 ## Open
 
-- **CI.** The two runs of `discovery-validation.yml` on this branch (2026-08-04)
-  ended with no job started, which points to Actions being disabled or blocked by
-  account billing, not to a workflow error. Local runs above replace it for T035;
-  CI must run green before the merge (T037).
+- **CI — resolved 2026-11-08.** Every run of `discovery-validation.yml` since
+  2026-08-04 had failed in 0 s because the workflow file was invalid YAML (an
+  unquoted `run:` line containing `: `), so GitHub never started a job. Fixed in
+  `54237e5`; run 42544967193 passed all steps, including gitleaks over full
+  history, secret boundaries, OpenAPI lint, generated-client check and audits.
 - Not run in T035 by design: SEFAZ homologation calls with the real A1 (done in
   T019, `homologation.md`) and the chiseled base image (foundation item, L3).
