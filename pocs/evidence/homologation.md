@@ -221,7 +221,17 @@ deleted afterwards): the probe is valid against 010g v1.03 and invalid against
 010e v1.02 (`vProdLiqTot` not expected). The golden without the option is
 unchanged (SHA-256 `82e3ab6f…`).
 
-Operator procedure (PowerShell, same secret handling as runs 2 and 3; issuer
+**Script:** `pocs/dotnet/scripts/run5-schema-probe.ps1` runs the steps below with
+guards: the issuer file, A1 and outputs must be outside the repository; the
+password is read as a SecureString and removed at the end; it transmits only
+after a valid 010g check and an explicit "s"; on exit 3 it consults the same
+document; it refuses to run again if the signed file for that `nNF` exists; and
+it prints the summary to record here, without the access key. Use `-NoTransmit`
+to rehearse. Dry run on 2026-11-09 with the synthetic issuer and a throwaway key
+(rehearsal mode): generate, sign and 010g validation passed; an issuer inside
+the repository and the 010e ZIP were refused.
+
+Manual equivalent (PowerShell, same secret handling as runs 2 and 3; issuer
 file, A1 and outputs outside Git; series 2, **`nNF` 2**, never sent before):
 
 ```powershell
