@@ -1,0 +1,352 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:0037a5a8-7f18-43cf-8342-a32a69bf5443",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-07T05:28:54.288Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": [
+      {
+        "vendor": "npm",
+        "name": "cli",
+        "version": "11.13.0"
+      }
+    ],
+    "component": {
+      "bom-ref": "@rrf5/fiscal-typescript-poc@0.1.0",
+      "type": "library",
+      "name": "typescript",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:npm/%40rrf5/fiscal-typescript-poc@0.1.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:private",
+          "value": "true"
+        }
+      ],
+      "externalReferences": []
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "@xmldom/is-dom-node@1.0.1",
+      "type": "library",
+      "name": "@xmldom/is-dom-node",
+      "version": "1.0.1",
+      "scope": "required",
+      "author": "Chris Barth <chrisjbarth@hotmail.com>",
+      "description": "TypeScript helper functions to narrow the type of object to a Node descendant",
+      "purl": "pkg:npm/%40xmldom/is-dom-node@1.0.1",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@xmldom/is-dom-node/-/is-dom-node-1.0.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/xmldom/is-dom-node.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/xmldom/is-dom-node#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/xmldom/is-dom-node/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "0890f1220139234147fadb6afc5c72ea7469c4fef4f9ed8ed38f043def39276bac7b75ca75ab5533b74356f14d8d0b9d77d078f4d3e867ef0f1b8f738f812bf1"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@xmldom/xmldom@0.9.12",
+      "type": "library",
+      "name": "@xmldom/xmldom",
+      "version": "0.9.12",
+      "scope": "required",
+      "description": "A pure JavaScript W3C standard-based (XML DOM Level 2 Core) DOMParser and XMLSerializer module.",
+      "purl": "pkg:npm/%40xmldom/xmldom@0.9.12",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@xmldom/xmldom/-/xmldom-0.9.12.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/xmldom/xmldom.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/xmldom/xmldom"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/xmldom/xmldom/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "e405e3adc302953af23def4b819af2829075963eecd12f44d3e5be0076952805721da9da7caf3a88f4af1b9c47552a7f8c2f951f5517bb44c0126636efdc47ec"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "node-forge@1.4.3",
+      "type": "library",
+      "name": "node-forge",
+      "version": "1.4.3",
+      "scope": "required",
+      "author": "Digital Bazaar, Inc.",
+      "description": "JavaScript implementations of network transports, cryptography, ciphers, PKI, message digests, and various utilities.",
+      "purl": "pkg:npm/node-forge@1.4.3",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/node-forge/-/node-forge-1.4.3.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/digitalbazaar/forge"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/digitalbazaar/forge"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/digitalbazaar/forge/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3fac337e1eadef46af995f05ad510077fdfab0e3c943e864689557d4b69aa7d27fefb9bb3347b2a330ef73c4b09c37f83fb30ff788306c0028d2b8376155d3fa"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "(BSD-3-Clause OR GPL-2.0)"
+        }
+      ]
+    },
+    {
+      "bom-ref": "xml-crypto@6.4.0",
+      "type": "library",
+      "name": "xml-crypto",
+      "version": "6.4.0",
+      "scope": "required",
+      "author": "Yaron Naveh <yaronn01@gmail.com> (http://webservices20.blogspot.com/)",
+      "description": "Xml digital signature and encryption library for Node.js",
+      "purl": "pkg:npm/xml-crypto@6.4.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/xml-crypto/-/xml-crypto-6.4.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/node-saml/xml-crypto.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "776d4ca1d8413bff905960263a3c8379026e1cd9ac47f1ed3b1c817218936ca7c634ab8763040d77e4a52e1c32cabc280062e9e1073a050ee702d9cce3b74749"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@xmldom/xmldom@0.8.15",
+      "type": "library",
+      "name": "@xmldom/xmldom",
+      "version": "0.8.15",
+      "scope": "required",
+      "description": "A pure JavaScript W3C standard-based (XML DOM Level 2 Core) DOMParser and XMLSerializer module.",
+      "purl": "pkg:npm/%40xmldom/xmldom@0.8.15",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@xmldom/xmldom/-/xmldom-0.8.15.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/xmldom/xmldom.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/xmldom/xmldom"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/xmldom/xmldom/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ff9355fef0c02d51435e02e67eccbd4d108194ac0ed8b341173a73bdbf62223fa347e79273a0cb618bd539d8af4ff8e6eccb54e9379b62e466cc4388ef0e3450"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "xmllint-wasm@5.2.0",
+      "type": "library",
+      "name": "xmllint-wasm",
+      "version": "5.2.0",
+      "scope": "required",
+      "author": "noppa",
+      "description": "Fork of https://www.npmjs.com/package/xmllint with some updates",
+      "purl": "pkg:npm/xmllint-wasm@5.2.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/xmllint-wasm/-/xmllint-wasm-5.2.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/noppa/xmllint-wasm"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/noppa/xmllint-wasm/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "19532e47756253c47bb1a91c566ff818294cb4257ca7bc608d766573a1a6bcfa489c8cf8578d659919e349de2e2a15647f93198fdef011990f33844c021a23b9"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "xpath@0.0.33",
+      "type": "library",
+      "name": "xpath",
+      "version": "0.0.33",
+      "scope": "required",
+      "author": "Cameron McCormack",
+      "description": "DOM 3 XPath implemention and helper for node.js and the web",
+      "purl": "pkg:npm/xpath@0.0.33",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/xpath/-/xpath-0.0.33.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/goto100/xpath.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "34d5e7ceb903ac0cda94b84851cd358ceda63b35c65e1d49c0f8248a170b2f3c3df1cd168180e69a34a1d4a977c336b149558cb80f9f7b459358e04358206634"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "@rrf5/fiscal-typescript-poc@0.1.0",
+      "dependsOn": [
+        "@xmldom/xmldom@0.9.12",
+        "node-forge@1.4.3",
+        "xml-crypto@6.4.0",
+        "xmllint-wasm@5.2.0"
+      ]
+    },
+    {
+      "ref": "@xmldom/is-dom-node@1.0.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "@xmldom/xmldom@0.9.12",
+      "dependsOn": []
+    },
+    {
+      "ref": "node-forge@1.4.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "xml-crypto@6.4.0",
+      "dependsOn": [
+        "@xmldom/is-dom-node@1.0.1",
+        "@xmldom/xmldom@0.8.15",
+        "xpath@0.0.33"
+      ]
+    },
+    {
+      "ref": "@xmldom/xmldom@0.8.15",
+      "dependsOn": []
+    },
+    {
+      "ref": "xmllint-wasm@5.2.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "xpath@0.0.33",
+      "dependsOn": []
+    }
+  ]
+}

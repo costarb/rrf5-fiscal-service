@@ -1,0 +1,29 @@
+{
+  "externalId": "POC-NFCE-MINIMAL-001",
+  "documentType": "NFCE",
+  "environment": "HOMOLOGATION",
+  "issuer": {
+    "establishmentId": "00000000-0000-4000-8000-000000000001"
+  },
+  "items": [
+    {
+      "productId": "SYNTHETIC-PRODUCT-001",
+      "description": "PRODUTO SINTETICO PARA HOMOLOGACAO",
+      "quantity": "1.0000",
+      "unitPrice": "10.00",
+      "totalPrice": "10.00",
+      "fiscalProfileId": "SP-SN-OWN-PRODUCTION-V1"
+    }
+  ],
+  "payments": [
+    {
+      "method": "CASH",
+      "amount": "10.00",
+      "change": "0.00"
+    }
+  ],
+  "operation": {
+    "channel": "IN_PERSON",
+    "presenceIndicator": "PRESENT"
+  }
+}

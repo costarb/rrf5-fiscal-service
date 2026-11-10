@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rrf5.example/schemas/regulatory-catalog.schema.json",
+  "title": "RRF5 official fiscal reference catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["catalogVersion", "checkedAt", "references"],
+  "properties": {
+    "catalogVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
+    "checkedAt": { "type": "string", "format": "date" },
+    "references": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/reference" }
+    }
+  },
+  "$defs": {
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "authority", "sourceUrl", "documentVersion", "models", "states", "hashStatus", "checkedAt", "impact"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$" },
+        "title": { "type": "string", "minLength": 1 },
+        "authority": { "type": "string", "minLength": 1 },
+        "sourceUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "documentVersion": { "type": "string", "minLength": 1 },
+        "publishedAt": { "type": ["string", "null"], "format": "date" },
+        "effectiveFrom": { "type": ["string", "null"], "format": "date" },
+        "effectiveTo": { "type": ["string", "null"], "format": "date" },
+        "models": { "type": "array", "items": { "enum": ["55", "65"] }, "minItems": 1, "uniqueItems": true },
+        "states": { "type": "array", "items": { "type": "string", "pattern": "^(BR|[A-Z]{2})$" }, "minItems": 1, "uniqueItems": true },
+        "artifactSha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "sourcePageSha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "hashStatus": { "enum": ["VERIFIED", "PENDING_ARTIFACT_DOWNLOAD", "SOURCE_PAGE_ONLY"] },
+        "checkedAt": { "type": "string", "format": "date" },
+        "impact": { "type": "string", "minLength": 1 },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}
+

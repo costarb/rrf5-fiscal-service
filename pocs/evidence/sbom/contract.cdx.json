@@ -1,0 +1,141 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:79fda708-c416-4631-8d87-94ae4c051c76",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-07T05:28:56.381Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": [
+      {
+        "vendor": "npm",
+        "name": "cli",
+        "version": "11.13.0"
+      }
+    ],
+    "component": {
+      "bom-ref": "@rrf5/fiscal-contract-poc@0.1.0",
+      "type": "library",
+      "name": "contract-check",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:npm/%40rrf5/fiscal-contract-poc@0.1.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:private",
+          "value": "true"
+        }
+      ],
+      "externalReferences": []
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "openapi-fetch@0.17.0",
+      "type": "library",
+      "name": "openapi-fetch",
+      "version": "0.17.0",
+      "scope": "required",
+      "author": "Drew Powers",
+      "description": "Fast, type-safe fetch client for your OpenAPI schema. Only 6 kb (min). Works with React, Vue, Svelte, or vanilla JS.",
+      "purl": "pkg:npm/openapi-fetch@0.17.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/openapi-fetch/-/openapi-fetch-0.17.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/openapi-ts/openapi-typescript"
+        },
+        {
+          "type": "website",
+          "url": "https://openapi-ts.dev"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/openapi-ts/openapi-typescript/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3ec6d9475c003dc1bdd5e12d84a84df999fdd85307c6ffbf7da1022308d77717d338319219e818bf4b1cd4e973f8760fbca3aea177e9fb4a40d9756dd9c23422"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "openapi-typescript-helpers@0.1.0",
+      "type": "library",
+      "name": "openapi-typescript-helpers",
+      "version": "0.1.0",
+      "scope": "required",
+      "author": "Drew Powers",
+      "description": "TypeScript helpers for consuming openapi-typescript types",
+      "purl": "pkg:npm/openapi-typescript-helpers@0.1.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/openapi-typescript-helpers/-/openapi-typescript-helpers-0.1.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/openapi-ts/openapi-typescript"
+        },
+        {
+          "type": "website",
+          "url": "https://openapi-ts.dev"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/openapi-ts/openapi-typescript/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "38a4c63ed8618af2f0fdf1f3e9cdce3ed83bdaf8bceaa68c96a6c9b95276dea3af43ee77bb0d67ec77669091626e5a05ed01230eb0e4cc988e26ea1c90cfe58f"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "@rrf5/fiscal-contract-poc@0.1.0",
+      "dependsOn": [
+        "openapi-fetch@0.17.0"
+      ]
+    },
+    {
+      "ref": "openapi-fetch@0.17.0",
+      "dependsOn": [
+        "openapi-typescript-helpers@0.1.0"
+      ]
+    },
+    {
+      "ref": "openapi-typescript-helpers@0.1.0",
+      "dependsOn": []
+    }
+  ]
+}

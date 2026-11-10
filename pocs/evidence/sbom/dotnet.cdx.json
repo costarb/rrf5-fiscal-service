@@ -1,0 +1,259 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.7",
+  "serialNumber": "urn:uuid:e00ed2d4-4487-4c13-a1a7-f55977c2b4ec",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-07T05:28:42Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "authors": [
+            {
+              "name": "CycloneDX"
+            }
+          ],
+          "name": "CycloneDX module for .NET",
+          "version": "6.3.1.0",
+          "externalReferences": [
+            {
+              "url": "https://github.com/CycloneDX/cyclonedx-dotnet",
+              "type": "website"
+            }
+          ]
+        }
+      ]
+    },
+    "component": {
+      "type": "application",
+      "bom-ref": "Rrf5.Fiscal.Poc@0.0.0",
+      "name": "Rrf5.Fiscal.Poc",
+      "version": "0.0.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Win32.SystemEvents@10.0.14",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Win32.SystemEvents",
+      "version": "10.0.14",
+      "description": "Provides access to Windows system event notifications.\n\nCommonly Used Types:\nMicrosoft.Win32.SystemEvents",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "CF1629A54A0DB9F5E6E219D30199520D43708D3A7F20AB3EB61838A19228601EC4E1AFC04C636DCF629B192474019DE34B3D9A12735516052AF2D70B43F8E721"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Win32.SystemEvents@10.0.14",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/QRCoder@1.8.1",
+      "authors": [
+        {
+          "name": "Raffael Herrmann, Shane Krueger"
+        }
+      ],
+      "name": "QRCoder",
+      "version": "1.8.1",
+      "description": "QRCoder is a simple library, written in C#.NET, which enables you to create QR codes.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "DCC83E692A0234ACFBC37390E8AC6988DC44BBA020384E65AAC39134DBBADE179175ABBDC0CDF82140A6B6F90A0C2082DA8ADAC7194E553297FC7B17600C4753"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "Copyright \u00A9 2013-2025 Raffael Herrmann. Copyright \u00A9 2024-2025 Shane Krueger. All rights reserved.",
+      "purl": "pkg:nuget/QRCoder@1.8.1",
+      "externalReferences": [
+        {
+          "url": "https://github.com/Shane32/QRCoder",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.Drawing.Common@10.0.14",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.Drawing.Common",
+      "version": "10.0.14",
+      "description": "Provides access to GDI\u002B graphics functionality.\n\n      Commonly Used Types:\n      System.Drawing.Bitmap\n      System.Drawing.BitmapData\n      System.Drawing.Brush\n      System.Drawing.Font\n      System.Drawing.Graphics\n      System.Drawing.Icon\n\n      Since .NET 7, non-Windows platforms are not supported, even with the runtime configuration switch. See https://aka.ms/systemdrawingnonwindows for more information.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "89261144693C97055B5967958BD1378A85DADF1D09872C1B43E59EABE79F92AF2A9061832D9044535FCF4FF5CF2FAE74F4250849137423236620C321D7D9C147"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.Drawing.Common@10.0.14",
+      "externalReferences": [
+        {
+          "url": "https://github.com/dotnet/winforms",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.14",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.Security.Cryptography.Pkcs",
+      "version": "10.0.14",
+      "description": "Provides support for PKCS and CMS algorithms.\n\nCommonly Used Types:\nSystem.Security.Cryptography.Pkcs.EnvelopedCms",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ACD4C8D24D72FCACC0D854F33FB6C0A6308BA752A481B767AEF84AADFEA089192CDF41F0B3D6AA3C053C7DEA7D3E201B3B31DE29F1675DD4E6CAB82A8E0C17B1"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.14",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/System.Security.Cryptography.Xml@10.0.14",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.Security.Cryptography.Xml",
+      "version": "10.0.14",
+      "description": "Provides classes to support the creation and validation of XML digital signatures. The classes in this namespace implement the World Wide Web Consortium Recommendation, \u0022XML-Signature Syntax and Processing\u0022, described at http://www.w3.org/TR/xmldsig-core/.\n\nCommonly Used Types:\nSystem.Security.Cryptography.Xml.CipherData\nSystem.Security.Cryptography.Xml.CipherReference\nSystem.Security.Cryptography.Xml.DataObject\nSystem.Security.Cryptography.Xml.DataReference\nSystem.Security.Cryptography.Xml.DSAKeyValue\nSystem.Security.Cryptography.Xml.EncryptedData\nSystem.Security.Cryptography.Xml.EncryptedKey\nSystem.Security.Cryptography.Xml.EncryptedReference\nSystem.Security.Cryptography.Xml.EncryptedType\nSystem.Security.Cryptography.Xml.EncryptedXml\nSystem.Security.Cryptography.Xml.EncryptionMethod\nSystem.Security.Cryptography.Xml.EncryptionProperty\nSystem.Security.Cryptography.Xml.EncryptionPropertyCollection\nSystem.Security.Cryptography.Xml.KeyInfo\nSystem.Security.Cryptography.Xml.KeyInfoClause\nSystem.Security.Cryptography.Xml.KeyInfoEncryptedKey\nSystem.Security.Cryptography.Xml.KeyInfoName\nSystem.Security.Cryptography.Xml.KeyInfoNode\nSystem.Security.Cryptography.Xml.KeyInfoRetrievalMethod\nSystem.Security.Cryptography.Xml.KeyInfoX509Data\nSystem.Security.Cryptography.Xml.KeyReference\nSystem.Security.Cryptography.Xml.Reference\nSystem.Security.Cryptography.Xml.ReferenceList\nSystem.Security.Cryptography.Xml.RSAKeyValue\nSystem.Security.Cryptography.Xml.Signature\nSystem.Security.Cryptography.Xml.SignedInfo\nSystem.Security.Cryptography.Xml.SignedXml\nSystem.Security.Cryptography.Xml.Transform\nSystem.Security.Cryptography.Xml.TransformChain\nSystem.Security.Cryptography.Xml.XmlDecryptionTransform\nSystem.Security.Cryptography.Xml.XmlDsigBase64Transform\nSystem.Security.Cryptography.Xml.XmlDsigC14NTransform\nSystem.Security.Cryptography.Xml.XmlDsigC14NWithCommentsTransform\nSystem.Security.Cryptography.Xml.XmlDsigEnvelopedSignatureTransform\nSystem.Security.Cryptography.Xml.XmlDsigExcC14NTransform\nSystem.Security.Cryptography.Xml.XmlDsigExcC14NWithCommentsTransform\nSystem.Security.Cryptography.Xml.XmlDsigXPathTransform\nSystem.Security.Cryptography.Xml.XmlDsigXsltTransform\nSystem.Security.Cryptography.Xml.XmlLicenseTransform",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "D1758B98B0E349183F1836F9B6BB858E7CCDFE477680F196122DBC920372F52B10B43B98A8C7261FF59C5DBD1C1A69DFE2A61A025A6BCA7BC8D739417073B3A3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.Security.Cryptography.Xml@10.0.14",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/dotnet",
+          "type": "vcs"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:nuget/Microsoft.Win32.SystemEvents@10.0.14",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/QRCoder@1.8.1",
+      "dependsOn": [
+        "pkg:nuget/System.Drawing.Common@10.0.14"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/System.Drawing.Common@10.0.14",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.Win32.SystemEvents@10.0.14"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.14",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/System.Security.Cryptography.Xml@10.0.14",
+      "dependsOn": [
+        "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.14"
+      ]
+    },
+    {
+      "ref": "Rrf5.Fiscal.Poc@0.0.0",
+      "dependsOn": [
+        "pkg:nuget/QRCoder@1.8.1",
+        "pkg:nuget/System.Drawing.Common@10.0.14",
+        "pkg:nuget/System.Security.Cryptography.Xml@10.0.14"
+      ]
+    }
+  ]
+}

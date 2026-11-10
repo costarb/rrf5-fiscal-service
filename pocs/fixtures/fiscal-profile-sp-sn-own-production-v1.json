@@ -1,0 +1,21 @@
+{
+  "profileId": "SP-SN-OWN-PRODUCTION-V1",
+  "status": "INTERIM_OPERATOR_APPROVED",
+  "approvalRef": "pocs/evidence/fiscal-profile.md",
+  "validFor": ["DISCOVERY_POC", "HOMOLOGATION"],
+  "documentType": "NFCE_65",
+  "uf": "SP",
+  "natOp": "VENDA",
+  "crt": "1",
+  "item": {
+    "ncm": "21069090",
+    "cfop": "5102",
+    "gtin": "SEM GTIN",
+    "unit": "UN",
+    "icms": { "group": "ICMSSN102", "orig": "0", "csosn": "102" },
+    "pis": { "group": "PISOutr", "cst": "49", "rate": "0.0000" },
+    "cofins": { "group": "COFINSOutr", "cst": "49", "rate": "0.0000" }
+  },
+  "ibsCbs": { "send": false, "basis": "Operator decision 2026-11-06; accountant ratification pending" },
+  "vTotTrib": { "send": false, "basis": "Source table (IBPT or other) not chosen" }
+}
