@@ -58,3 +58,13 @@ escolha de stack nem de biblioteca.
 - Aprovador (papel; identidade fora do Git): operador e proprietário do emitente
 - Data: 2026-11-09
 - Commit revisado: `cb2a8de` (evidências até a T036; este registro e a correção de E4 vêm no commit seguinte)
+
+## Adendo — 2026-11-09 (E4)
+
+Depois do sign-off, o operador fechou a E4 por decisão própria, sem confirmação
+oficial do pacote que a SEFAZ-SP aplica. Base: cronograma oficial das NT
+2026.006 e 2026.008 v1.01 e a rodada 5 de `homologation.md`, em que a
+homologação SP respondeu 225 a um documento com os campos opcionais do 010g.
+Regra: na SP, os documentos levam só conteúdo comum a 010e, 010f e 010g; a sonda
+do 010g é repetida depois de 2026-11-16 antes de habilitar esses campos
+(checklist B). Com isso o checklist A está completo.

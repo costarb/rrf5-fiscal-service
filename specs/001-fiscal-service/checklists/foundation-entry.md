@@ -18,13 +18,14 @@ prevalecem sobre este checklist.
 - [x] Sign-off da discovery registrado e merge em `develop` aprovado (T037)
 - [x] Baseline normativa reconferida em fonte oficial: pacote vigente 010g v1.03; golden XML válido nele (E5, 2026-11-07)
 - [x] ZIP oficial do 010g v1.03 congelado com hash, URL, data e NTs em `normative-baseline.md` e `catalog.json`; POCs fixadas nele (E5, 2026-11-08)
-- [ ] Pacote de schema validado pela SEFAZ-SP confirmado em fonte oficial, explicando `verAplic` `SP_NFCE_PL_009_V400` (E4)
+- [x] Comportamento de schema da SEFAZ-SP definido (E4). **Fechado por decisão do operador em 2026-11-09, sem confirmação oficial do pacote que a SP aplica.** Evidência: cronograma das NT 2026.006/2026.008 v1.01 (`normative-baseline.md`) e rodada 5 de `homologation.md` (225 com os campos do 010g). Regra: na SP, só conteúdo comum a 010e, 010f e 010g, que a SP autorizou em 2026-11-06
 
 ## B. Antes da primeira emissão em homologação pela fundação
 
 ### Normativo e fiscal
 
-- [ ] Golden XML regenerado e fixado contra a baseline confirmada em A (E4, E5)
+- [ ] Golden XML regenerado e fixado contra a baseline 010g v1.03, sem elementos exclusivos do 010g (E4, E5)
+- [ ] Sonda do 010g (`run5-schema-probe.ps1`) repetida na homologação SP depois de 2026-11-16 e aceita (sem 225) antes de qualquer documento levar elemento exclusivo do 010g; até lá esses elementos ficam desligados por configuração de autorizador e data (E4, ADR-009)
 - [ ] Seção do MOC 7.0 que define os algoritmos de assinatura registrada (L8)
 - [ ] Tabela de rótulos de `tPag` do DANFE extraída de cópia congelada do MOC (L5)
 - [ ] Versão de schema resolvida por autorizador, ambiente e data, nunca fixa no código (ADR-012)
