@@ -9,6 +9,8 @@ Snapshot initially checked on **2026-08-04** for the NFC-e model 65 / São Paulo
 | Official XSD package (**current baseline**) | 010g v1.03, published 2026-10-26 | Golden XML validation; NT 2026.006 v1.00 and NT 2026.008 v1.00 | `b329ecbe7e4c05a41bfbc1527f105defb7047328acfeada7c77e1666da485eaf` | Verified from official ZIP on 2026-11-08; pinned in all POCs |
 | Official XSD package | 010f v1.04, published 2026-08-31 | Intermediate; NT 2025.002 v1.50 and NT 2026.007 v1.00 | `b8589490a58a09a993a80e6ac4d7ed10f20892061ecfc56719337098d4b95998` | Verified from official ZIP on 2026-11-08; traceability only |
 | Official XSD package (superseded) | 010e v1.02, published 2026-07-10 | Baseline until 2026-11-08; NT 2025.002 v1.40, NT 2026.002 v1.0 and NT 2026.003 v1.0 | `d44ae5aa6a0d1cabf6235d2d2d47b75be5dd87bc6b90a7ec3dcec99c3d41bda1` | Verified from official ZIP on 2026-08-18 |
+| NT 2026.008 | 1.01, published 2026-10-30 | Net product value fields (`vUnComLiq`, `vProdLiq`, `vProdLiqTot`); schema in 010g v1.03 | `8134a3f1f460650262ce359566b7993ac3503037f24b223a4c8c53b237b50090` | Verified from official PDF on 2026-11-09 |
+| NT 2026.006 | 1.01, published 2026-10-30 | Payment transaction link (`gPgtoVinc`, split payment) and event 110300; schema in 010g v1.03 | `2c5770b54d19b66ff61200fad20d1a4373b71a48d42f0ee5e005e808ce0eb206` | Verified from official PDF on 2026-11-09 |
 | NT 2025.002 | 1.51, published 2026-08-04 | RTC fields and validation changes | `a4aaaa181522b43cd90b502f8ccb9e4bdabea30fed838e2d0790be5ba77254a4` | Verified from official PDF on 2026-08-18 |
 | DANFE NFC-e / QR Code | 6.0, March 2025 | DANFE rendering and QR Code | `bf906cc212f1edd19b1df7d1cdf4fbf5e73c3fec77567b6e69fa74453c95db5e` | Verified from official PDF on 2026-08-18 |
 | NFC-e offline contingency | 2.0 | Fiscal offline workflow for model 65 | `5ff5c8fdc8a55ae91f2f6e7c29566a45ca7e3867c7b76877deb48911071cf06c` | Verified from official PDF on 2026-08-18 |
@@ -51,5 +53,39 @@ with a throwaway key, is schema-valid against 010e v1.02, 010f v1.04 and
 extracted XSDs hashed above. All three POCs now pin the 010g ZIP hash: they
 validate the signed golden against it and reject the 010e ZIP with
 `XSD_PACKAGE_HASH_MISMATCH`.
+
+## 2026-11-09: implementation schedule of 010g (E4)
+
+Both NTs were downloaded from the official portal (Notas Técnicas list) and are
+hashed above. Their v1.01 changed only dates and validation rules; no new schema
+package was published. On 2026-11-09, 010g v1.03 is still the newest package
+listed on the portal.
+
+| NT 2026.006 / 2026.008 | Homologation | Production |
+| --- | --- | --- |
+| v1.00 (original) | 2026-10-05 | 2026-11-03 |
+| v1.01 (current) | by 2026-10-26 | **2026-11-16** |
+| NT 2026.008, rule NB01-30 | 2027-02-01 | 2027-03-01 |
+| NT 2026.008, rules VB01-10 and VB01-20 | future | future |
+
+Official wording kept in this record:
+
+- NT 2026.008, group I11a (`vUnComLiq`, `vProdLiq`), occurrence 0-1:
+  "Futuramente essa sequência será obrigatória."
+- NT 2026.006: "Não há exigência de preenchimento ou uso dos campos de split
+  payment em 2026 no ambiente de produção".
+- Validation rules of both NTs are marked for models 55/65; the NTs are national,
+  with no state-specific schedule.
+
+Consequences (schema behaviour only, not tax treatment):
+
+- The rejection 225 of 2026-11-06 (`homologation.md`) is consistent with this
+  schedule: that document carried the 010g net-value fields before the
+  production date of 2026-11-16. The environment it was sent to is not recorded.
+- The golden XML omits these optional fields, so it is valid before and after
+  2026-11-16. No production document may carry 010g-only content before
+  2026-11-16.
+- Whether SEFAZ-SP homologation already applies 010g is tested directly in
+  `homologation.md`, run 5 (net-value fields present).
 
 No row in this snapshot is an approval of tax treatment. Effective dates and applicability must be reviewed against later technical notes and by the responsible fiscal stakeholder.

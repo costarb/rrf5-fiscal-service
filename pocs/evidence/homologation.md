@@ -201,3 +201,51 @@ consultation, Java and TypeScript authorization,
 production behaviour. The fiscal profile is still pending accountant ratification.
 
 Numbering: series 2 `nNF` 1 is consumed. The next real test uses `nNF` 2.
+
+## Run 5 — E4 schema probe: does SEFAZ-SP homologation apply 010g? (PENDING)
+
+**Purpose:** close E4 with a test that tells the packages apart. NT 2026.006 and
+NT 2026.008 v1.01 put 010g in homologation by 2026-10-26 and in production on
+2026-11-16 (`normative-baseline.md`). The golden XML is valid in 010e, 010f and
+010g alike, so re-sending it proves nothing. The probe adds the three optional
+010g elements of NT 2026.008 (`vUnComLiq`, `vProdLiq` and `vProdLiqTot`).
+
+**Probe values are placeholders.** They are copied from `vUnCom` and `vProd`
+and are not a determination of the net value "sem tributos". The value rules
+(I11c-10/20, W01a-10/20) start on 2027-02-01 in homologation. The option
+`--schema-probe net-values-010g` exists only in the POC, is never part of a
+fiscal profile, and must never be used in production.
+
+Local pre-check (2026-11-09, synthetic issuer, throwaway key "NOT AN A1",
+deleted afterwards): the probe is valid against 010g v1.03 and invalid against
+010e v1.02 (`vProdLiqTot` not expected). The golden without the option is
+unchanged (SHA-256 `82e3ab6f…`).
+
+Operator procedure (PowerShell, same secret handling as runs 2 and 3; issuer
+file, A1 and outputs outside Git; series 2, **`nNF` 2**, never sent before):
+
+```powershell
+cd pocs/dotnet
+$env:RRF5_A1_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host -AsSecureString "A1")))
+$dh  = (Get-Date).ToString("yyyy-MM-ddTHH:mm:sszzz")
+$out = "<pasta fora do repositório>"
+dotnet run -c Release -- generate --case ../fixtures/nfce-minimal.json --profile ../fixtures/fiscal-profile-sp-sn-own-production-v1.json --issuer <issuer.json real> --nnf 2 --cnf <8 dígitos> --dhemi $dh --out "$out\probe.xml" --schema-probe net-values-010g
+dotnet run -c Release --no-build -- sign --pfx <a1.pfx> --xml "$out\probe.xml" --out "$out\probe.signed.xml"
+dotnet run -c Release --no-build -- validate --xml "$out\probe.signed.xml" --xsd <PL_010g_v1.03\NFe\nfe_v4.00.xsd> --package <PL_010g_v1.03.zip>
+dotnet run -c Release --no-build -- authorize --xml "$out\probe.signed.xml" --pfx <a1.pfx> --out "$out\probe.proc.xml"
+Remove-Item Env:RRF5_A1_PASSWORD
+```
+
+Transmit only if `validate` returns `valid: true`. If `authorize` returns exit 3
+(`RESULT_UNKNOWN`), run `consult` on the same file before anything else and
+never send `nNF` 2 again under another key.
+
+| Outcome | Reading |
+| --- | --- |
+| `cStat` 100 | SEFAZ-SP homologation validates against 010g, as the national schedule requires. E4 closes for homologation; production follows the 2026-11-16 date |
+| `cStat` 225 | SEFAZ-SP homologation still uses an older package, behind the NT schedule. Keep 010g-only content out, record the evidence, and recheck before 2026-11-16 |
+| Any other rejection | The schema was accepted (a schema failure is 225), so 010g applies. Record the code; the probe values are not to be corrected into a fiscal rule |
+
+Record here: date and time, `verAplic`, `cStat`/`xMotivo`, `nProt` if any, and
+the signed-file SHA-256. Do not record the access key, the issuer's identifiers
+or the XML.

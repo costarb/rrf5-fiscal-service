@@ -25,7 +25,7 @@ if (args.Length == 0)
             "status --pfx <a1.pfx outside the repository> (password from RRF5_A1_PASSWORD)",
             "sign --pfx <a1.pfx outside the repository> [--out <signed.xml outside the repository>]",
             "verify --xml <authorized nfeProc outside the repository> --cert-sha256 <expected A1 fingerprint>",
-            "generate --case <fixture.json> --profile <profile.json> --issuer <issuer.json> --nnf <n> --cnf <8 digits> --dhemi <ISO-8601> [--out <path>]",
+            "generate --case <fixture.json> --profile <profile.json> --issuer <issuer.json> --nnf <n> --cnf <8 digits> --dhemi <ISO-8601> [--out <path>] [--schema-probe net-values-010g]",
             "check-key --key <44-digit access key>",
             "authorize --xml <signed NFe> (--pfx <a1.pfx> --out <nfeProc outside the repository> | --mock authorized|schema-rejected|timeout) [--idlote <n>]",
             "consult --xml <signed NFe> (--pfx <a1.pfx> [--out <nfeProc>] | --mock found|not-found)",
@@ -777,10 +777,20 @@ static void RunGenerate(IReadOnlyDictionary<string, string> options)
         return;
     }
 
+    var probe = false;
+    if (options.TryGetValue("--schema-probe", out var probeName))
+    {
+        if (probeName != "net-values-010g")
+        {
+            Fail("INVALID_ARGUMENTS", "--schema-probe accepts only net-values-010g.");
+        }
+        probe = true;
+    }
+
     NfceGenerator.Result result;
     try
     {
-        result = NfceGenerator.Generate(fixture, profile, issuer, nNF, cNF!, dhEmi);
+        result = NfceGenerator.Generate(fixture, profile, issuer, nNF, cNF!, dhEmi, probe);
     }
     catch (Exception exception) when (exception is InvalidDataException or KeyNotFoundException or FormatException or InvalidOperationException)
     {
@@ -808,6 +818,7 @@ static void RunGenerate(IReadOnlyDictionary<string, string> options)
         command = "generate",
         profile = profile.GetProperty("profileId").GetString(),
         syntheticIssuer = synthetic,
+        schemaProbe = probe ? "net-values-010g (placeholder values; homologation schema test only)" : null,
         accessKey = synthetic ? result.AccessKey : null,
         xmlSha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(result.Xml))).ToLowerInvariant(),
         bytes = Encoding.UTF8.GetByteCount(result.Xml)

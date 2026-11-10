@@ -1,6 +1,6 @@
 {
   "catalogVersion": "1.0",
-  "checkedAt": "2026-08-18",
+  "checkedAt": "2026-11-09",
   "references": [
     {
       "id": "moc-7",
@@ -81,16 +81,52 @@
       "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/exibirArquivo.aspx?conteudo=EQhOQMgipXY=",
       "documentVersion": "010g v1.03 (NT 2026.006 v1.00 e NT 2026.008 v1.00)",
       "publishedAt": "2026-10-26",
-      "effectiveFrom": null,
+      "effectiveFrom": "2026-11-16",
       "effectiveTo": null,
       "models": ["55", "65"],
       "states": ["BR"],
       "artifactSha256": "b329ecbe7e4c05a41bfbc1527f105defb7047328acfeada7c77e1666da485eaf",
       "sourcePageSha256": null,
       "hashStatus": "VERIFIED",
-      "checkedAt": "2026-11-08",
+      "checkedAt": "2026-11-09",
       "impact": "Pacote XSD oficial vigente; baseline de validacao das POCs a partir de 2026-11-08.",
-      "notes": "ZIP mantido fora do Git. Hash do ZIP baixado do portal oficial em 2026-11-08 igual ao da copia do operador. Portal lista o pacote em 'Versoes oficiais (em uso)'."
+      "notes": "ZIP mantido fora do Git. Hash do ZIP baixado do portal oficial em 2026-11-08 igual ao da copia do operador. Portal lista o pacote em 'Versoes oficiais (em uso)'. effectiveFrom e a implantacao em producao das NT 2026.006 v1.01 e NT 2026.008 v1.01 (homologacao: ate 2026-10-26). Em 2026-11-09 continua sendo o pacote mais recente do portal; as NT v1.01 alteraram datas e regras, sem novo pacote."
+    },
+    {
+      "id": "nt-2026-008",
+      "title": "Nota Tecnica 2026.008 - NF-e / NFC-e Valor Liquido",
+      "authority": "Portal Nacional da NF-e",
+      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/exibirArquivo.aspx?conteudo=PVjdIcA/H2s=",
+      "documentVersion": "1.01",
+      "publishedAt": "2026-10-30",
+      "effectiveFrom": "2026-11-16",
+      "effectiveTo": null,
+      "models": ["55", "65"],
+      "states": ["BR"],
+      "artifactSha256": "8134a3f1f460650262ce359566b7993ac3503037f24b223a4c8c53b237b50090",
+      "sourcePageSha256": null,
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-11-09",
+      "impact": "Cria vUnComLiq, vProdLiq (grupo I11a, opcional 0-1, 'futuramente obrigatoria') e vProdLiqTot; grupo ICMSPrevistoPagtoAntecip.",
+      "notes": "PDF oficial v1.01 (substitui v1.00 de 2026-10-01); bytes fora do Git. Cronograma v1.01: homologacao ate 2026-10-26, producao 2026-11-16 (eram 2026-10-05 e 2026-11-03); RV NB01-30 em 2027-02-01/2027-03-01; RV VB01-10 e VB01-20 com implementacao futura. Schema no pacote 010g v1.03."
+    },
+    {
+      "id": "nt-2026-006",
+      "title": "Nota Tecnica 2026.006 - NF-e / NFC-e Vinculacao com a Transacao de Pagamento",
+      "authority": "Portal Nacional da NF-e",
+      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/exibirArquivo.aspx?conteudo=7xf05PpO4Z0=",
+      "documentVersion": "1.01",
+      "publishedAt": "2026-10-30",
+      "effectiveFrom": "2026-11-16",
+      "effectiveTo": null,
+      "models": ["55", "65"],
+      "states": ["BR"],
+      "artifactSha256": "2c5770b54d19b66ff61200fad20d1a4373b71a48d42f0ee5e005e808ce0eb206",
+      "sourcePageSha256": null,
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-11-09",
+      "impact": "Cria o grupo gPgtoVinc (split payment) e o evento 110300.",
+      "notes": "PDF oficial v1.01; bytes fora do Git. Cronograma v1.01: homologacao ate 2026-10-26, producao 2026-11-16. A NT afirma que nao ha exigencia de preenchimento dos campos de split payment em 2026 em producao; ativacao prevista para 2027. Schema no pacote 010g v1.03."
     },
     {
       "id": "xsd-nfe-010f-1-04",
