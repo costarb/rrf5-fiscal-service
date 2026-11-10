@@ -1,0 +1,75 @@
+# Local development stack for the RRF5 Fiscal Service foundation (D3).
+# Development only: credentials below are fixed local values, ports bind to
+# 127.0.0.1 on non-default host ports (55432, 55672/55673, 58333, 58200;
+# override with RRF5_*_PORT), OpenBao runs in dev mode (in-memory, auto-unsealed) and nothing here
+# is a production configuration. Never put a real A1, CSC or secret in this stack.
+name: rrf5-fiscal
+
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: rrf5_fiscal
+      POSTGRES_USER: rrf5_owner
+      POSTGRES_PASSWORD: ${RRF5_PG_PASSWORD:-local-dev-only}
+      TZ: America/Sao_Paulo
+    ports: ["127.0.0.1:${RRF5_PG_PORT:-55432}:5432"]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rrf5_owner -d rrf5_fiscal"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.2-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: rrf5
+      RABBITMQ_DEFAULT_PASS: ${RRF5_MQ_PASSWORD:-local-dev-only}
+    ports: ["127.0.0.1:${RRF5_MQ_PORT:-55672}:5672", "127.0.0.1:${RRF5_MQ_UI_PORT:-55673}:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  # S3-compatible object storage (Apache-2.0). Object lock is verified in T035.
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.97
+    command: "server -dir=/data -s3 -s3.port=8333 -master.volumeSizeLimitMB=64 -volume.max=8"
+    ports: ["127.0.0.1:${RRF5_S3_PORT:-58333}:8333"]
+    volumes: [seaweedfs-data:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # Secrets and envelope encryption (MPL-2.0, Vault-compatible API), dev mode.
+  openbao:
+    image: openbao/openbao:2.4.1
+    command: "server -dev -dev-listen-address=0.0.0.0:8200"
+    environment:
+      BAO_DEV_ROOT_TOKEN_ID: ${RRF5_BAO_DEV_TOKEN:-local-dev-root}
+    cap_add: [IPC_LOCK]
+    ports: ["127.0.0.1:${RRF5_BAO_PORT:-58200}:8200"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8200/v1/sys/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # One-shot: enables the transit engine used by ICertificateVault (T022).
+  openbao-init:
+    image: openbao/openbao:2.4.1
+    depends_on:
+      openbao: { condition: service_healthy }
+    environment:
+      BAO_ADDR: http://openbao:8200
+      BAO_TOKEN: ${RRF5_BAO_DEV_TOKEN:-local-dev-root}
+    entrypoint: ["/bin/sh", "-c", "bao secrets enable transit || bao secrets list | grep -q '^transit/'"]
+    restart: "no"
+
+volumes:
+  postgres-data:
+  seaweedfs-data:

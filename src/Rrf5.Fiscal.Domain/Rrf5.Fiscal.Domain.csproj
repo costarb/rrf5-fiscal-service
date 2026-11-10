@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Rrf5.Fiscal.Domain</RootNamespace>
+  </PropertyGroup>
+</Project>

@@ -17,3 +17,21 @@ coverage
 *.log
 pocs/evidence/private
 sefaz
+# Patterns without **/ match only the context root; these cover every directory.
+**/.env*
+**/*.pfx
+**/*.p12
+**/*.pem
+**/*.key
+**/*.cer
+**/secrets
+**/artifacts
+**/bin
+**/obj
+**/*.log
+pocs
+tests
+deploy/compose
+specs
+docs
+regulatory/*.pdf

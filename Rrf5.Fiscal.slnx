@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Rrf5.Fiscal.Api/Rrf5.Fiscal.Api.csproj" />
+    <Project Path="src/Rrf5.Fiscal.Application/Rrf5.Fiscal.Application.csproj" />
+    <Project Path="src/Rrf5.Fiscal.Domain/Rrf5.Fiscal.Domain.csproj" />
+    <Project Path="src/Rrf5.Fiscal.Infrastructure/Rrf5.Fiscal.Infrastructure.csproj" />
+    <Project Path="src/Rrf5.Fiscal.Regulatory/Rrf5.Fiscal.Regulatory.csproj" />
+    <Project Path="src/Rrf5.Fiscal.Worker/Rrf5.Fiscal.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Contract/">
+    <Project Path="tests/Contract/Rrf5.Fiscal.Tests.Contract.csproj" />
+  </Folder>
+  <Folder Name="/tests/Database/">
+    <Project Path="tests/Database/Rrf5.Fiscal.Tests.Database.csproj" />
+  </Folder>
+  <Folder Name="/tests/Integration/">
+    <Project Path="tests/Integration/Rrf5.Fiscal.Tests.Integration.csproj" />
+  </Folder>
+  <Folder Name="/tests/Security/">
+    <Project Path="tests/Security/Rrf5.Fiscal.Tests.Security.csproj" />
+  </Folder>
+  <Folder Name="/tests/Unit/">
+    <Project Path="tests/Unit/Rrf5.Fiscal.Tests.Unit.csproj" />
+  </Folder>
+</Solution>

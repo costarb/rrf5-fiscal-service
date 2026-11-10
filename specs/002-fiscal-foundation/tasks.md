@@ -6,12 +6,12 @@
 
 ## Phase 1 — Setup
 
-- [ ] T001 Create the .NET 10 solution and projects listed in `specs/002-fiscal-foundation/plan.md` with nullable, warnings as errors and central package versions in `Directory.Packages.props`
-- [ ] T002 Add the local stack (PostgreSQL, MinIO, RabbitMQ, Vault dev) in `deploy/compose/docker-compose.yml` with a one-command start documented in `specs/002-fiscal-foundation/quickstart.md`
-- [ ] T003 Add the chiseled, non-root API/Worker image with working `America/Sao_Paulo` in `deploy/docker/Dockerfile` (L3)
-- [ ] T004 Extend CI in `.github/workflows/` with build, unit and integration tests, image build, CycloneDX SBOM and Trivy scan failing on fixable high/critical (L2)
-- [ ] T005 [P] Fix the mis-encoded UTF-8 text in `specs/001-fiscal-service/spec.md`
-- [ ] T006 [P] Record ADR-013 (token issuer), ADR-014 (data access and migrations) and ADR-015 (tax rule model) in `docs/fiscal-service/adr/`
+- [x] T001 Create the .NET 10 solution and projects listed in `specs/002-fiscal-foundation/plan.md` with nullable, warnings as errors and central package versions in `Directory.Packages.props`
+- [x] T002 Add the local stack (PostgreSQL, SeaweedFS, RabbitMQ, OpenBao dev) in `deploy/compose/docker-compose.yml` with a one-command start documented in `specs/002-fiscal-foundation/quickstart.md`
+- [x] T003 Add the chiseled, non-root API/Worker image with working `America/Sao_Paulo` in `deploy/docker/Dockerfile` (L3)
+- [x] T004 Extend CI in `.github/workflows/` with build, unit and integration tests, image build, CycloneDX SBOM and Trivy scan failing on fixable high/critical (L2)
+- [x] T005 [P] Fix the mis-encoded UTF-8 text in `specs/001-fiscal-service/spec.md`
+- [x] T006 [P] Record ADR-013 (token issuer), ADR-014 (data access and migrations) and ADR-015 (tax rule model) in `docs/fiscal-service/adr/`
 
 ## Phase 2 — Shared foundation
 
@@ -26,7 +26,7 @@
 ## Phase 3 — F1 Identity and tenancy
 
 - [ ] T014 Implement Tenant and Application administration (create, suspend, rotate secret; secret shown once, stored as hash)
-- [ ] T015 Implement `/oauth/token` (`client_credentials`), short JWT signed with a Vault-held key, per ADR-013
+- [ ] T015 Implement `/oauth/token` (`client_credentials`), short JWT signed with a OpenBao-held key, per ADR-013
 - [ ] T016 Implement scopes and application-to-establishment grants; enforce on every endpoint
 - [ ] T017 Add cross-tenant API tests (guessed IDs return `404`; missing scope returns `403`) in `tests/Security/`
 
@@ -39,7 +39,7 @@
 
 ## Phase 5 — F3 Certificate and CSC vault
 
-- [ ] T022 Implement `ICertificateVault` over Vault transit (envelope encryption, per-certificate data key)
+- [ ] T022 Implement `ICertificateVault` over OpenBao transit (envelope encryption, per-certificate data key)
 - [ ] T023 Implement A1 upload: PKCS#12 parse, holder tax ID vs establishment, validity window, fingerprint; fail closed when the vault is unavailable
 - [ ] T024 Implement CSC storage per environment in `ISecretStore`; metadata-only reads; no export endpoint
 - [ ] T025 Implement daily certificate expiry alerts at 60, 30, 15, 7 and 1 days in `src/Rrf5.Fiscal.Worker/`
@@ -58,7 +58,7 @@
 
 - [ ] T033 Load `regulatory/catalog.json` into SchemaVersion; refuse packages without verified artifact hash
 - [ ] T034 Resolve schema version by authorizer, environment and date; package-exclusive elements disabled unless an audited release enables them (E4)
-- [ ] T035 Store official artifacts in MinIO with content hash, versioning and object lock where available; verify hash on read
+- [ ] T035 Store official artifacts in S3 storage (SeaweedFS locally) with content hash, versioning and object lock where available; verify hash on read
 
 ## Phase 8 — Contract and closure
 

@@ -95,7 +95,7 @@ O serviço carrega o catálogo oficial (`regulatory/catalog.json`) e resolve a v
 - **FF-012**: Erros MUST seguir Problem Details com códigos de domínio estáveis.
 - **FF-013**: O contrato OpenAPI MUST incluir as operações administrativas, `401`/`403`/`429`, o enum fechado de estado do documento (L10) e passar no lint sem achados altos (L11).
 - **FF-014**: A imagem MUST usar a base chiseled do .NET 10, rodar como não-root, ter fuso `America/Sao_Paulo` funcional e passar por SBOM e scan no CI (L2, L3, ADR-012).
-- **FF-015**: A stack local (PostgreSQL, storage S3-compatível, fila e Vault) MUST subir por um comando e ser a mesma usada nos testes de integração.
+- **FF-015**: A stack local (PostgreSQL, storage S3-compatível, fila e OpenBao) MUST subir por um comando e ser a mesma usada nos testes de integração.
 
 ### Key Entities
 

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Rrf5.Fiscal.Infrastructure</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Rrf5.Fiscal.Application\Rrf5.Fiscal.Application.csproj" />
+    <ProjectReference Include="..\Rrf5.Fiscal.Regulatory\Rrf5.Fiscal.Regulatory.csproj" />
+  </ItemGroup>
+</Project>

@@ -18,7 +18,7 @@ emissão em homologação sobre esta base.
 | --- | --- | --- |
 | D1 | .NET 10 LTS; imagem de produção em base chiseled, não-root | ADR-012 |
 | D2 | Implementação fiscal própria; nenhuma biblioteca fiscal de terceiros no runtime | ADR-011 |
-| D3 | Execução local primeiro: PostgreSQL, MinIO, RabbitMQ e Vault em Docker Compose, atrás de interfaces. Provedor de nuvem escolhido antes da primeira emissão em homologação | Operador, 2026-11-09 |
+| D3 | Execução local primeiro: PostgreSQL, SeaweedFS (S3), RabbitMQ e OpenBao em Docker Compose, atrás de interfaces. Provedor de nuvem escolhido antes da primeira emissão em homologação | Operador, 2026-11-09 |
 | D4 | Administração só por API, com scopes administrativos; painel depois, sobre a mesma API | Operador, 2026-11-09 |
 | D5 | Papel de aprovador fiscal com credencial própria; quem cria a versão não aprova | Operador, 2026-11-09 |
 | D6 | Perfil fiscal (cadastro, versão, vigência e aprovação) dentro da fundação; uso na emissão fica para a Fase 2 | Operador, 2026-11-09 |
@@ -39,11 +39,11 @@ ADR-002 a ADR-010 seguem "Proposto". Cada um que a fundação implementar passa 
 
 **Runtime**: .NET 10 LTS, ASP.NET Core (minimal APIs), worker em `BackgroundService`
 
-**Persistência**: PostgreSQL 17 (metadados, RLS); MinIO como S3-compatível (artefatos imutáveis, versioning e object lock em modo compliance quando disponível)
+**Persistência**: PostgreSQL 17.6 (metadados, RLS); SeaweedFS como S3-compatível (Apache-2.0; artefatos imutáveis, versioning e object lock quando disponível). MinIO foi descartado: a edição comunitária deixou de publicar imagens
 
 **Fila**: RabbitMQ com entrega pelo menos uma vez; nesta fase só para jobs internos (alerta de certificado, carga de catálogo)
 
-**Segredos**: HashiCorp Vault (transit para envelope encryption do A1 e CSC; chave de assinatura de token) atrás de `ICertificateVault` e `ISecretStore`
+**Segredos**: OpenBao 2.4.1 (MPL-2.0, API compatível com Vault; transit para envelope encryption do A1 e CSC e para a chave de assinatura de token) atrás de `ICertificateVault` e `ISecretStore`. Escolhido em vez do Vault pela licença (BUSL)
 
 **Contrato**: OpenAPI 3.1 em `specs/002-fiscal-foundation/contracts/openapi.yaml`, derivado do contrato da 001
 
@@ -61,7 +61,7 @@ src/
 |-- Rrf5.Fiscal.Worker/           # jobs internos
 |-- Rrf5.Fiscal.Domain/           # entidades, regras de consistência, sem I/O
 |-- Rrf5.Fiscal.Application/      # casos de uso, portas
-|-- Rrf5.Fiscal.Infrastructure/   # Postgres, MinIO, RabbitMQ, Vault, telemetria
+|-- Rrf5.Fiscal.Infrastructure/   # Postgres, S3, RabbitMQ, OpenBao, telemetria
 |-- Rrf5.Fiscal.Regulatory/       # catálogo, SchemaVersion, resolução por autorizador/data
 db/
 |-- migrations/                   # SQL versionado
