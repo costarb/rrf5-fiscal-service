@@ -15,7 +15,12 @@ static class NfceGenerator
 
     public sealed record Result(string Xml, string AccessKey);
 
-    public static Result Generate(JsonElement fixture, JsonElement profile, JsonElement issuer, int nNF, string cNF, DateTimeOffset dhEmi)
+    // netValueSchemaProbe (E4): adds the optional 010g elements of NT 2026.008
+    // (vUnComLiq/vProdLiq in prod, vProdLiqTot in total) only to test which schema
+    // package an authorizer accepts in homologation. Their values are copied from
+    // vUnCom/vProd as placeholders; this is NOT a determination of the net value
+    // "sem tributos" and must never reach a fiscal profile or production.
+    public static Result Generate(JsonElement fixture, JsonElement profile, JsonElement issuer, int nNF, string cNF, DateTimeOffset dhEmi, bool netValueSchemaProbe = false)
     {
         Require(Str(fixture, "documentType") == "NFCE", "Fixture documentType must be NFCE.");
         Require(Str(fixture, "environment") == "HOMOLOGATION", "Only HOMOLOGATION is supported by the POC.");
@@ -92,6 +97,10 @@ static class NfceGenerator
                 E(w, "NCM", Str(item0, "ncm")); E(w, "CFOP", Str(item0, "cfop"));
                 E(w, "uCom", Str(item0, "unit")); E(w, "qCom", qty.ToString("0.0000", Inv));
                 E(w, "vUnCom", unit.ToString("0.00########", Inv)); E(w, "vProd", Money(total));
+                if (netValueSchemaProbe)
+                {
+                    E(w, "vUnComLiq", unit.ToString("0.00########", Inv)); E(w, "vProdLiq", Money(total));
+                }
                 E(w, "cEANTrib", Str(item0, "gtin")); E(w, "uTrib", Str(item0, "unit"));
                 E(w, "qTrib", qty.ToString("0.0000", Inv)); E(w, "vUnTrib", unit.ToString("0.00########", Inv));
                 E(w, "indTot", "1");
@@ -110,7 +119,12 @@ static class NfceGenerator
             }
 
             var vNF = vProd;
-            w.WriteStartElement("total", NfeNamespace); w.WriteStartElement("ICMSTot", NfeNamespace);
+            w.WriteStartElement("total", NfeNamespace);
+            if (netValueSchemaProbe)
+            {
+                E(w, "vProdLiqTot", Money(vProd));
+            }
+            w.WriteStartElement("ICMSTot", NfeNamespace);
             foreach (var name in new[] { "vBC", "vICMS", "vICMSDeson", "vFCP", "vBCST", "vST", "vFCPST", "vFCPSTRet" })
             {
                 E(w, name, "0.00");

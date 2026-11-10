@@ -50,6 +50,11 @@ dotnet run -- generate --case ../fixtures/nfce-minimal.json --profile ../fixture
 dotnet run -- sign --pfx <outside repository>\a1.pfx --xml <unsigned.xml> --out <outside repository>\signed.xml
 ```
 
+`--schema-probe net-values-010g` adds the optional 010g elements `vUnComLiq`,
+`vProdLiq` and `vProdLiqTot` with placeholder values. It exists only to test, in
+homologation, which schema package an authorizer applies (E4;
+`pocs/evidence/homologation.md`, run 5). Never use it in production.
+
 `authorize` sends one signed NFC-e to SEFAZ-SP homologation
 (`NFeAutorizacao4`, synchronous) and writes the `nfeProc` only when protocol
 `cStat` is 100 with matching key and digest. `consult` queries
