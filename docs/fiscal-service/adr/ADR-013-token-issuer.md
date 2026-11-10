@@ -1,6 +1,6 @@
 # ADR-013 — Emissor de token
 
-**Status:** Proposto  
+**Status:** Aceito pelo operador em 2026-11-10  
 **Data:** 2026-11-10  
 **Escopo:** autenticação máquina-a-máquina da fundação (FF-001); sem usuários humanos nesta fase
 

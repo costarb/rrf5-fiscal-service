@@ -1,6 +1,6 @@
 # ADR-015 — Modelo de regra fiscal
 
-**Status:** Proposto  
+**Status:** Aceito pelo operador em 2026-11-10  
 **Data:** 2026-11-10  
 **Escopo:** TaxProfile, TaxRule e TaxRuleVersion da fundação (FF-007, FF-008); detalha o ADR-008
 

@@ -96,6 +96,17 @@ trivy image mcr.microsoft.com/dotnet/runtime:10.0-noble-chiseled
 Note: on PowerShell 5, write SBOMs without a UTF-8 BOM (Trivy rejects them
 otherwise) and quote Maven `-D` arguments containing dots.
 
+## Foundation runtime (feature 002)
+
+Product code under `src/` passes the same gate before a package enters
+`Directory.Packages.props`.
+
+| Package | Version | License | Maintenance evidence | Audit (2026-11-10) | Decision |
+| --- | --- | --- | --- | --- | --- |
+| `Npgsql` | 10.0.3 (published 2026-05-27) | PostgreSQL (`licenses.nuget.org/PostgreSQL`) | Official .NET data provider of the PostgreSQL ecosystem; 10.x line follows .NET 10 | `dotnet list package --vulnerable --include-transitive`: none. Transitive: `Microsoft.Extensions.Logging.Abstractions` 10.0.0, `Microsoft.Extensions.DependencyInjection.Abstractions` 10.0.0 (MIT) | Accept (ADR-014: the only runtime data dependency). GSSAPI negotiation is disabled by default because the chiseled image has no Kerberos library |
+
+The image SBOM and Trivy scan of the foundation CI cover these packages on every push.
+
 ## Closed since the first pass
 
 - Java 25/Maven available on this host; Java SBOM generated and scanned.

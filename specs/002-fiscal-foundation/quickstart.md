@@ -26,6 +26,22 @@ docker compose down                # keeps volumes; add -v to wipe them
 Ports and passwords can be overridden with `RRF5_*` variables (see the compose
 file). OpenBao dev mode keeps data in memory: keys are lost on restart.
 
+## Database
+
+Migrations live in `db/migrations/` (SQL, ADR-014), are embedded in
+`Rrf5.Fiscal.Infrastructure` and applied with the owner connection:
+
+```bash
+ConnectionStrings__Owner="Host=127.0.0.1;Port=55432;Username=rrf5_owner;Password=local-dev-only;Database=rrf5_fiscal" \
+  dotnet run --project src/Rrf5.Fiscal.Worker -- migrate
+```
+
+An applied migration is never edited: the migrator refuses a changed hash. The
+runtime roles `rrf5_app` and `rrf5_worker` are created `NOLOGIN`; their logins
+are provisioned per environment, outside the repository. Database tests create
+and drop their own `rrf5_test_*` database on the same server (override with
+`RRF5_TEST_PG`), so the stack must be up before `dotnet test`.
+
 ## Build and test
 
 ```bash

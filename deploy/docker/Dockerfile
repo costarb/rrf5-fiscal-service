@@ -18,6 +18,8 @@ COPY src/Rrf5.Fiscal.Api/Rrf5.Fiscal.Api.csproj                       src/Rrf5.F
 COPY src/Rrf5.Fiscal.Worker/Rrf5.Fiscal.Worker.csproj                 src/Rrf5.Fiscal.Worker/
 RUN dotnet restore src/Rrf5.Fiscal.${APP}/Rrf5.Fiscal.${APP}.csproj
 COPY src/ src/
+# Migrations are embedded in Rrf5.Fiscal.Infrastructure (ADR-014).
+COPY db/migrations/ db/migrations/
 RUN dotnet publish src/Rrf5.Fiscal.${APP}/Rrf5.Fiscal.${APP}.csproj -c Release -o /app --no-restore \
  && mv /app/Rrf5.Fiscal.${APP}.dll /app/app.dll \
  && mv /app/Rrf5.Fiscal.${APP}.deps.json /app/app.deps.json \

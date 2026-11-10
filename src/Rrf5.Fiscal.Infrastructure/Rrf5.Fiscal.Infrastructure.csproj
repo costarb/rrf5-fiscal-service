@@ -6,4 +6,11 @@
     <ProjectReference Include="..\Rrf5.Fiscal.Application\Rrf5.Fiscal.Application.csproj" />
     <ProjectReference Include="..\Rrf5.Fiscal.Regulatory\Rrf5.Fiscal.Regulatory.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Migrations ship inside the assembly so the image carries exactly the reviewed SQL. -->
+    <EmbeddedResource Include="..\..\db\migrations\*.sql" LogicalName="migrations/%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>
