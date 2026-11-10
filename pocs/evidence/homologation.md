@@ -202,7 +202,7 @@ production behaviour. The fiscal profile is still pending accountant ratificatio
 
 Numbering: series 2 `nNF` 1 is consumed. The next real test uses `nNF` 2.
 
-## Run 5 — E4 schema probe: does SEFAZ-SP homologation apply 010g? (PENDING)
+## Run 5 — E4 schema probe: does SEFAZ-SP homologation apply 010g? (225, 2026-11-09)
 
 **Purpose:** close E4 with a test that tells the packages apart. NT 2026.006 and
 NT 2026.008 v1.01 put 010g in homologation by 2026-10-26 and in production on
@@ -259,3 +259,37 @@ never send `nNF` 2 again under another key.
 Record here: date and time, `verAplic`, `cStat`/`xMotivo`, `nProt` if any, and
 the signed-file SHA-256. Do not record the access key, the issuer's identifiers
 or the XML.
+
+### Result (2026-11-09)
+
+**Executed:** 2026-11-09 by the operator with `run5-schema-probe.ps1`, Windows
+development host, issuer A1, series 2, `nNF` 2. Local 010g validation passed
+before transmission.
+
+| Field | Value |
+| --- | --- |
+| Sent at | 2026-11-09 23:14:06 -03:00 |
+| `authorize` | `NOT_AUTHORIZED`, HTTP 200 in 246 ms |
+| `verAplic` | `SP_NFCE_PL_009_V400` |
+| `retEnviNFe` `cStat` | **225** - Rejeição: Falha no Schema XML do lote de NFe |
+| `protNFe` | none (lot rejected before any protocol) |
+| Signed-file SHA-256 | `13a72184d37577f2d391681450f74efa36ae719e2797f154d39b656a848701b6` |
+| Files | outside Git (operator's private folder) |
+
+Reading (schema behaviour only):
+
+- On 2026-11-09 SEFAZ-SP **homologation does not accept 010g-only content**,
+  although NT 2026.006/2026.008 v1.01 set homologation "até 26/10/2026". SP is
+  behind the national schedule in this environment.
+- The cause is isolated to the three probe elements as far as this test allows:
+  the document was valid against 010g locally, and the same fixture, profile and
+  issuer without them were authorized on 2026-11-06 (run 3). A control
+  submission without the elements on the same date was not made.
+- Same code and message as the third-party rejection of 2026-11-06 ("Schema drift
+  observed"), whose document carried the same elements.
+- Consequence: the golden XML and any POC or foundation output stay free of
+  010g-only elements until SEFAZ-SP is observed to accept them. Recheck in
+  homologation, and only then rely on the production date of 2026-11-16.
+- Numbering: `nNF` 2 received a lot-level rejection and no protocol. Whether it
+  may be reused or must be voided (inutilização) is to be confirmed in the MOC
+  before the next real test. The script refuses to reuse it automatically.

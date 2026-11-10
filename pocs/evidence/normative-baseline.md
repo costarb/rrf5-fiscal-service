@@ -85,7 +85,10 @@ Consequences (schema behaviour only, not tax treatment):
 - The golden XML omits these optional fields, so it is valid before and after
   2026-11-16. No production document may carry 010g-only content before
   2026-11-16.
-- Whether SEFAZ-SP homologation already applies 010g is tested directly in
-  `homologation.md`, run 5 (net-value fields present).
+- Whether SEFAZ-SP homologation already applies 010g was tested directly in
+  `homologation.md`, run 5 (net-value fields present): on 2026-11-09 it
+  answered **225**, so SP homologation was not yet applying 010g, despite the
+  "até 26/10/2026" date. The official schedule is not, on its own, evidence of
+  what an authorizer accepts.
 
 No row in this snapshot is an approval of tax treatment. Effective dates and applicability must be reviewed against later technical notes and by the responsible fiscal stakeholder.
