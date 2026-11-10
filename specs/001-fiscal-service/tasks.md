@@ -63,7 +63,7 @@
 
 - [x] T035 Run all POC tests, secret scans, OpenAPI validation and container builds documented in `specs/001-fiscal-service/quickstart.md`
 - [x] T036 Verify no test certificate, CSC, XML with PII or credential is tracked using `pocs/evidence/repository-audit.md`
-- [ ] T037 Review all discovery evidence and approve merge to `develop` in `specs/001-fiscal-service/discovery-signoff.md`
+- [x] T037 Review all discovery evidence and approve merge to `develop` in `specs/001-fiscal-service/discovery-signoff.md`
 
 ## Dependencies
 
