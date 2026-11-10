@@ -1,6 +1,6 @@
 <!-- SPECKIT START -->
 
-For current feature context, architecture, commands, and delivery constraints, read `specs/001-fiscal-service/plan.md`.
+For current feature context, read `specs/002-fiscal-foundation/plan.md` (foundation). The product specification, data model and discovery evidence remain in `specs/001-fiscal-service/`.
 
 <!-- SPECKIT END -->
 
