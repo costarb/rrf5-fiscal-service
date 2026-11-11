@@ -6,3 +6,7 @@ root = true
 dotnet_diagnostic.CA2254.severity = error
 # Prefer source-generated LoggerMessage over extension calls with boxed arguments.
 dotnet_diagnostic.CA1848.severity = warning
+
+[tests/**.cs]
+# Inline literal arrays keep test cases readable; they are not hot paths.
+dotnet_diagnostic.CA1861.severity = none

@@ -31,6 +31,17 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U rrf5_owner -d rrf5_fiscal"
           --health-interval 5s --health-timeout 3s --health-retries 20
+      # OpenBao dev server (in-memory) for the token signing key; the test fixture
+      # enables transit and creates the key. Same image and token as deploy/compose.
+      openbao:
+        image: openbao/openbao:2.4.1
+        env:
+          BAO_DEV_ROOT_TOKEN_ID: local-dev-root
+        ports: ["58200:8200"]
+        options: >-
+          --cap-add=IPC_LOCK
+          --health-cmd "wget -q -O /dev/null http://127.0.0.1:8200/v1/sys/health"
+          --health-interval 5s --health-timeout 3s --health-retries 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v5

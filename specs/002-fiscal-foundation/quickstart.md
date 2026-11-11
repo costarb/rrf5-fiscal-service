@@ -42,6 +42,22 @@ are provisioned per environment, outside the repository. Database tests create
 and drop their own `rrf5_test_*` database on the same server (override with
 `RRF5_TEST_PG`), so the stack must be up before `dotnet test`.
 
+## First credential and a token
+
+```bash
+export ConnectionStrings__Owner="Host=127.0.0.1;Port=55432;Username=rrf5_owner;Password=local-dev-only;Database=rrf5_fiscal"
+RRF5_LOCAL_APP_PASSWORD=local-dev-only dotnet run --project src/Rrf5.Fiscal.Worker -- local-app-login
+dotnet run --project src/Rrf5.Fiscal.Worker -- bootstrap-platform-admin   # prints client_id and client_secret once
+cd src/Rrf5.Fiscal.Api && dotnet run                                        # Development settings point at the local stack
+
+curl -s -u "$CLIENT_ID:$CLIENT_SECRET" -d grant_type=client_credentials http://localhost:5179/oauth/token
+```
+
+`local-app-login` exists only for the local stack. The bootstrap secret cannot
+be recovered; run the command again to get another platform administrator.
+Tokens last 10 minutes and are signed by the OpenBao transit key
+`rrf5-token-signing`, which `openbao-init` creates.
+
 ## Errors, logs and traces
 
 - Every error is Problem Details (`application/problem+json`) with a stable

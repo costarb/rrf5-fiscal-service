@@ -42,3 +42,27 @@ aplicação, inclusive o aprovador fiscal (D5). Não há painel nem login humano
   chamadas de negócio.
 - A troca futura por um IdP externo afeta só emissão e validação de token; scopes
   e autorização por tenant e estabelecimento continuam iguais.
+
+## Implementação (2026-11-11, T014–T017)
+
+- **Credencial:**
+  - `client_id` no formato `app_` mais 32 hex;
+  - o segredo tem o prefixo `rrf5s_`, para que scanners de segredo o reconheçam;
+  - o endpoint aceita `client_secret_basic` ou `client_secret_post`, nunca os dois na mesma requisição;
+  - um cliente desconhecido gasta o mesmo tempo de PBKDF2 que um conhecido.
+- **Busca do cliente antes de saber o tenant:**
+  - a função `auth_find_client` (migração 0008) é `SECURITY DEFINER` e pertence ao papel `rrf5_auth`, que é `NOLOGIN`;
+  - esse papel tem uma policy de leitura só para si e o `rrf5_app` não é membro dele;
+  - a API pode chamar a função, mas continua sem ler a tabela de outros tenants.
+- **Token:**
+  - claims `iss`, `aud`, `sub`, `tenant_id`, `scope`, `jti`, `iat`, `nbf` e `exp`;
+  - `kid` no formato `rrf5-token-signing-v<versão>`;
+  - assinatura ES256 pela transit, com `marshaling_algorithm=jws`;
+  - as chaves públicas ficam em cache por 5 minutos, e um `kid` desconhecido força a releitura.
+- **Validação:** só ES256, com `iss` e `aud` exatos, `typ` igual a JWT, expiração obrigatória e tolerância de 30 s de relógio. Sem chave no cofre, qualquer token dá 401. Sem cofre, o endpoint de token responde 503.
+- **Escopos:**
+  - `platform.admin` só existe no tenant `PLATFORM`, com checagem na aplicação e no banco;
+  - `fiscal.rules.write` e `fiscal.rules.approve` nunca vão na mesma aplicação;
+  - o primeiro administrador sai do comando `bootstrap-platform-admin`.
+- **Limite de taxa:** 30 pedidos de token por minuto por endereço (`RateLimits:TokenPerMinute`).
+- **Limite conhecido:** suspender uma aplicação ou um tenant, ou girar o segredo, impede novos tokens, mas não revoga os já emitidos, que valem por até 10 minutos. Revogação imediata, se for necessária, entra junto com o painel.

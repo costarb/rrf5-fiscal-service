@@ -25,10 +25,10 @@
 
 ## Phase 3 — F1 Identity and tenancy
 
-- [ ] T014 Implement Tenant and Application administration (create, suspend, rotate secret; secret shown once, stored as hash)
-- [ ] T015 Implement `/oauth/token` (`client_credentials`), short JWT signed with a OpenBao-held key, per ADR-013
-- [ ] T016 Implement scopes and application-to-establishment grants; enforce on every endpoint
-- [ ] T017 Add cross-tenant API tests (guessed IDs return `404`; missing scope returns `403`) in `tests/Security/`
+- [x] T014 Implement Tenant and Application administration (create, suspend, rotate secret; secret shown once, stored as hash)
+- [x] T015 Implement `/oauth/token` (`client_credentials`), short JWT signed with a OpenBao-held key, per ADR-013
+- [x] T016 Implement scopes and application-to-establishment grants; enforce on every endpoint
+- [x] T017 Add cross-tenant API tests (guessed IDs return `404`; missing scope returns `403`) in `tests/Security/`
 
 ## Phase 4 — F2 Issuer registration and numbering
 
