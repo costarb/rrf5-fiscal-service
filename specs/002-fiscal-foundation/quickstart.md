@@ -112,6 +112,25 @@ The payload schema is served at `GET /v1/tax-rule-payload.schema.json`. A versio
 cannot start before its approval date, approved validities never overlap, and
 the imported profile stays a draft until the accountant ratifies it.
 
+## Regulatory catalog and schema selection (F5)
+
+```bash
+cd src/Rrf5.Fiscal.Worker
+dotnet run -- load-catalog                                   # schema_version from regulatory/catalog.json (also at worker start)
+dotnet run -- store-artifact <path-outside-git>/PL_010g_v1.03.zip xsd-nfe-010g-1-03
+```
+
+`store-artifact` refuses a file whose SHA-256 differs from the catalog and stores it
+write-once in SeaweedFS (`rrf5-regulatory`, versioned, COMPLIANCE object lock for 10
+years), verifying the bytes on write and on every read. Normative files never go
+into Git.
+
+`GET /v1/environments/{id}/schema-selection?date=` returns the package for the
+environment's authorizer and date (SP homologation on 2026-11-09: 010g) and the
+package-exclusive elements, all disabled. `POST /v1/environments/{id}/schema-releases`
+`{package, elements, evidence}` enables some of them for that environment only,
+as a new audited configuration version; use it only after an accepted probe.
+
 ## Errors, logs and traces
 
 - Every error is Problem Details (`application/problem+json`) with a stable

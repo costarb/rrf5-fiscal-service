@@ -52,6 +52,16 @@ public static class ServiceRegistration
         services.AddSingleton<Application.Certificates.CertificateAdministration>();
         services.AddSingleton<Application.Certificates.CertificateExpiryAlerts>();
         services.AddSingleton<Application.TaxRules.TaxRuleAdministration>();
+
+        services.AddSingleton(_ => Regulatory.RegulatoryCatalog.LoadEmbedded());
+        var storage = new Storage.ObjectStorageOptions();
+        configuration.GetSection(Storage.ObjectStorageOptions.Section).Bind(storage);
+        services.AddSingleton(storage);
+        services.AddSingleton<Storage.S3ArtifactStore>();
+        services.AddSingleton<Application.Regulatory.IArtifactStore>(sp => sp.GetRequiredService<Storage.S3ArtifactStore>());
+        services.AddSingleton<Application.Regulatory.CatalogLoader>();
+        services.AddSingleton<Application.Regulatory.SchemaSelectionService>();
+        services.AddSingleton<Application.Regulatory.ArtifactService>();
         return services;
     }
 }

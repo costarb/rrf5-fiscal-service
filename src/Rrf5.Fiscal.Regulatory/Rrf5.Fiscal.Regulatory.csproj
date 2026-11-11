@@ -5,4 +5,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Rrf5.Fiscal.Domain\Rrf5.Fiscal.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The reviewed catalog ships inside the build; the worker loads it into schema_version (T033). -->
+    <EmbeddedResource Include="..\..\regulatory\catalog.json" LogicalName="regulatory/catalog.json" />
+  </ItemGroup>
 </Project>

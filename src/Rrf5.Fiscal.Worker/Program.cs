@@ -47,9 +47,44 @@ if (args is ["local-app-login", ..])
     return;
 }
 
+// "load-catalog" loads the shipped catalog into schema_version and prints the report.
+// "store-artifact <file> <catalogReferenceId>" stores an official artifact after
+// checking its hash against the catalog (T035). Both run as rrf5_worker.
+if (args is ["load-catalog", ..] or ["store-artifact", _, _, ..])
+{
+    builder.Services.AddRrf5Foundation(builder.Configuration, "Worker");
+    using var tools = builder.Build();
+    if (args[0] == "load-catalog")
+    {
+        var report = await tools.Services.GetRequiredService<Rrf5.Fiscal.Application.Regulatory.CatalogLoader>().LoadAsync(CancellationToken.None).ConfigureAwait(false);
+        Console.WriteLine($"inserted={report.Inserted} updated={report.Updated} unchanged={report.Unchanged} refused={report.Refused.Count}");
+        foreach (var refused in report.Refused)
+        {
+            Console.WriteLine($"refused {refused.CatalogReferenceId}: {refused.Reason}");
+        }
+    }
+    else
+    {
+        var content = await File.ReadAllBytesAsync(args[1]).ConfigureAwait(false);
+        try
+        {
+            var stored = await tools.Services.GetRequiredService<Rrf5.Fiscal.Application.Regulatory.ArtifactService>().StoreAsync(args[2], content, CancellationToken.None).ConfigureAwait(false);
+            Console.WriteLine($"stored {stored.CatalogReferenceId} sha256={stored.Sha256} key={stored.ObjectKey} lock={stored.ObjectLock} version={stored.ObjectVersion ?? "none"}");
+        }
+        catch (Rrf5.Fiscal.Application.Errors.DomainException exception)
+        {
+            Console.Error.WriteLine($"refused ({exception.Code.Value}): {exception.Message}");
+            Environment.ExitCode = 1;
+        }
+    }
+
+    return;
+}
+
 // Internal jobs run as rrf5_worker (ConnectionStrings:Worker); there is no fiscal
 // transmission in the foundation.
 builder.Services.AddRrf5Foundation(builder.Configuration, "Worker");
 builder.Services.AddHostedService<CertificateExpiryAlertService>();
+builder.Services.AddHostedService<CatalogLoadService>();
 var host = builder.Build();
 await host.RunAsync().ConfigureAwait(false);

@@ -80,6 +80,11 @@ public sealed class StackFixture : IAsyncLifetime
         await SqlMigrator.MigrateAsync(OwnerConnectionString);
         await PlatformBootstrap.EnableLocalAppLoginAsync(OwnerConnectionString, LocalPassword);
         PlatformAdmin = await PlatformBootstrap.CreatePlatformAdminAsync(OwnerConnectionString, "Test platform administrator");
+        await using var dataSource = NpgsqlDataSource.Create(OwnerConnectionString);
+        var report = await new Rrf5.Fiscal.Application.Regulatory.CatalogLoader(
+                new PostgresUnitOfWorkFactory(dataSource), Rrf5.Fiscal.Regulatory.RegulatoryCatalog.LoadEmbedded())
+            .LoadAsync(CancellationToken.None);
+        Assert.Empty(report.Refused);
     }
 
     public async Task DisposeAsync()

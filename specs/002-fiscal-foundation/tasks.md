@@ -56,9 +56,9 @@
 
 ## Phase 7 — F5 Regulatory catalog and schema selection
 
-- [ ] T033 Load `regulatory/catalog.json` into SchemaVersion; refuse packages without verified artifact hash
-- [ ] T034 Resolve schema version by authorizer, environment and date; package-exclusive elements disabled unless an audited release enables them (E4)
-- [ ] T035 Store official artifacts in S3 storage (SeaweedFS locally) with content hash, versioning and object lock where available; verify hash on read
+- [x] T033 Load `regulatory/catalog.json` into SchemaVersion; refuse packages without verified artifact hash
+- [x] T034 Resolve schema version by authorizer, environment and date; package-exclusive elements disabled unless an audited release enables them (E4)
+- [x] T035 Store official artifacts in S3 storage (SeaweedFS locally) with content hash, versioning and object lock where available; verify hash on read
 
 ## Phase 8 — Contract and closure
 

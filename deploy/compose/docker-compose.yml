@@ -36,7 +36,7 @@ services:
   # S3-compatible object storage (Apache-2.0). Object lock is verified in T035.
   seaweedfs:
     image: chrislusf/seaweedfs:3.97
-    command: "server -dir=/data -s3 -s3.port=8333 -master.volumeSizeLimitMB=64 -volume.max=8"
+    command: "server -dir=/data -s3 -s3.port=8333 -master.volumeSizeLimitMB=64 -volume.max=64"
     ports: ["127.0.0.1:${RRF5_S3_PORT:-58333}:8333"]
     volumes: [seaweedfs-data:/data]
     healthcheck:

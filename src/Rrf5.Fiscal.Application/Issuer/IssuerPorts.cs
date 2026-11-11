@@ -97,6 +97,9 @@ public interface IIssuerRepository
     Task<ConfigurationRecord> ReplaceConfigurationAsync(
         EnvironmentRecord environment, string timezone, string authorizer, string catalogVersion, Guid createdBy, CancellationToken cancellationToken);
 
+    /// <summary>Copies the active configuration into a new version with <paramref name="schemaPolicy"/> (audited releases, T034).</summary>
+    Task<ConfigurationRecord> ReplaceSchemaPolicyAsync(EnvironmentRecord environment, JsonElement schemaPolicy, Guid createdBy, CancellationToken cancellationToken);
+
     Task<SeriesRecord> CreateSeriesAsync(NewSeries series, CancellationToken cancellationToken);
 
     Task<SeriesRecord?> GetSeriesAsync(Guid id, CancellationToken cancellationToken);

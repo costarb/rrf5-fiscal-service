@@ -123,6 +123,37 @@ public sealed class PostgresIssuerRepository(NpgsqlConnection connection, Npgsql
         return (await ReadAsync(insert, ReadConfiguration, cancellationToken).ConfigureAwait(false)).Single();
     }
 
+    public async Task<ConfigurationRecord> ReplaceSchemaPolicyAsync(EnvironmentRecord environment, JsonElement schemaPolicy, Guid createdBy, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+        await using (var lockEnvironment = Command($"select 1 from fiscal_environment where id = $1 and {Tenant} for update", environment.Id))
+        {
+            await lockEnvironment.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        Guid previous;
+        await using (var supersede = Command(
+            $"update fiscal_configuration set status = 'SUPERSEDED' where environment_id = $1 and status = 'ACTIVE' and {Tenant} returning id", environment.Id))
+        {
+            previous = (Guid)(await supersede.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("The environment has no active configuration."));
+        }
+
+        await using var insert = Command(
+            $"""
+            insert into fiscal_configuration (id, tenant_id, establishment_id, environment_id, version, timezone, authorizer,
+              catalog_version, csc_id, csc_secret_ref, schema_policy, status, created_by_application_id)
+            select $2, p.tenant_id, p.establishment_id, p.environment_id,
+                   (select max(version) from fiscal_configuration where environment_id = p.environment_id) + 1,
+                   p.timezone, p.authorizer, p.catalog_version, p.csc_id, p.csc_secret_ref, $3::jsonb, 'ACTIVE', $4
+            from fiscal_configuration p
+            where p.id = $1 and p.{Tenant}
+            returning {ConfigurationColumns}
+            """,
+            previous, Guid.NewGuid(), schemaPolicy.GetRawText(), createdBy);
+        return (await ReadAsync(insert, ReadConfiguration, cancellationToken).ConfigureAwait(false)).Single();
+    }
+
     public async Task<SeriesRecord> CreateSeriesAsync(NewSeries series, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(series);

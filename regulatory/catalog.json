@@ -83,6 +83,7 @@
       "publishedAt": "2026-10-26",
       "effectiveFrom": "2026-11-16",
       "effectiveTo": null,
+      "homologationFrom": "2026-10-26",
       "models": ["55", "65"],
       "states": ["BR"],
       "artifactSha256": "b329ecbe7e4c05a41bfbc1527f105defb7047328acfeada7c77e1666da485eaf",

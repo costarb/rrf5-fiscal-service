@@ -68,6 +68,8 @@ public interface IUnitOfWork : IAsyncDisposable
 
     TaxRules.ITaxRuleRepository TaxRules { get; }
 
+    Regulatory.ISchemaRepository Schemas { get; }
+
     /// <summary>Moves the tenant context, for platform operations on a target tenant.</summary>
     Task SwitchTenantAsync(Guid tenantId, CancellationToken cancellationToken);
 
