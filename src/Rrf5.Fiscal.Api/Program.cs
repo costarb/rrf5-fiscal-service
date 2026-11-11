@@ -33,6 +33,7 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddSingleton<IEndpointModule, IdentityEndpoints>();
 builder.Services.AddSingleton<IEndpointModule, IssuerEndpoints>();
 builder.Services.AddSingleton<IEndpointModule, CertificateEndpoints>();
+builder.Services.AddSingleton<IEndpointModule, TaxRuleEndpoints>();
 
 var app = builder.Build();
 

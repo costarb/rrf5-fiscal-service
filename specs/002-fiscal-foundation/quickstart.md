@@ -94,6 +94,24 @@ AES-256-GCM, KV `secret/rrf5/...`); no endpoint returns it. Use only throwaway
 "NOT AN A1" certificates locally. The worker (`ConnectionStrings:Worker`, role
 `rrf5_worker`) raises expiry alerts at 60, 30, 15, 7 and 1 days.
 
+## Tax profiles (F4)
+
+Author with `fiscal.rules.write`, approve with a separate application holding
+`fiscal.rules.approve` (the two scopes never go together).
+
+| Step | Call |
+| --- | --- |
+| Profile | `POST /v1/tax-profiles` `{code, name}` |
+| Rule (dimensions) | `POST /v1/tax-profiles/{id}/rules` `{model, uf, operation, itemClass}` |
+| Version (DRAFT) | `POST /v1/tax-rules/{id}/versions` `{payload, validFrom, validTo, sourceRefs}` |
+| Lifecycle | `.../tax-rule-versions/{id}/submit`, `approve`, `reject` `{reason}`, `close` `{validTo}`, `retire` |
+| Resolution | `GET /v1/establishments/{id}/tax-resolution?profileId=&model=&operation=&itemClass=&date=` |
+| Discovery import (DRAFT) | `POST /v1/tax-profiles/import` with the body of `pocs/fixtures/fiscal-profile-sp-sn-own-production-v1.json` |
+
+The payload schema is served at `GET /v1/tax-rule-payload.schema.json`. A version
+cannot start before its approval date, approved validities never overlap, and
+the imported profile stays a draft until the accountant ratifies it.
+
 ## Errors, logs and traces
 
 - Every error is Problem Details (`application/problem+json`) with a stable

@@ -76,11 +76,7 @@ public sealed partial class TelemetryRedactionTests : IClassFixture<WebApplicati
     {
         for (var attempt = 0; attempt < 50; attempt++)
         {
-            List<Activity> snapshot;
-            lock (_spans)
-            {
-                snapshot = [.. _spans];
-            }
+            var snapshot = SpanSnapshot.Of(_spans);
 
             if (snapshot.Any(s => s.Kind == ActivityKind.Server && (s.GetTagItem("url.path") as string) == path))
             {

@@ -111,9 +111,8 @@ public sealed class SecretCanaryTests : IClassFixture<StackFixture>, IDisposable
     {
         await Task.Delay(500);
         var builder = new StringBuilder();
-        lock (_spans)
         {
-            foreach (var span in _spans)
+            foreach (var span in SpanSnapshot.Of(_spans))
             {
                 builder.AppendLine(span.DisplayName).AppendLine(span.StatusDescription);
                 foreach (var tag in span.TagObjects)

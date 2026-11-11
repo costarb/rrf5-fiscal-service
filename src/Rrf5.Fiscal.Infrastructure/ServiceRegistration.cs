@@ -51,6 +51,7 @@ public static class ServiceRegistration
         services.AddSingleton<Application.Issuer.NumberAllocation>();
         services.AddSingleton<Application.Certificates.CertificateAdministration>();
         services.AddSingleton<Application.Certificates.CertificateExpiryAlerts>();
+        services.AddSingleton<Application.TaxRules.TaxRuleAdministration>();
         return services;
     }
 }

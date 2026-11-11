@@ -19,7 +19,9 @@ public static class PostgresErrorTranslator
             "RF003" => ErrorCodes.InvalidTransition,
             "RF004" => ErrorCodes.FourEyes,
             "RF006" => ErrorCodes.ConstraintViolated,
-            PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.ExclusionViolation => ErrorCodes.Conflict,
+            // The only exclusion constraint is the APPROVED validity of tax_rule_version (0005).
+            PostgresErrorCodes.ExclusionViolation => ErrorCodes.ValidityOverlap,
+            PostgresErrorCodes.UniqueViolation => ErrorCodes.Conflict,
             PostgresErrorCodes.ForeignKeyViolation or PostgresErrorCodes.CheckViolation
                 or PostgresErrorCodes.NotNullViolation => ErrorCodes.ConstraintViolated,
             // RLS violation: the row belongs to another tenant or no tenant is set.

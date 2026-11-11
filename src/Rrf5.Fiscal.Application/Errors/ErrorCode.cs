@@ -42,6 +42,11 @@ public static class ErrorCodes
     public static readonly ErrorCode CertificateInvalid = new("certificate.invalid", ErrorCategory.Unprocessable, "The certificate is not a usable A1.");
     public static readonly ErrorCode CertificateExpired = new("certificate.outside_validity", ErrorCategory.Unprocessable, "The certificate is expired or not yet valid.");
     public static readonly ErrorCode CertificateHolderMismatch = new("certificate.holder_mismatch", ErrorCategory.Unprocessable, "The certificate CNPJ-Base differs from the establishment CNPJ-Base (MOC rejection 213).");
+    public static readonly ErrorCode UnsupportedGroup = new("rules.unsupported_group", ErrorCategory.Unprocessable, "The rule asks for a layout group the generator does not build.");
+    public static readonly ErrorCode RulePayloadInvalid = new("rules.payload_invalid", ErrorCategory.Unprocessable, "The rule payload is inconsistent with the layout.");
+    public static readonly ErrorCode RuleNotInForce = new("rules.not_in_force", ErrorCategory.NotFound, "No approved rule version is in force for these dimensions and date.");
+    public static readonly ErrorCode RuleCrtMismatch = new("rules.crt_mismatch", ErrorCategory.Unprocessable, "The rule CRT differs from the establishment CRT.");
+    public static readonly ErrorCode ValidityOverlap = new("rules.validity_overlap", ErrorCategory.Conflict, "The validity overlaps an approved version of the same rule.");
     public static readonly ErrorCode ConstraintViolated = new("validation.constraint", ErrorCategory.Unprocessable, "The request violates a consistency rule.");
     public static readonly ErrorCode RateLimited = new("rate_limited", ErrorCategory.RateLimited, "Too many requests.");
     public static readonly ErrorCode Unavailable = new("dependency.unavailable", ErrorCategory.Unavailable, "A required dependency is unavailable.");
@@ -51,7 +56,7 @@ public static class ErrorCodes
     public static IReadOnlyList<ErrorCode> All { get; } =
     [
         RequestInvalid, IdempotencyKeyInvalid, Unauthenticated, Forbidden, ScopeMissing, FourEyes, NotFound,
-        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, CertificateInvalid, CertificateExpired, CertificateHolderMismatch, ConstraintViolated,
+        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, CertificateInvalid, CertificateExpired, CertificateHolderMismatch, UnsupportedGroup, RulePayloadInvalid, RuleNotInForce, RuleCrtMismatch, ValidityOverlap, ConstraintViolated,
         RateLimited, Unavailable, Internal,
     ];
 }

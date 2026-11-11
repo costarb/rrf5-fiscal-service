@@ -47,12 +47,12 @@
 
 ## Phase 6 — F4 Tax profiles
 
-- [ ] T027 Implement TaxProfile, TaxRule (explicit dimensions) and immutable TaxRuleVersion with source references
-- [ ] T028 Implement the approval flow `DRAFT → PENDING_APPROVAL → APPROVED → RETIRED` with the fiscal approver scope; author cannot approve
-- [ ] T029 Reject overlapping validity for the same dimensions and retroactive validity over existing documents
-- [ ] T030 Validate rule payloads against the JSON Schema of supported layout groups; reject unsupported groups with the reason
-- [ ] T031 Import `pocs/fixtures/fiscal-profile-sp-sn-own-production-v1.json` as a DRAFT, pending accountant ratification (T011 of 001)
-- [ ] T032 Implement profile resolution by establishment, dimensions and date (approved and in-force only)
+- [x] T027 Implement TaxProfile, TaxRule (explicit dimensions) and immutable TaxRuleVersion with source references
+- [x] T028 Implement the approval flow `DRAFT → PENDING_APPROVAL → APPROVED → RETIRED` with the fiscal approver scope; author cannot approve
+- [x] T029 Reject overlapping validity for the same dimensions and retroactive validity over existing documents
+- [x] T030 Validate rule payloads against the JSON Schema of supported layout groups; reject unsupported groups with the reason
+- [x] T031 Import `pocs/fixtures/fiscal-profile-sp-sn-own-production-v1.json` as a DRAFT, pending accountant ratification (T011 of 001)
+- [x] T032 Implement profile resolution by establishment, dimensions and date (approved and in-force only)
 
 ## Phase 7 — F5 Regulatory catalog and schema selection
 
