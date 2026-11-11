@@ -49,7 +49,7 @@ Isso é uma limitação aceita, não um gate reprovado.
 | L8 | Referência de seção do MOC 7.0 para os algoritmos de assinatura não registrada (PDF ausente no host); os algoritmos estão provados pela autorização da SEFAZ | `xmldsig-poc.md` | Registrar a seção ao congelar o MOC na fundação |
 | L9 | Benchmark em notebook Windows; números são razões, não capacidade de produção | `performance-bench.md` | Medir capacidade em Linux no ambiente-alvo |
 | L10 | Contrato OpenAPI sem operações de assinatura de webhook, esquema normativo de evento/cabeçalhos e enum de `FiscalDocument.status`; faltam `429`, `401/403`, exemplos de polling e política de compatibilidade | `burgoos-contract-review.md` | Fechar antes de implementar o consumidor de webhook do BurgoOS |
-| L11 | Ferramenta de lint do contrato (Redocly v1) com 3 achados altos de desenvolvimento | `dependency-review.md` | Migrar para Node 22 + Redocly v2 ou outro validador OpenAPI 3.1 |
+| L11 | Ferramenta de lint do contrato (Redocly v1) com 3 achados altos de desenvolvimento | `dependency-review.md` | **Resolvido em 2026-11-11** (T037 da 002): Node 22 + Redocly 2.71.2; `npm audit` completo 0 |
 | L12 | `System.Drawing.Common` presente na árvore só por causa do QRCoder | `dependency-review.md` | Remover da árvore publicada quando possível |
 
 ## 4. Bloqueios externos (dependem de terceiros)

@@ -25,7 +25,7 @@ jobs:
           python-version: "3.13"
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: pocs/contract/package-lock.json
       - name: Validate JSON and task identifiers

@@ -40,7 +40,7 @@ public sealed class StackFixture : IAsyncLifetime
         // Same cross-process setup lock as the database tests (roles are cluster-wide).
         await using var server = new NpgsqlConnection(_server);
         await server.OpenAsync();
-        await using (var gate = new NpgsqlCommand($"select pg_advisory_lock({SetupLockKey})", server))
+        await using (var gate = new NpgsqlCommand($"select pg_advisory_lock({SetupLockKey})", server) { CommandTimeout = 0 })
         {
             await gate.ExecuteNonQueryAsync();
         }

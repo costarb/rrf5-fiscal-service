@@ -29,7 +29,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
         // shared server database serializes the setup across processes.
         await using var server = new NpgsqlConnection(_serverConnectionString);
         await server.OpenAsync();
-        await using (var gate = new NpgsqlCommand($"select pg_advisory_lock({SetupLockKey})", server))
+        await using (var gate = new NpgsqlCommand($"select pg_advisory_lock({SetupLockKey})", server) { CommandTimeout = 0 })
         {
             await gate.ExecuteNonQueryAsync();
         }

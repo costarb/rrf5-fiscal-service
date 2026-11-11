@@ -158,4 +158,29 @@ docker build -f deploy/docker/Dockerfile --build-arg APP=Worker -t rrf5-fiscal-w
 docker run --rm -p 127.0.0.1:58080:8080 rrf5-fiscal-api:dev    # GET /health/live
 ```
 
-The two-tenant onboarding walkthrough is added by T038.
+## Two-tenant onboarding walkthrough (T038, SF-001)
+
+The walkthrough is executable: `tests/Integration/TwoTenantOnboardingTests.cs` runs
+it against the local stack, for two tenants, using only the API:
+
+1. Platform administrator (bootstrap credential): `POST /v1/tenants`, then
+   `POST /v1/tenants/{id}/applications` with `["tenant.admin"]`.
+2. Tenant administrator: `POST /v1/applications` for an operator
+   (`issuer.write`, `certificates.manage`, `fiscal.rules.write`, `fiscal.rules.read`)
+   and for a separate approver (`fiscal.rules.approve`).
+3. Operator: company, establishment (granted automatically), homologation
+   environment, configuration, series, a throwaway "NOT AN A1" certificate and a
+   synthetic CSC.
+4. Operator authors a test profile, rule and version and submits it; the approver
+   approves it. The POC profile stays a draft until the accountant ratifies it.
+5. Operator resolves the rule and the schema; the other tenant gets `404` for every
+   one of these resources.
+
+```bash
+cd deploy/compose && docker compose up -d --wait && cd ../..
+dotnet test tests/Integration -c Release --filter TwoTenantOnboarding
+```
+
+Contract: `specs/002-fiscal-foundation/contracts/openapi.yaml` (OpenAPI 3.1), linted
+with `npx @redocly/cli@2.71.2 lint openapi.yaml --config redocly.yaml` on Node 22 and
+checked against the running routes by `tests/Contract`.

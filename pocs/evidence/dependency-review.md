@@ -38,7 +38,7 @@ provenance; it must not be copied from this folder.
 | --- | --- | --- | --- |
 | `xmllint-wasm` 5.2.0 | npm declares MIT; bundled libxml2 notices must remain in distribution review | Active package; no native runtime toolchain | Accept for isolated XSD POC only; validate bundled notices before product use |
 | `openapi-fetch` 0.17.0 | MIT | Current release used by generated client; runtime audit clean | Accept for contract POC/client candidate |
-| Redocly CLI 1.34.24 | development CLI; license metadata retained in lock tree | Latest 1.x; maintained v2 requires Node 22 | Restricted to trusted local contract lint in CI; not runtime-approved; migrate to v2/Node 22 |
+| Redocly CLI 2.71.2 (was 1.34.24) | MIT; development CLI only | v2 line on Node 22; 2.71.2 published 2026-10-27 | Migrated 2026-11-11 (T037 of 002, closes L11): full `npm audit` 0 (the 3 high via v1 → `faker` are gone); lints the 001 and 002 contracts; not runtime |
 | Jackson 2.22.4 | Apache-2.0 (FasterXML) | Latest 2.x on Maven Central; a 3.x line (`tools.jackson`, renamed APIs) also exists | Accept for POC JSON parsing; a Java foundation must choose 2.x vs 3.x deliberately |
 | `QRCoder` 1.8.1 | MIT; `github.com/Shane32/QRCoder` | The most-used .NET QR encoder; `QRCoder.Core` is an unrelated fork and was not used | Accept for the DANFE POC. Only `QRCodeGenerator` is used, never the drawing API |
 | `System.Drawing.Common` | MIT (Microsoft) | 10.0.14 is in the supported .NET 10 servicing line | Pinned explicitly so the out-of-support 6.0.0 no longer resolves. Unused by the code; the foundation should still drop it from the shipped tree when QRCoder or the chosen encoder allows |

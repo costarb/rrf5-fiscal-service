@@ -59,6 +59,18 @@ jobs:
       - name: Test
         run: dotnet test Rrf5.Fiscal.slnx -c Release --no-build
 
+  # T037 / L11: OpenAPI 3.1 lint with Redocly CLI v2 on Node 22 (no high findings).
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Lint the foundation contract
+        working-directory: specs/002-fiscal-foundation/contracts
+        run: npx --yes @redocly/cli@2.71.2 lint openapi.yaml --config redocly.yaml
+
   image:
     needs: build-test
     runs-on: ubuntu-latest
