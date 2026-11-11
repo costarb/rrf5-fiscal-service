@@ -54,7 +54,7 @@ public sealed class CertificateInspectionTests
             TestCertificates.Pkcs12(Password, holderCnpj: null),
             TestCertificates.Pkcs12(Password, Holder, withoutPrivateKey: true),
             TestCertificates.Pkcs12(Password, Holder, ecdsa: true),
-            TestCertificates.Pkcs12(Password, "12ABC34501DE36"),   // holder with a wrong check digit
+            TestCertificates.Pkcs12(Password, Holder[..13] + "6"),   // holder with a wrong second check digit
         })
         {
             Assert.Equal(ErrorCodes.CertificateInvalid,
