@@ -1,6 +1,9 @@
+using Rrf5.Fiscal.Infrastructure.Observability;
 using Rrf5.Fiscal.Infrastructure.Persistence;
 
 var builder = Host.CreateApplicationBuilder(args);
+builder.Logging.UseRedactingJsonLogs();
+builder.Services.AddRrf5Telemetry(builder.Configuration, "rrf5-fiscal-worker");
 
 // "migrate" applies the embedded SQL migrations with the owner connection and
 // exits (ADR-014). The owner credential is only given to this one-shot command.

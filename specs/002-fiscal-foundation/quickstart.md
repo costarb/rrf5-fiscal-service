@@ -42,6 +42,18 @@ are provisioned per environment, outside the repository. Database tests create
 and drop their own `rrf5_test_*` database on the same server (override with
 `RRF5_TEST_PG`), so the stack must be up before `dotnet test`.
 
+## Errors, logs and traces
+
+- Every error is Problem Details (`application/problem+json`) with a stable
+  `code` (catalog in `src/Rrf5.Fiscal.Application/Errors/ErrorCode.cs`) and the
+  `correlationId`. Send `X-Correlation-Id` (1 to 128 of `A-Za-z0-9._-`) to choose
+  it; otherwise one is generated and returned in the same header.
+- Logs are one JSON line each on stdout. Only fields in the allowlist
+  (`RedactionPolicy`) keep their value; everything else is `[REDACTED]`, and the
+  formatted message is never written, only its template.
+- Traces and metrics stay in the process unless `OTEL_EXPORTER_OTLP_ENDPOINT` is
+  set; span attributes outside the allowlist are redacted before export.
+
 ## Build and test
 
 ```bash

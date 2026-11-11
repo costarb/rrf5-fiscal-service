@@ -18,10 +18,10 @@
 - [x] T007 Write SQL migrations for the `data-model.md` tables, composite keys, checks and immutability triggers in `db/migrations/`
 - [x] T008 Enable RLS and transaction-local tenant context; prove absent or foreign context is denied in `tests/Database/`
 - [x] T009 Implement the database constraint tests listed in `specs/001-fiscal-service/data-model.md` in `tests/Database/`
-- [ ] T010 Implement idempotency claim (key + canonical request hash) for administrative mutations in `src/Rrf5.Fiscal.Application/`
-- [ ] T011 Implement append-only audit log with principal, tenant, resource, action and correlation in `src/Rrf5.Fiscal.Infrastructure/`
-- [ ] T012 Implement Problem Details with stable domain codes and the redaction allowlist for logs and traces in `src/Rrf5.Fiscal.Api/`
-- [ ] T013 Wire OpenTelemetry traces and metrics with redaction tests in `tests/Security/`
+- [x] T010 Implement idempotency claim (key + canonical request hash) for administrative mutations in `src/Rrf5.Fiscal.Application/`
+- [x] T011 Implement append-only audit log with principal, tenant, resource, action and correlation in `src/Rrf5.Fiscal.Infrastructure/`
+- [x] T012 Implement Problem Details with stable domain codes and the redaction allowlist for logs and traces in `src/Rrf5.Fiscal.Api/`
+- [x] T013 Wire OpenTelemetry traces and metrics with redaction tests in `tests/Security/`
 
 ## Phase 3 — F1 Identity and tenancy
 

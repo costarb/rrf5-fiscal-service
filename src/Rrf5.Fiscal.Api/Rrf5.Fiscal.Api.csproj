@@ -3,6 +3,9 @@
     <RootNamespace>Rrf5.Fiscal.Api</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Rrf5.Fiscal.Application\Rrf5.Fiscal.Application.csproj" />
     <ProjectReference Include="..\Rrf5.Fiscal.Infrastructure\Rrf5.Fiscal.Infrastructure.csproj" />
     <ProjectReference Include="..\Rrf5.Fiscal.Regulatory\Rrf5.Fiscal.Regulatory.csproj" />

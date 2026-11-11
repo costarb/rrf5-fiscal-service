@@ -1,0 +1,8 @@
+root = true
+
+[*.cs]
+# Log message templates are written unredacted (only their fields pass the
+# allowlist), so a template must be a constant: no interpolation or concatenation.
+dotnet_diagnostic.CA2254.severity = error
+# Prefer source-generated LoggerMessage over extension calls with boxed arguments.
+dotnet_diagnostic.CA1848.severity = warning

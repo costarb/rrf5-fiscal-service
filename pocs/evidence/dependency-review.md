@@ -104,6 +104,8 @@ Product code under `src/` passes the same gate before a package enters
 | Package | Version | License | Maintenance evidence | Audit (2026-11-10) | Decision |
 | --- | --- | --- | --- | --- | --- |
 | `Npgsql` | 10.0.3 (published 2026-05-27) | PostgreSQL (`licenses.nuget.org/PostgreSQL`) | Official .NET data provider of the PostgreSQL ecosystem; 10.x line follows .NET 10 | `dotnet list package --vulnerable --include-transitive`: none. Transitive: `Microsoft.Extensions.Logging.Abstractions` 10.0.0, `Microsoft.Extensions.DependencyInjection.Abstractions` 10.0.0 (MIT) | Accept (ADR-014: the only runtime data dependency). GSSAPI negotiation is disabled by default because the chiseled image has no Kerberos library |
+| `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, `OpenTelemetry.Instrumentation.AspNetCore` | 1.20.1 (published 2026-10-20/21) | Apache-2.0 | CNCF OpenTelemetry .NET; 1.20.2 of the ASP.NET Core instrumentation (2026-11-06) skipped as too recent | `dotnet list package --vulnerable --include-transitive`: none. Transitive: `OpenTelemetry`, `OpenTelemetry.Api*` 1.20.1 and `Microsoft.Extensions.*` 10.0.x (MIT) | Accept (T013). Spans pass through the redaction processor before any exporter; OTLP export only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set |
+| `OpenTelemetry.Exporter.InMemory` | 1.20.1 | Apache-2.0 | same project | none | Test-only (`tests/Security`), never shipped |
 
 The image SBOM and Trivy scan of the foundation CI cover these packages on every push.
 
