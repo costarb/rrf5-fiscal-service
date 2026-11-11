@@ -4,5 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Rrf5.Fiscal.Domain\Rrf5.Fiscal.Domain.csproj" />
+    <ProjectReference Include="..\Rrf5.Fiscal.Regulatory\Rrf5.Fiscal.Regulatory.csproj" />
   </ItemGroup>
 </Project>

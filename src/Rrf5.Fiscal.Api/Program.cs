@@ -31,6 +31,7 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddSingleton<IEndpointModule, IdentityEndpoints>();
+builder.Services.AddSingleton<IEndpointModule, IssuerEndpoints>();
 
 var app = builder.Build();
 

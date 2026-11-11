@@ -12,7 +12,7 @@ public static partial class Correlation
 {
     public const string HeaderName = "X-Correlation-Id";
 
-    private const string ItemKey = "rrf5.correlation_id";
+    private const string ContextItem = "rrf5.correlation_id";
 
     [GeneratedRegex(@"^[A-Za-z0-9._-]{1,128}$", RegexOptions.CultureInvariant)]
     private static partial Regex SafeToken();
@@ -20,7 +20,7 @@ public static partial class Correlation
     public static string Get(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return context.Items[ItemKey] as string ?? context.TraceIdentifier;
+        return context.Items[ContextItem] as string ?? context.TraceIdentifier;
     }
 
     public static IApplicationBuilder UseCorrelation(this IApplicationBuilder app) =>
@@ -28,7 +28,7 @@ public static partial class Correlation
         {
             var supplied = context.Request.Headers[HeaderName].ToString();
             var id = SafeToken().IsMatch(supplied) ? supplied : Guid.NewGuid().ToString("N");
-            context.Items[ItemKey] = id;
+            context.Items[ContextItem] = id;
             // Set when the response starts: the exception handler clears headers
             // before writing the problem, and the id must survive that.
             context.Response.OnStarting(() =>

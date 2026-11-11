@@ -44,6 +44,8 @@ public static class ServiceRegistration
             TokenSettings.DefaultLifetime));
         services.AddSingleton<TokenIssuer>();
         services.AddSingleton<IdentityAdministration>();
+        services.AddSingleton<Application.Issuer.IssuerAdministration>();
+        services.AddSingleton<Application.Issuer.NumberAllocation>();
         return services;
     }
 }

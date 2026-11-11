@@ -62,6 +62,8 @@ public interface IUnitOfWork : IAsyncDisposable
 
     IIdentityRepository Identity { get; }
 
+    Issuer.IIssuerRepository Issuer { get; }
+
     /// <summary>Moves the tenant context, for platform operations on a target tenant.</summary>
     Task SwitchTenantAsync(Guid tenantId, CancellationToken cancellationToken);
 

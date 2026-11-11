@@ -58,6 +58,24 @@ be recovered; run the command again to get another platform administrator.
 Tokens last 10 minutes and are signed by the OpenBao transit key
 `rrf5-token-signing`, which `openbao-init` creates.
 
+## Issuer registration (F2)
+
+With an `issuer.write` token (create the application with a `tenant.admin` token):
+
+| Step | Call |
+| --- | --- |
+| Company | `POST /v1/companies` `{legalName, taxId}` |
+| Establishment (granted to the caller) | `POST /v1/companies/{id}/establishments` `{taxId, stateRegistration, uf, municipalityCode, cnae, crt, address}` |
+| Environment | `POST /v1/establishments/{id}/environments` `{environment: HOMOLOGATION}` |
+| Configuration (new version each time) | `PUT /v1/environments/{id}/configuration` `{timezone, catalogVersion}` |
+| Series | `POST /v1/environments/{id}/series` `{model: "65", series, nextNumber}` |
+
+Every mutation needs an `Idempotency-Key` header. `taxId` accepts the alphanumeric
+CNPJ (check digits per NT Conjunta 2025.001); the establishment must share the
+company root, its municipality must belong to its UF and only catalogued
+authorizers (today SEFAZ-SP) can be configured. Numbers are reserved by the
+emission flow (phase 2), never through a public endpoint.
+
 ## Errors, logs and traces
 
 - Every error is Problem Details (`application/problem+json`) with a stable

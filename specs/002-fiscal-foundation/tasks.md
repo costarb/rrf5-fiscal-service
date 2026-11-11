@@ -32,10 +32,10 @@
 
 ## Phase 4 — F2 Issuer registration and numbering
 
-- [ ] T018 Implement Company, Establishment and FiscalEnvironment administration with canonical tax IDs
-- [ ] T019 Implement FiscalConfiguration (timezone, authorizer catalog version, schema policy) per environment
-- [ ] T020 Implement FiscalSeries administration and the atomic allocation of `data-model.md` (no decrement path)
-- [ ] T021 Add 1.000-allocation concurrency test and gap audit test in `tests/Database/`
+- [x] T018 Implement Company, Establishment and FiscalEnvironment administration with canonical tax IDs
+- [x] T019 Implement FiscalConfiguration (timezone, authorizer catalog version, schema policy) per environment
+- [x] T020 Implement FiscalSeries administration and the atomic allocation of `data-model.md` (no decrement path)
+- [x] T021 Add 1.000-allocation concurrency test and gap audit test in `tests/Database/`
 
 ## Phase 5 — F3 Certificate and CSC vault
 

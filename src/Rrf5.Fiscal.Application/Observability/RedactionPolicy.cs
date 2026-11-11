@@ -19,7 +19,7 @@ public static class RedactionPolicy
         "seriesId", "resourceType", "resourceId", "action", "outcome", "operation", "correlationId",
         "traceId", "spanId", "code", "sqlState", "statusCode", "method", "route", "path",
         "durationMs", "elapsedMs", "count", "version", "migration", "environment", "model",
-        "status", "fromStatus", "toStatus", "schemaReference", "replayed",
+        "status", "fromStatus", "toStatus", "schemaReference", "replayed", "number", "series", "reservationId",
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Span attribute names: OpenTelemetry semantic conventions in use plus rrf5.* fields.</summary>

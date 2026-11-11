@@ -81,6 +81,18 @@ public sealed class DatabaseFixture : IAsyncLifetime
     }
 
     public Task<RoleSession> BeginAsAppAsync(Guid? tenantId = null) => BeginAsAsync("rrf5_app", tenantId);
+
+    /// <summary>
+    /// A data source that logs in as rrf5_app, the way the API connects, so product
+    /// code runs under RLS. Enables the local login (local stack only) first.
+    /// </summary>
+    public async Task<NpgsqlDataSource> CreateAppDataSourceAsync()
+    {
+        const string localPassword = "local-dev-only";
+        await PlatformBootstrap.EnableLocalAppLoginAsync(OwnerConnectionString, localPassword);
+        var app = new NpgsqlConnectionStringBuilder(OwnerConnectionString) { Username = "rrf5_app", Password = localPassword, MaxPoolSize = 32 };
+        return NpgsqlDataSource.Create(PostgresConnectionStrings.WithServiceDefaults(app.ConnectionString));
+    }
 }
 
 /// <summary>A connection and open transaction under a runtime role.</summary>
