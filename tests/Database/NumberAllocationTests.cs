@@ -29,7 +29,7 @@ public sealed class NumberAllocationTests(DatabaseFixture db)
         var allocators = new[] { new NumberAllocation(new PostgresUnitOfWorkFactory(instanceA)), new NumberAllocation(new PostgresUnitOfWorkFactory(instanceB)) };
 
         var numbers = new ConcurrentBag<long>();
-        await Parallel.ForEachAsync(Enumerable.Range(0, total), new ParallelOptions { MaxDegreeOfParallelism = 16 }, async (i, ct) =>
+        await Parallel.ForEachAsync(Enumerable.Range(0, total), new ParallelOptions { MaxDegreeOfParallelism = 12 }, async (i, ct) =>
         {
             var reservation = await allocators[i % 2].ReserveAsync(issuer.TenantId, series, Principal.System, $"load-{i}", ct);
             numbers.Add(reservation.Number);

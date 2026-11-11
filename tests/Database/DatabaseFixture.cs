@@ -84,13 +84,15 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
     /// <summary>
     /// A data source that logs in as rrf5_app, the way the API connects, so product
-    /// code runs under RLS. Enables the local login (local stack only) first.
+    /// code runs under RLS. Enables the local login (local stack only) first. The long
+    /// command timeout absorbs CPU contention when every test project runs at once
+    /// (PBKDF2 in the API tests); these tests assert correctness, not latency.
     /// </summary>
     public async Task<NpgsqlDataSource> CreateAppDataSourceAsync()
     {
         const string localPassword = "local-dev-only";
         await PlatformBootstrap.EnableLocalAppLoginAsync(OwnerConnectionString, localPassword);
-        var app = new NpgsqlConnectionStringBuilder(OwnerConnectionString) { Username = "rrf5_app", Password = localPassword, MaxPoolSize = 32 };
+        var app = new NpgsqlConnectionStringBuilder(OwnerConnectionString) { Username = "rrf5_app", Password = localPassword, MaxPoolSize = 8, CommandTimeout = 180 };
         return NpgsqlDataSource.Create(PostgresConnectionStrings.WithServiceDefaults(app.ConnectionString));
     }
 }

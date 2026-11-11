@@ -55,10 +55,25 @@ public static class PlatformBootstrap
     public static async Task EnableLocalAppLoginAsync(string ownerConnectionString, string password, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
-        await using var connection = new NpgsqlConnection(PostgresConnectionStrings.WithServiceDefaults(ownerConnectionString));
-        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
         var quoted = "'" + password.Replace("'", "''", StringComparison.Ordinal) + "'";
-        await using var command = new NpgsqlCommand($"alter role rrf5_app login password {quoted}", connection);
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+        // Roles are cluster-wide: parallel callers on other databases of the same server
+        // can update the same pg_authid row ("tuple concurrently updated"), which also
+        // breaks the connection. Retry briefly, each time on a fresh connection.
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await using var connection = new NpgsqlConnection(PostgresConnectionStrings.WithServiceDefaults(ownerConnectionString) + ";Pooling=false");
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                await using var command = new NpgsqlCommand($"alter role rrf5_app login password {quoted}", connection);
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.InternalError && attempt < 10)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(50 * attempt), cancellationToken).ConfigureAwait(false);
+            }
+        }
     }
 }
