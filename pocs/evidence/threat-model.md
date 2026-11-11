@@ -99,3 +99,33 @@ artifact, so it cannot prove cloud IAM, KMS memory exposure, object lock or
 runtime telemetry behavior. Those are entry gates for the foundation and must
 be retested in the selected deployment environment. No residual risk here is an
 approval to weaken official fiscal or security requirements.
+
+## Foundation retest on the local stack (2026-11-11, T039 of 002)
+
+Scope: feature 002 code on the local stack (PostgreSQL 17.6, OpenBao 2.4.1 dev,
+SeaweedFS 3.97, chiseled images). There is no emission, queue consumer, webhook or
+cloud deployment yet, so items that depend on them are marked not reachable.
+Evidence names are test classes under `tests/` (suite green in CI and on a fresh
+clone with a fresh stack).
+
+| ID | Result | Evidence | Open item |
+| --- | --- | --- | --- |
+| TM-01 | **Partial** | No route returns certificate bytes, password or CSC (`ContractTests` route list); envelope encryption with a per-secret data key from transit and AES-256-GCM bound to tenant/kind/id; only ciphertext in KV (`SecretCanaryTests`, `CertificateApiTests`) | The API and worker use the OpenBao dev root token; a vault policy restricted to the worker identity is a deployment item (checklist B, L1) |
+| TM-02 | **Pass (local)** | Password and CSC canaries absent from responses, logs, spans, every table and vault entries (`SecretCanaryTests`, mutation-checked); allowlist logging and span redaction (`TelemetryRedactionTests`); every image layer scanned in CI (`scripts/scan_image_layers.py`) | Crash-dump policy and memory exposure belong to the deployment environment |
+| TM-03 | **Partial** | Holder CNPJ-Base equals the establishment CNPJ-Base (MOC F03 / 213), validity window, single RSA key, SHA-256 fingerprint, audit of each upload (`CertificateInspectionTests`, `CertificateApiTests`) | **ICP-Brasil chain validation is not implemented** and rotation is single-control (any `certificates.manage` application). Both must be decided before production |
+| TM-04 | **Pass (storage)** | CSC only as a vault reference; reads expose `cscConfigured` only; no read endpoint (`CertificateApiTests`, `SecretCanaryTests`) | QR generation and its diagnostics come with emission |
+| TM-05 | **Pass** | Cross-tenant matrices for tenancy, issuer, vault, rules and schema routes answer 404 (`CrossTenantTests`, `IssuerIsolationTests`, `TaxRuleLifecycleTests`, `SchemaSelectionApiTests`, `TwoTenantOnboardingTests`); explicit tenant predicates plus forced RLS (`RowLevelSecurityTests`) and composite keys (`ConstraintTests`) | Document, download and webhook routes do not exist yet |
+| TM-06 | Not reachable | No queue consumer in the foundation | Phase 2 |
+| TM-07 | **Pass (data)** | Database refuses cross-environment and cross-model links; one environment of each kind; certificates and CSC bound to one environment (`ConstraintTests`, `IssuerApiTests`) | Endpoint selection per environment comes with the SEFAZ adapter |
+| TM-08 | **Partial** | Official artifacts write-once by SHA-256, versioned bucket, COMPLIANCE object lock, hash verified on write and every read; tamper and version delete refused (`RegulatoryStorageTests`) | Private-bucket policy (the local store accepts any credential) and authorized XML/DANFE storage come with deployment and emission |
+| TM-09 | Not reachable | No XML parsing in the foundation | Phase 2 corpus |
+| TM-10 | **Pass** | Only VERIFIED packages load; a changed hash is refused; selection fails closed (`schema.not_resolved`); exclusive elements need an audited release (`SchemaSelectionTests`, `RegulatoryStorageTests`, `SchemaSelectionApiTests`); approved rule versions are immutable, non-overlapping and non-retroactive (`TaxRuleConstraintTests`, `TaxRuleLifecycleTests`) | — |
+| TM-11 to TM-13 | Not reachable | No webhooks | Before the BurgoOS consumer (checklist C) |
+| TM-14 | **Partial** | Author and approver are separate applications enforced in app and database; runtime roles without DDL or BYPASSRLS; append-only audit with principal and correlation (`RowLevelSecurityTests`, `IdentityDatabaseTests`, `IdempotencyAndAuditTests`) | Just-in-time access, break-glass and access review belong to operations |
+| TM-15 | **Partial** | Deletion of a locked artifact version refused; audit and artifact records append-only | Backups, restore exercise and separate control planes belong to deployment |
+| TM-16 | **Pass** | 1,000 concurrent allocations from two instances, no repeat or decrease; idempotent claims under concurrency (`NumberAllocationTests`, `IdempotencyAndAuditTests`) | Consult-before-retry comes with emission |
+
+Fail-closed cases exercised: vault unavailable on token issue (503) and validation
+(401); vault unavailable on certificate upload (503, no row); application without
+an establishment grant (404); schema not resolvable (404 `schema.not_resolved`);
+stored object hash differing from the record (`artifact.integrity_failed`).

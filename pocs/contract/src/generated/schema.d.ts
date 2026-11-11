@@ -179,7 +179,11 @@ export interface components {
         FiscalDocument: {
             id: string;
             externalId: string;
-            status: string;
+            /**
+             * @description Closed document state set (data-model.md, L10); WAITING_SEFAZ covers a result still unknown and is reconciled by consultation.
+             * @enum {string}
+             */
+            status: "DRAFT" | "VALIDATING" | "READY_TO_SIGN" | "SIGNING" | "SIGNED" | "QUEUED" | "SENDING" | "WAITING_SEFAZ" | "AUTHORIZED" | "REJECTED" | "ERROR" | "CANCELLATION_REQUESTED" | "CANCELLED";
             /** @enum {string} */
             documentType: "NFCE" | "NFE";
             /** @enum {string} */
