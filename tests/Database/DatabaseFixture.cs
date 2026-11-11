@@ -24,16 +24,35 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await using (var server = new NpgsqlConnection(_serverConnectionString))
+        // Roles are cluster-wide, so fixtures of parallel test processes that migrate fresh
+        // databases on one server would race on CREATE ROLE. An advisory lock taken on the
+        // shared server database serializes the setup across processes.
+        await using var server = new NpgsqlConnection(_serverConnectionString);
+        await server.OpenAsync();
+        await using (var gate = new NpgsqlCommand($"select pg_advisory_lock({SetupLockKey})", server))
         {
-            await server.OpenAsync();
-            await using var create = new NpgsqlCommand($"create database \"{_databaseName}\"", server);
-            await create.ExecuteNonQueryAsync();
+            await gate.ExecuteNonQueryAsync();
         }
 
-        OwnerConnectionString = new NpgsqlConnectionStringBuilder(_serverConnectionString) { Database = _databaseName }.ConnectionString;
-        await SqlMigrator.MigrateAsync(OwnerConnectionString);
+        try
+        {
+            await using (var create = new NpgsqlCommand($"create database \"{_databaseName}\"", server))
+            {
+                await create.ExecuteNonQueryAsync();
+            }
+
+            OwnerConnectionString = new NpgsqlConnectionStringBuilder(_serverConnectionString) { Database = _databaseName }.ConnectionString;
+            await SqlMigrator.MigrateAsync(OwnerConnectionString);
+        }
+        finally
+        {
+            await using var release = new NpgsqlCommand($"select pg_advisory_unlock({SetupLockKey})", server);
+            await release.ExecuteNonQueryAsync();
+        }
     }
+
+    /// <summary>Advisory lock shared with StackFixture to serialize test database setup.</summary>
+    public const long SetupLockKey = 0x5252_4635_5445_5354;
 
     public async Task DisposeAsync()
     {

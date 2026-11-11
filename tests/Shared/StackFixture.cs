@@ -37,10 +37,34 @@ public sealed class StackFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await using (var server = new NpgsqlConnection(_server))
+        // Same cross-process setup lock as the database tests (roles are cluster-wide).
+        await using var server = new NpgsqlConnection(_server);
+        await server.OpenAsync();
+        await using (var gate = new NpgsqlCommand($"select pg_advisory_lock({SetupLockKey})", server))
         {
-            await server.OpenAsync();
-            await using var create = new NpgsqlCommand($"create database \"{_database}\"", server);
+            await gate.ExecuteNonQueryAsync();
+        }
+
+        try
+        {
+            await SetUpDatabaseAsync(server);
+        }
+        finally
+        {
+            await using var release = new NpgsqlCommand($"select pg_advisory_unlock({SetupLockKey})", server);
+            await release.ExecuteNonQueryAsync();
+        }
+
+        await EnsureSigningKeyAsync();
+    }
+
+    /// <summary>Advisory lock shared with the database test fixture to serialize setup.</summary>
+    public const long SetupLockKey = 0x5252_4635_5445_5354;
+
+    private async Task SetUpDatabaseAsync(NpgsqlConnection server)
+    {
+        await using (var create = new NpgsqlCommand($"create database \"{_database}\"", server))
+        {
             await create.ExecuteNonQueryAsync();
         }
 
@@ -56,7 +80,6 @@ public sealed class StackFixture : IAsyncLifetime
         await SqlMigrator.MigrateAsync(OwnerConnectionString);
         await PlatformBootstrap.EnableLocalAppLoginAsync(OwnerConnectionString, LocalPassword);
         PlatformAdmin = await PlatformBootstrap.CreatePlatformAdminAsync(OwnerConnectionString, "Test platform administrator");
-        await EnsureSigningKeyAsync();
     }
 
     public async Task DisposeAsync()
