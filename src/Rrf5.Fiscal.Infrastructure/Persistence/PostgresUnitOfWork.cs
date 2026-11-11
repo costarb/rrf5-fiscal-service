@@ -65,6 +65,7 @@ public sealed class PostgresUnitOfWork : IUnitOfWork
         Audit = new PostgresAuditLog(connection, transaction);
         Identity = new PostgresIdentityRepository(connection, transaction);
         Issuer = new PostgresIssuerRepository(connection, transaction);
+        Certificates = new PostgresCertificateRepository(connection, transaction);
     }
 
     public IIdempotencyStore Idempotency { get; }
@@ -74,6 +75,8 @@ public sealed class PostgresUnitOfWork : IUnitOfWork
     public IIdentityRepository Identity { get; }
 
     public Application.Issuer.IIssuerRepository Issuer { get; }
+
+    public Application.Certificates.ICertificateRepository Certificates { get; }
 
     public Task SwitchTenantAsync(Guid tenantId, CancellationToken cancellationToken) =>
         TenantTransaction.SetTenantAsync(_connection, _transaction, tenantId, cancellationToken);

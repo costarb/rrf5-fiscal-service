@@ -68,6 +68,11 @@ jobs:
         run: docker build -f deploy/docker/Dockerfile --build-arg APP=${{ matrix.app }} -t ${{ matrix.image }}:ci .
       - name: Runs as non-root
         run: test "$(docker image inspect ${{ matrix.image }}:ci --format '{{.Config.User}}')" = "1654"
+      - name: No secret material in any image layer (SF-004)
+        run: |
+          docker save ${{ matrix.image }}:ci -o image.tar
+          python3 scripts/scan_image_layers.py image.tar
+          rm image.tar
       - name: CycloneDX SBOM
         run: |
           mkdir -p sbom

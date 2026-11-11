@@ -15,13 +15,13 @@ public static class ServiceRegistration
     /// of work, the vault signer and the F1 services. Nothing connects at startup:
     /// a missing setting surfaces as <see cref="ErrorCodes.Unavailable"/> on first use.
     /// </summary>
-    public static IServiceCollection AddRrf5Foundation(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddRrf5Foundation(this IServiceCollection services, IConfiguration configuration, string connectionName = "App")
     {
         ArgumentNullException.ThrowIfNull(configuration);
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(_ =>
         {
-            var connectionString = configuration.GetConnectionString("App");
+            var connectionString = configuration.GetConnectionString(connectionName);
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new DomainException(ErrorCodes.Unavailable, "The database is not configured.");
@@ -37,6 +37,9 @@ public static class ServiceRegistration
         services.AddSingleton(sp => new OpenBaoTransitSigner(
             new HttpClient { Timeout = TimeSpan.FromSeconds(5) }, sp.GetRequiredService<OpenBaoOptions>(), sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton<ITokenSigner>(sp => sp.GetRequiredService<OpenBaoTransitSigner>());
+        services.AddSingleton(sp => new OpenBaoEnvelopeVault(new HttpClient { Timeout = TimeSpan.FromSeconds(5) }, sp.GetRequiredService<OpenBaoOptions>()));
+        services.AddSingleton<Application.Certificates.ICertificateVault>(sp => sp.GetRequiredService<OpenBaoEnvelopeVault>());
+        services.AddSingleton<Application.Certificates.ISecretStore>(sp => sp.GetRequiredService<OpenBaoEnvelopeVault>());
 
         services.AddSingleton(new TokenSettings(
             configuration["Auth:Issuer"] ?? "rrf5-fiscal",
@@ -46,6 +49,8 @@ public static class ServiceRegistration
         services.AddSingleton<IdentityAdministration>();
         services.AddSingleton<Application.Issuer.IssuerAdministration>();
         services.AddSingleton<Application.Issuer.NumberAllocation>();
+        services.AddSingleton<Application.Certificates.CertificateAdministration>();
+        services.AddSingleton<Application.Certificates.CertificateExpiryAlerts>();
         return services;
     }
 }

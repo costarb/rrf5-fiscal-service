@@ -18,6 +18,12 @@ public sealed class OpenBaoOptions
     public string? Token { get; set; }
 
     public string TokenSigningKey { get; set; } = "rrf5-token-signing";
+
+    /// <summary>Transit key (aes256-gcm96) that wraps the per-secret data keys.</summary>
+    public string EnvelopeKey { get; set; } = "rrf5-envelope";
+
+    /// <summary>KV v2 mount holding the envelopes.</summary>
+    public string KvMount { get; set; } = "secret";
 }
 
 /// <summary>A public verification key published in the JWKS.</summary>

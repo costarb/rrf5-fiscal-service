@@ -60,7 +60,8 @@ services:
       retries: 20
 
   # One-shot: enables transit (envelope encryption, T022) and creates the
-  # non-exportable ECDSA P-256 token signing key (ADR-013).
+  # non-exportable ECDSA P-256 token signing key (ADR-013) and the AES-256-GCM
+  # envelope key that wraps the A1/CSC data keys (T022).
   openbao-init:
     image: openbao/openbao:2.4.1
     depends_on:
@@ -68,7 +69,7 @@ services:
     environment:
       BAO_ADDR: http://openbao:8200
       BAO_TOKEN: ${RRF5_BAO_DEV_TOKEN:-local-dev-root}
-    entrypoint: ["/bin/sh", "-c", "(bao secrets enable transit || bao secrets list | grep -q '^transit/') && bao write -f transit/keys/rrf5-token-signing type=ecdsa-p256"]
+    entrypoint: ["/bin/sh", "-c", "(bao secrets enable transit || bao secrets list | grep -q '^transit/') && bao write -f transit/keys/rrf5-token-signing type=ecdsa-p256 && bao write -f transit/keys/rrf5-envelope type=aes256-gcm96"]
     restart: "no"
 
 volumes:

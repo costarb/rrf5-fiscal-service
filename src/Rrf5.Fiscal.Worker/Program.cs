@@ -1,4 +1,6 @@
+using Rrf5.Fiscal.Infrastructure;
 using Rrf5.Fiscal.Infrastructure.Observability;
+using Rrf5.Fiscal.Worker;
 using Rrf5.Fiscal.Infrastructure.Persistence;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -32,19 +34,22 @@ if (args is ["bootstrap-platform-admin", ..])
     return;
 }
 
-// "local-app-login" (local stack only) lets rrf5_app log in with RRF5_LOCAL_APP_PASSWORD.
+// "local-app-login" (local stack only) lets rrf5_app and rrf5_worker log in with RRF5_LOCAL_APP_PASSWORD.
 if (args is ["local-app-login", ..])
 {
     var owner = builder.Configuration.GetConnectionString("Owner")
         ?? throw new InvalidOperationException("ConnectionStrings:Owner is required for local-app-login.");
     var password = Environment.GetEnvironmentVariable("RRF5_LOCAL_APP_PASSWORD")
         ?? throw new InvalidOperationException("RRF5_LOCAL_APP_PASSWORD is required for local-app-login.");
-    await PlatformBootstrap.EnableLocalAppLoginAsync(owner, password).ConfigureAwait(false);
-    Console.WriteLine("rrf5_app can log in.");
+    await PlatformBootstrap.EnableLocalLoginAsync(owner, "rrf5_app", password).ConfigureAwait(false);
+    await PlatformBootstrap.EnableLocalLoginAsync(owner, "rrf5_worker", password).ConfigureAwait(false);
+    Console.WriteLine("rrf5_app and rrf5_worker can log in.");
     return;
 }
 
-// Internal jobs (certificate expiry alerts, catalog loading) are registered here
-// by their tasks; there is no fiscal transmission in the foundation.
+// Internal jobs run as rrf5_worker (ConnectionStrings:Worker); there is no fiscal
+// transmission in the foundation.
+builder.Services.AddRrf5Foundation(builder.Configuration, "Worker");
+builder.Services.AddHostedService<CertificateExpiryAlertService>();
 var host = builder.Build();
 await host.RunAsync().ConfigureAwait(false);

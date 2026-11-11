@@ -52,9 +52,18 @@ public static class PlatformBootstrap
     /// Local stack only: lets <c>rrf5_app</c> log in with the fixed development password.
     /// Other environments provision the login outside the repository.
     /// </summary>
-    public static async Task EnableLocalAppLoginAsync(string ownerConnectionString, string password, CancellationToken cancellationToken = default)
+    public static Task EnableLocalAppLoginAsync(string ownerConnectionString, string password, CancellationToken cancellationToken = default) =>
+        EnableLocalLoginAsync(ownerConnectionString, "rrf5_app", password, cancellationToken);
+
+    /// <summary>Local stack only: lets a runtime role (rrf5_app or rrf5_worker) log in with the development password.</summary>
+    public static async Task EnableLocalLoginAsync(string ownerConnectionString, string role, string password, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
+        if (role is not ("rrf5_app" or "rrf5_worker"))
+        {
+            throw new ArgumentException("Only runtime roles can get a local login.", nameof(role));
+        }
+
         var quoted = "'" + password.Replace("'", "''", StringComparison.Ordinal) + "'";
 
         // Roles are cluster-wide: parallel callers on other databases of the same server
@@ -66,7 +75,7 @@ public static class PlatformBootstrap
             {
                 await using var connection = new NpgsqlConnection(PostgresConnectionStrings.WithServiceDefaults(ownerConnectionString) + ";Pooling=false");
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
-                await using var command = new NpgsqlCommand($"alter role rrf5_app login password {quoted}", connection);
+                await using var command = new NpgsqlCommand($"alter role {role} login password {quoted}", connection);
                 await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                 return;
             }

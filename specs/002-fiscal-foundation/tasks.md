@@ -39,11 +39,11 @@
 
 ## Phase 5 — F3 Certificate and CSC vault
 
-- [ ] T022 Implement `ICertificateVault` over OpenBao transit (envelope encryption, per-certificate data key)
-- [ ] T023 Implement A1 upload: PKCS#12 parse, holder tax ID vs establishment, validity window, fingerprint; fail closed when the vault is unavailable
-- [ ] T024 Implement CSC storage per environment in `ISecretStore`; metadata-only reads; no export endpoint
-- [ ] T025 Implement daily certificate expiry alerts at 60, 30, 15, 7 and 1 days in `src/Rrf5.Fiscal.Worker/`
-- [ ] T026 Add canary tests (A1 password, CSC) over responses, logs, traces, database dump and image layers in `tests/Security/`
+- [x] T022 Implement `ICertificateVault` over OpenBao transit (envelope encryption, per-certificate data key)
+- [x] T023 Implement A1 upload: PKCS#12 parse, holder tax ID vs establishment, validity window, fingerprint; fail closed when the vault is unavailable
+- [x] T024 Implement CSC storage per environment in `ISecretStore`; metadata-only reads; no export endpoint
+- [x] T025 Implement daily certificate expiry alerts at 60, 30, 15, 7 and 1 days in `src/Rrf5.Fiscal.Worker/`
+- [x] T026 Add canary tests (A1 password, CSC) over responses, logs, traces, database dump and image layers in `tests/Security/`
 
 ## Phase 6 — F4 Tax profiles
 

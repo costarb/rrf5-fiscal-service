@@ -30,9 +30,9 @@ public static class IssuerSetup
     };
 
     /// <summary>Company, establishment and homologation environment; returns their ids.</summary>
-    public static async Task<(Guid Company, Guid Establishment, Guid Environment)> HomologationIssuerAsync(HttpClient client, string token)
+    public static async Task<(Guid Company, Guid Establishment, Guid Environment)> HomologationIssuerAsync(HttpClient client, string token, string? root = null)
     {
-        var root = NewRoot();
+        root ??= NewRoot();
         var (company, companyBody) = await ApiClient.SendAsync(client, HttpMethod.Post, "/v1/companies", token,
             new { legalName = "Empresa Sintetica", taxId = Cnpj(root) }, ApiClient.NewKey());
         Assert.Equal(HttpStatusCode.Created, company.StatusCode);

@@ -107,6 +107,15 @@ public sealed class DatabaseFixture : IAsyncLifetime
     /// command timeout absorbs CPU contention when every test project runs at once
     /// (PBKDF2 in the API tests); these tests assert correctness, not latency.
     /// </summary>
+    /// <summary>A data source logging in as rrf5_worker (internal jobs), local stack only.</summary>
+    public async Task<NpgsqlDataSource> CreateWorkerDataSourceAsync()
+    {
+        const string localPassword = "local-dev-only";
+        await PlatformBootstrap.EnableLocalLoginAsync(OwnerConnectionString, "rrf5_worker", localPassword);
+        var worker = new NpgsqlConnectionStringBuilder(OwnerConnectionString) { Username = "rrf5_worker", Password = localPassword, MaxPoolSize = 4 };
+        return NpgsqlDataSource.Create(PostgresConnectionStrings.WithServiceDefaults(worker.ConnectionString));
+    }
+
     public async Task<NpgsqlDataSource> CreateAppDataSourceAsync()
     {
         const string localPassword = "local-dev-only";

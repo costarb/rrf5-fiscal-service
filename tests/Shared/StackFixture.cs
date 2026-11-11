@@ -169,6 +169,8 @@ public sealed class StackFixture : IAsyncLifetime
 
         using var key = await http.PostAsJsonAsync(new Uri("v1/transit/keys/rrf5-token-signing", UriKind.Relative), new { type = "ecdsa-p256" });
         key.EnsureSuccessStatusCode();
+        using var envelope = await http.PostAsJsonAsync(new Uri("v1/transit/keys/rrf5-envelope", UriKind.Relative), new { type = "aes256-gcm96" });
+        envelope.EnsureSuccessStatusCode();
     }
 }
 

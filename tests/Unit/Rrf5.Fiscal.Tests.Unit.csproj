@@ -17,4 +17,8 @@
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- In-memory "NOT AN A1" generator only; the rest of tests/Shared needs the local stack. -->
+    <Compile Include="..\Shared\TestCertificates.cs" Link="Shared\TestCertificates.cs" />
+  </ItemGroup>
 </Project>

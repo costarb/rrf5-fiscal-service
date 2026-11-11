@@ -39,6 +39,9 @@ public static class ErrorCodes
     public static readonly ErrorCode Immutable = new("state.immutable", ErrorCategory.Conflict, "The resource can no longer be changed.");
     public static readonly ErrorCode InvalidTransition = new("state.invalid_transition", ErrorCategory.Conflict, "The state transition is not allowed.");
     public static readonly ErrorCode SeriesExhausted = new("series.exhausted", ErrorCategory.Conflict, "The series has no number left in its range.");
+    public static readonly ErrorCode CertificateInvalid = new("certificate.invalid", ErrorCategory.Unprocessable, "The certificate is not a usable A1.");
+    public static readonly ErrorCode CertificateExpired = new("certificate.outside_validity", ErrorCategory.Unprocessable, "The certificate is expired or not yet valid.");
+    public static readonly ErrorCode CertificateHolderMismatch = new("certificate.holder_mismatch", ErrorCategory.Unprocessable, "The certificate CNPJ-Base differs from the establishment CNPJ-Base (MOC rejection 213).");
     public static readonly ErrorCode ConstraintViolated = new("validation.constraint", ErrorCategory.Unprocessable, "The request violates a consistency rule.");
     public static readonly ErrorCode RateLimited = new("rate_limited", ErrorCategory.RateLimited, "Too many requests.");
     public static readonly ErrorCode Unavailable = new("dependency.unavailable", ErrorCategory.Unavailable, "A required dependency is unavailable.");
@@ -48,7 +51,7 @@ public static class ErrorCodes
     public static IReadOnlyList<ErrorCode> All { get; } =
     [
         RequestInvalid, IdempotencyKeyInvalid, Unauthenticated, Forbidden, ScopeMissing, FourEyes, NotFound,
-        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, ConstraintViolated,
+        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, CertificateInvalid, CertificateExpired, CertificateHolderMismatch, ConstraintViolated,
         RateLimited, Unavailable, Internal,
     ];
 }

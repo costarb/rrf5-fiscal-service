@@ -76,6 +76,24 @@ company root, its municipality must belong to its UF and only catalogued
 authorizers (today SEFAZ-SP) can be configured. Numbers are reserved by the
 emission flow (phase 2), never through a public endpoint.
 
+## Certificate and CSC (F3)
+
+With a token holding `certificates.manage` on a granted establishment:
+
+| Step | Call |
+| --- | --- |
+| A1 upload (supersedes the active one) | `POST /v1/environments/{id}/certificates` `{pkcs12: <base64>, password}` |
+| Metadata only | `GET /v1/environments/{id}/certificates` |
+| CSC (new configuration version) | `PUT /v1/environments/{id}/csc` `{cscId, csc}` |
+
+The A1 is checked before anything is stored: the PKCS#12 opens with the password,
+holds one RSA key, is inside its validity and its holder CNPJ-Base (ICP-Brasil OID
+2.16.76.1.3.3) equals the establishment CNPJ-Base (MOC rule F03, rejection 213).
+Material is sealed in OpenBao (per-secret data key from transit `rrf5-envelope`,
+AES-256-GCM, KV `secret/rrf5/...`); no endpoint returns it. Use only throwaway
+"NOT AN A1" certificates locally. The worker (`ConnectionStrings:Worker`, role
+`rrf5_worker`) raises expiry alerts at 60, 30, 15, 7 and 1 days.
+
 ## Errors, logs and traces
 
 - Every error is Problem Details (`application/problem+json`) with a stable

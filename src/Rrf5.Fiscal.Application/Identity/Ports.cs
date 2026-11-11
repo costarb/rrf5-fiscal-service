@@ -64,6 +64,8 @@ public interface IUnitOfWork : IAsyncDisposable
 
     Issuer.IIssuerRepository Issuer { get; }
 
+    Certificates.ICertificateRepository Certificates { get; }
+
     /// <summary>Moves the tenant context, for platform operations on a target tenant.</summary>
     Task SwitchTenantAsync(Guid tenantId, CancellationToken cancellationToken);
 
