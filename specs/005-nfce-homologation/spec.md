@@ -39,7 +39,7 @@ O integrador pré-valida uma venda e recebe todos os problemas de cadastro, perf
 
 Quando a transmissão termina em timeout ou em resposta ilegível, o serviço consulta a SEFAZ pela chave antes de qualquer reenvio (FR-007, SC-005 da 001).
 
-**Independent Test**: com o mock SOAP da POC, simular uma autorização confirmada na SEFAZ seguida de timeout local. O serviço consulta, encontra o protocolo e finaliza `AUTHORIZED` sem retransmitir. Se a consulta também falhar, o documento fica `UNKNOWN` e gera alerta, sem retransmissão.
+**Independent Test**: com o mock SOAP da POC, simular uma autorização confirmada na SEFAZ seguida de timeout local. O serviço consulta, encontra o protocolo e finaliza `AUTHORIZED` sem retransmitir. Se a consulta também falhar, o documento continua em `WAITING_SEFAZ` (o estado do contrato fechado para resultado ainda desconhecido), com nova consulta agendada e alerta, sem retransmissão.
 
 ### User Story E4 — Matriz de vendas do food truck (Priority: P1)
 
