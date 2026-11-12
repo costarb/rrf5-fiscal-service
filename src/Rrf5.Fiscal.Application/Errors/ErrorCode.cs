@@ -50,6 +50,9 @@ public static class ErrorCodes
     public static readonly ErrorCode SchemaNotResolved = new("schema.not_resolved", ErrorCategory.NotFound, "No catalogued schema package applies to this authorizer, environment and date.");
     public static readonly ErrorCode ArtifactRefused = new("artifact.refused", ErrorCategory.Unprocessable, "The artifact does not match a verified catalog entry.");
     public static readonly ErrorCode ArtifactIntegrity = new("artifact.integrity_failed", ErrorCategory.Unavailable, "The stored artifact failed hash verification.");
+    public static readonly ErrorCode CertificateUntrusted = new("certificate.untrusted", ErrorCategory.Unprocessable, "The certificate does not chain to an ICP-Brasil root.");
+    public static readonly ErrorCode CertificateRevoked = new("certificate.revoked", ErrorCategory.Unprocessable, "The certificate or one of its issuers is revoked.");
+    public static readonly ErrorCode RevocationUnavailable = new("certificate.revocation_unavailable", ErrorCategory.Unavailable, "The ICP-Brasil revocation lists could not be checked.");
     public static readonly ErrorCode ConstraintViolated = new("validation.constraint", ErrorCategory.Unprocessable, "The request violates a consistency rule.");
     public static readonly ErrorCode RateLimited = new("rate_limited", ErrorCategory.RateLimited, "Too many requests.");
     public static readonly ErrorCode Unavailable = new("dependency.unavailable", ErrorCategory.Unavailable, "A required dependency is unavailable.");
@@ -59,7 +62,7 @@ public static class ErrorCodes
     public static IReadOnlyList<ErrorCode> All { get; } =
     [
         RequestInvalid, IdempotencyKeyInvalid, Unauthenticated, Forbidden, ScopeMissing, FourEyes, NotFound,
-        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, CertificateInvalid, CertificateExpired, CertificateHolderMismatch, UnsupportedGroup, RulePayloadInvalid, RuleNotInForce, RuleCrtMismatch, ValidityOverlap, SchemaNotResolved, ArtifactRefused, ArtifactIntegrity, ConstraintViolated,
+        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, CertificateInvalid, CertificateExpired, CertificateHolderMismatch, UnsupportedGroup, RulePayloadInvalid, RuleNotInForce, RuleCrtMismatch, ValidityOverlap, SchemaNotResolved, ArtifactRefused, ArtifactIntegrity, CertificateUntrusted, CertificateRevoked, RevocationUnavailable, ConstraintViolated,
         RateLimited, Unavailable, Internal,
     ];
 }

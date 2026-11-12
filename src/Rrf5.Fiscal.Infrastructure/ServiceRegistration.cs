@@ -62,6 +62,11 @@ public static class ServiceRegistration
         services.AddSingleton<Application.Regulatory.CatalogLoader>();
         services.AddSingleton<Application.Regulatory.SchemaSelectionService>();
         services.AddSingleton<Application.Regulatory.ArtifactService>();
+
+        var certificates = new Application.Certificates.CertificateOptions();
+        configuration.GetSection(Application.Certificates.CertificateOptions.Section).Bind(certificates);
+        services.AddSingleton(certificates);
+        services.AddSingleton<Application.Certificates.ICertificateTrustProvider, Application.Certificates.IcpBrasilTrustProvider>();
         return services;
     }
 }

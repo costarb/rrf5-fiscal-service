@@ -10,28 +10,65 @@ public sealed class PostgresCertificateRepository(NpgsqlConnection connection, N
 {
     private const string Tenant = "tenant_id = app_current_tenant()";
     private const string Columns =
-        "id, tenant_id, establishment_id, environment_id, vault_ref, fingerprint_sha256, subject_tax_id, not_before, not_after, status, created_at";
+        "id, tenant_id, establishment_id, environment_id, vault_ref, fingerprint_sha256, subject_tax_id, not_before, not_after, status, created_at, " +
+        "uploaded_by_application_id, approver_application_id, approved_at, chain_root, rejection_reason";
 
-    public async Task<CertificateRecord> ReplaceActiveAsync(CertificateRecord certificate, CancellationToken cancellationToken)
+    public async Task<CertificateRecord> InsertPendingAsync(CertificateRecord certificate, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(certificate);
+        await using var insert = Command(
+            $"""
+            insert into digital_certificate (id, tenant_id, establishment_id, environment_id, vault_ref, fingerprint_sha256,
+              subject_tax_id, not_before, not_after, status, uploaded_by_application_id, chain_root)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'PENDING_APPROVAL', $10, $11)
+            returning {Columns}
+            """,
+            certificate.Id, certificate.TenantId, certificate.EstablishmentId, certificate.EnvironmentId, certificate.VaultRef,
+            certificate.FingerprintSha256, certificate.SubjectTaxId, certificate.NotBefore, certificate.NotAfter,
+            certificate.UploadedBy ?? throw new ArgumentException("The uploader is required.", nameof(certificate)),
+            certificate.ChainRoot ?? throw new ArgumentException("The chain root is required.", nameof(certificate)));
+        return (await ReadAsync(insert, ReadCertificate, cancellationToken).ConfigureAwait(false)).Single();
+    }
+
+    public async Task<CertificateRecord?> GetAsync(Guid id, CancellationToken cancellationToken)
+    {
+        await using var command = Command($"select {Columns} from digital_certificate where id = $1 and {Tenant}", id);
+        return (await ReadAsync(command, ReadCertificate, cancellationToken).ConfigureAwait(false)).SingleOrDefault();
+    }
+
+    public async Task<CertificateRecord?> ActivateAsync(Guid id, Guid approver, CancellationToken cancellationToken)
+    {
         await using (var supersede = Command(
-            $"update digital_certificate set status = 'SUPERSEDED', superseded_at = now() where environment_id = $1 and status = 'ACTIVE' and {Tenant}",
-            certificate.EnvironmentId))
+            $"""
+            update digital_certificate set status = 'SUPERSEDED', superseded_at = now()
+            where status = 'ACTIVE' and {Tenant}
+              and environment_id = (select environment_id from digital_certificate where id = $1 and {Tenant})
+            """,
+            id))
         {
             await supersede.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        await using var insert = Command(
+        await using var activate = Command(
             $"""
-            insert into digital_certificate (id, tenant_id, establishment_id, environment_id, vault_ref, fingerprint_sha256,
-              subject_tax_id, not_before, not_after, status)
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE')
+            update digital_certificate set status = 'ACTIVE', approver_application_id = $2, approved_at = now()
+            where id = $1 and status = 'PENDING_APPROVAL' and {Tenant}
             returning {Columns}
             """,
-            certificate.Id, certificate.TenantId, certificate.EstablishmentId, certificate.EnvironmentId, certificate.VaultRef,
-            certificate.FingerprintSha256, certificate.SubjectTaxId, certificate.NotBefore, certificate.NotAfter);
-        return (await ReadAsync(insert, ReadCertificate, cancellationToken).ConfigureAwait(false)).Single();
+            id, approver);
+        return (await ReadAsync(activate, ReadCertificate, cancellationToken).ConfigureAwait(false)).SingleOrDefault();
+    }
+
+    public async Task<CertificateRecord?> RejectAsync(Guid id, string reason, CancellationToken cancellationToken)
+    {
+        await using var reject = Command(
+            $"""
+            update digital_certificate set status = 'REJECTED', rejected_at = now(), rejection_reason = $2
+            where id = $1 and status = 'PENDING_APPROVAL' and {Tenant}
+            returning {Columns}
+            """,
+            id, reason);
+        return (await ReadAsync(reject, ReadCertificate, cancellationToken).ConfigureAwait(false)).SingleOrDefault();
     }
 
     public async Task<IReadOnlyList<CertificateRecord>> ListAsync(Guid environmentId, CancellationToken cancellationToken)
@@ -142,5 +179,10 @@ public sealed class PostgresCertificateRepository(NpgsqlConnection connection, N
 
     private static CertificateRecord ReadCertificate(NpgsqlDataReader r) =>
         new(r.GetGuid(0), r.GetGuid(1), r.GetGuid(2), r.GetGuid(3), r.GetString(4), r.GetString(5), r.GetString(6),
-            r.GetFieldValue<DateTimeOffset>(7), r.GetFieldValue<DateTimeOffset>(8), r.GetString(9), r.GetFieldValue<DateTimeOffset>(10));
+            r.GetFieldValue<DateTimeOffset>(7), r.GetFieldValue<DateTimeOffset>(8), r.GetString(9), r.GetFieldValue<DateTimeOffset>(10),
+            r.IsDBNull(11) ? null : r.GetGuid(11),
+            r.IsDBNull(12) ? null : r.GetGuid(12),
+            r.IsDBNull(13) ? null : r.GetFieldValue<DateTimeOffset>(13),
+            r.IsDBNull(14) ? null : r.GetString(14),
+            r.IsDBNull(15) ? null : r.GetString(15));
 }

@@ -4,6 +4,8 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Rrf5.Fiscal.Infrastructure.Persistence;
 
@@ -119,6 +121,9 @@ public sealed class StackFixture : IAsyncLifetime
             {
                 builder.UseSetting(key, value);
             }
+
+            // The in-memory test root replaces the ICP-Brasil bundle (tests only).
+            builder.ConfigureTestServices(services => services.AddSingleton<Rrf5.Fiscal.Application.Certificates.ICertificateTrustProvider, TestTrustProvider>());
         });
     }
 

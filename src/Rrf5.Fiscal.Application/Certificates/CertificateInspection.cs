@@ -8,7 +8,7 @@ using Rrf5.Fiscal.Domain.Issuer;
 namespace Rrf5.Fiscal.Application.Certificates;
 
 /// <summary>What the service records about an A1; never the key, bytes or password.</summary>
-public sealed record CertificateFacts(Cnpj HolderTaxId, DateTimeOffset NotBefore, DateTimeOffset NotAfter, string FingerprintSha256);
+public sealed record CertificateFacts(Cnpj HolderTaxId, DateTimeOffset NotBefore, DateTimeOffset NotAfter, string FingerprintSha256, string ChainRoot);
 
 /// <summary>
 /// Reads an A1 (PKCS#12) in memory without persisting its key (T023):
@@ -16,7 +16,8 @@ public sealed record CertificateFacts(Cnpj HolderTaxId, DateTimeOffset NotBefore
 /// <item>exactly one certificate with an RSA private key (XMLDSig of the layout);</item>
 /// <item>holder CNPJ from the ICP-Brasil SAN otherName <c>2.16.76.1.3.3</c> (DOC-ICP-04, 14
 /// positions), or the subject <c>serialNumber</c> (2.5.4.5) when it is a CNPJ;</item>
-/// <item>validity window and SHA-256 fingerprint of the DER certificate.</item>
+/// <item>validity window and SHA-256 fingerprint of the DER certificate;</item>
+/// <item>a chain to an ICP-Brasil root with every certificate unrevoked (TM-03).</item>
 /// </list>
 /// Messages are fixed sentences: they never echo the password or certificate content.
 /// </summary>
@@ -28,9 +29,10 @@ public static class CertificateInspection
     private const string IcpBrasilCnpjOid = "2.16.76.1.3.3";
     private const string SerialNumberOid = "2.5.4.5";
 
-    public static CertificateFacts Inspect(byte[] pkcs12, string password, DateTimeOffset now)
+    public static CertificateFacts Inspect(byte[] pkcs12, string password, DateTimeOffset now, CertificateTrust trust)
     {
         ArgumentNullException.ThrowIfNull(pkcs12);
+        ArgumentNullException.ThrowIfNull(trust);
         ArgumentNullException.ThrowIfNull(password);
         if (pkcs12.Length == 0 || pkcs12.Length > MaxPkcs12Bytes)
         {
@@ -72,8 +74,9 @@ public static class CertificateInspection
                 throw new DomainException(ErrorCodes.CertificateExpired);
             }
 
+            var root = RequireChain(certificate, collection, trust, now);
             var fingerprint = Convert.ToHexStringLower(SHA256.HashData(certificate.RawData));
-            return new CertificateFacts(holder, notBefore, notAfter, fingerprint);
+            return new CertificateFacts(holder, notBefore, notAfter, fingerprint, root);
         }
         finally
         {
@@ -93,6 +96,45 @@ public static class CertificateInspection
         {
             throw new DomainException(ErrorCodes.CertificateHolderMismatch);
         }
+    }
+
+    /// <summary>Builds the chain against the ICP-Brasil roots only; returns the root name.</summary>
+    private static string RequireChain(X509Certificate2 leaf, X509Certificate2Collection bundled, CertificateTrust trust, DateTimeOffset now)
+    {
+        using var chain = new X509Chain();
+        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+        chain.ChainPolicy.CustomTrustStore.AddRange(trust.Roots.ToArray());
+        chain.ChainPolicy.ExtraStore.AddRange(trust.Intermediates.ToArray());
+        chain.ChainPolicy.ExtraStore.AddRange(bundled.Where(c => !c.HasPrivateKey).ToArray());
+        chain.ChainPolicy.RevocationMode = trust.Revocation;
+        chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
+        chain.ChainPolicy.VerificationTime = now.UtcDateTime;
+        chain.ChainPolicy.VerificationTimeIgnored = false;
+        chain.ChainPolicy.UrlRetrievalTimeout = TimeSpan.FromSeconds(15);
+
+        if (!chain.Build(leaf))
+        {
+            var statuses = chain.ChainElements.SelectMany(e => e.ChainElementStatus).Concat(chain.ChainStatus).Select(s => s.Status).ToHashSet();
+            if (statuses.Contains(X509ChainStatusFlags.Revoked))
+            {
+                throw new DomainException(ErrorCodes.CertificateRevoked);
+            }
+
+            if (statuses.Contains(X509ChainStatusFlags.RevocationStatusUnknown) || statuses.Contains(X509ChainStatusFlags.OfflineRevocation))
+            {
+                throw new DomainException(ErrorCodes.RevocationUnavailable);
+            }
+
+            throw new DomainException(ErrorCodes.CertificateUntrusted);
+        }
+
+        var root = chain.ChainElements[^1].Certificate;
+        if (!trust.Roots.Any(r => r.RawData.AsSpan().SequenceEqual(root.RawData)))
+        {
+            throw new DomainException(ErrorCodes.CertificateUntrusted);
+        }
+
+        return root.GetNameInfo(X509NameType.SimpleName, false);
     }
 
     internal static Cnpj? HolderCnpj(X509Certificate2 certificate)
