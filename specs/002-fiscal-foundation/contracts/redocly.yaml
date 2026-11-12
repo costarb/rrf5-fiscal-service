@@ -1,0 +1,9 @@
+extends:
+  - recommended
+rules:
+  # Every operation is protected unless it declares security: [] on purpose.
+  security-defined: error
+  operation-4xx-response: error
+  no-unused-components: warn
+  # The foundation runs local first (D3); the cloud server is added with the provider choice.
+  no-server-example.com: off

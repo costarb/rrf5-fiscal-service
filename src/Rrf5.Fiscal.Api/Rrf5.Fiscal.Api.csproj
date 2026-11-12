@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Rrf5.Fiscal.Api</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Rrf5.Fiscal.Application\Rrf5.Fiscal.Application.csproj" />
+    <ProjectReference Include="..\Rrf5.Fiscal.Infrastructure\Rrf5.Fiscal.Infrastructure.csproj" />
+    <ProjectReference Include="..\Rrf5.Fiscal.Regulatory\Rrf5.Fiscal.Regulatory.csproj" />
+  </ItemGroup>
+</Project>

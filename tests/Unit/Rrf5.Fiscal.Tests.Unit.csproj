@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rrf5.Fiscal.Domain\Rrf5.Fiscal.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Rrf5.Fiscal.Application\Rrf5.Fiscal.Application.csproj" />
+    <ProjectReference Include="..\..\src\Rrf5.Fiscal.Regulatory\Rrf5.Fiscal.Regulatory.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- In-memory "NOT AN A1" generator only; the rest of tests/Shared needs the local stack. -->
+    <Compile Include="..\Shared\TestCertificates.cs" Link="Shared\TestCertificates.cs" />
+  </ItemGroup>
+</Project>

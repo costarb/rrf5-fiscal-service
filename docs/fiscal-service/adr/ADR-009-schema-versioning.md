@@ -1,6 +1,6 @@
 # ADR-009 — Versionamento de schemas
 
-**Status:** Proposto
+**Status:** Aceito com evidência da fundação; sign-off da 002 aprovado em 2026-11-11  
 
 ## Decisão
 
@@ -9,3 +9,7 @@ Schemas/XSD/manuais/NTs são artefatos imutáveis com versão, hash e vigência.
 ## Consequências
 
 Reproduz documentos antigos e permite coexistência RTC. Requer pipeline de ingestão/verificação e impede substituir silenciosamente arquivo de mesma versão.
+
+## Implementação na fundação (2026-11-11)
+
+Catálogo embutido com hash verificado, carregado em `schema_version`; seleção por autorizador, ambiente e data; elementos exclusivos de pacote desligados até liberação auditada com evidência; artefatos oficiais guardados por hash com object lock e verificação na leitura. Evidência: `SchemaSelectionTests`, `RegulatoryStorageTests`, `SchemaSelectionApiTests`.

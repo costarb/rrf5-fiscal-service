@@ -1,6 +1,6 @@
 # ADR-002 — Estratégia multi-tenant
 
-**Status:** Proposto
+**Status:** Aceito com evidência da fundação; sign-off da 002 aprovado em 2026-11-11  
 
 ## Decisão
 
@@ -9,3 +9,7 @@ Banco compartilhado com `tenant_id` obrigatório e chaves/índices compostos no 
 ## Consequências
 
 Custo inicial menor e operação simples, mas toda consulta exige escopo verificável. Certificado, CSC, série e documento nunca são selecionados apenas por ID global sem tenant/estabelecimento.
+
+## Implementação na fundação (2026-11-11)
+
+Isolamento por tenant em três camadas: chaves compostas (0002–0006), RLS forçado com contexto por transação (0007) e filtro explícito de tenant em todo repositório; recurso de outro tenant responde 404. Evidência: `RowLevelSecurityTests`, `ConstraintTests`, `CrossTenantTests`, `IssuerIsolationTests`, `TwoTenantOnboardingTests`.

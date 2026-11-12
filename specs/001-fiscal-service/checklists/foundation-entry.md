@@ -28,27 +28,27 @@ prevalecem sobre este checklist.
 - [ ] Sonda do 010g (`run5-schema-probe.ps1`) repetida na homologação SP depois de 2026-11-16 e aceita (sem 225) antes de qualquer documento levar elemento exclusivo do 010g; até lá esses elementos ficam desligados por configuração de autorizador e data (E4, ADR-009)
 - [ ] Seção do MOC 7.0 que define os algoritmos de assinatura registrada (L8)
 - [ ] Tabela de rótulos de `tPag` do DANFE extraída de cópia congelada do MOC (L5)
-- [ ] Versão de schema resolvida por autorizador, ambiente e data, nunca fixa no código (ADR-012)
+- [x] Versão de schema resolvida por autorizador, ambiente e data, nunca fixa no código (ADR-012). Fundação 002, T033–T034: catálogo com hash verificado em `schema_version`; SP homologação 2026-11-09 resolve 010g com exclusivos desligados (`SchemaSelectionApiTests`)
 - [ ] Arredondamento implementado pela regra do leiaute, com testes de borda reaproveitados da POC (ADR-012)
 
 ### Segurança e segredos
 
-- [ ] A1 e CSC lidos só do cofre escolhido (KMS/Vault), nunca de arquivo na imagem ou variável de build; teste prova ausência em logs e camadas (L1)
+- [x] A1 e CSC lidos só do cofre escolhido (KMS/Vault), nunca de arquivo na imagem ou variável de build; teste prova ausência em logs e camadas (L1). Fundação 002, T022–T026: envelope no OpenBao; canários ausentes de respostas, logs, spans, banco e cofre (`SecretCanaryTests`); camadas varridas no CI. Política de acesso do cofre na nuvem segue no item de threat model abaixo
 - [ ] Raízes ICP-Brasil fixadas por autorizador, sem desligar validação TLS (ADR-012)
 - [ ] Threat model revisado para o ambiente de deploy escolhido: IAM, exposição em memória, object lock e telemetria (L1)
 
 ### Plataforma e container
 
-- [ ] Imagem de produção sobre base chiseled do .NET, não-root, com fuso `America/Sao_Paulo` funcionando (L3, ADR-012)
-- [ ] Build de imagem, SBOM CycloneDX e scan no CI; falha em achado alto/crítico com correção disponível (L2, ADR-012)
+- [x] Imagem de produção sobre base chiseled do .NET, não-root, com fuso `America/Sao_Paulo` funcionando (L3, ADR-012). Fundação 002, T003: `aspnet:10.0-noble-chiseled-extra`, UID 1654, verificada no CI
+- [x] Build de imagem, SBOM CycloneDX e scan no CI; falha em achado alto/crítico com correção disponível (L2, ADR-012). Fundação 002, T004: job `image` do Foundation CI (Trivy 0.76.1)
 - [ ] `danfe-selftest` passa dentro do container Linux (L3)
-- [ ] `System.Drawing.Common` fixado em versão suportada ou removido da árvore publicada (L12)
+- [x] `System.Drawing.Common` fixado em versão suportada ou removido da árvore publicada (L12). Fundação 002: ausente da árvore publicada da API e do Worker (`dotnet list package --include-transitive`, 2026-11-11); reavaliar quando o DANFE entrar
 
 ### Contrato
 
-- [ ] Ferramenta de lint OpenAPI sem achados altos/críticos (Node 22 + Redocly v2 ou alternativa) (L11)
-- [ ] `FiscalDocument.status` com enum fechado alinhado à máquina de estados (L10)
-- [ ] Respostas `401`, `403` e `429` e exemplos de polling não terminal no OpenAPI (L10)
+- [x] Ferramenta de lint OpenAPI sem achados altos/críticos (Node 22 + Redocly v2 ou alternativa) (L11). Fundação 002, T037: Redocly 2.71.2 no Node 22 para os contratos da 001 e da 002; `npm audit` completo 0
+- [x] `FiscalDocument.status` com enum fechado alinhado à máquina de estados (L10). Contrato da 001 e `DocumentState` da 002 iguais ao check de `fiscal_document` (`ContractTests`)
+- [ ] Respostas `401`, `403` e `429` e exemplos de polling não terminal no OpenAPI (L10). Parcial: `401`/`403`/`429` no contrato da 002 (T036); exemplos de polling entram com os endpoints de documento
 
 ## C. Antes da produção e do primeiro cliente
 

@@ -1,0 +1,106 @@
+name: Foundation CI
+
+on:
+  push:
+    branches: [main, develop, "feature/**"]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  TRIVY_IMAGE: aquasec/trivy:0.76.1
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    # Database tests run against the same PostgreSQL as deploy/compose (ADR-014);
+    # they create and drop their own rrf5_test_* database.
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_DB: rrf5_fiscal
+          POSTGRES_USER: rrf5_owner
+          POSTGRES_PASSWORD: local-dev-only
+          TZ: America/Sao_Paulo
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rrf5_owner -d rrf5_fiscal"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      # OpenBao dev server (in-memory) for the token signing key; the test fixture
+      # enables transit and creates the key. Same image and token as deploy/compose.
+      openbao:
+        image: openbao/openbao:2.4.1
+        env:
+          BAO_DEV_ROOT_TOKEN_ID: local-dev-root
+        ports: ["58200:8200"]
+        options: >-
+          --cap-add=IPC_LOCK
+          --health-cmd "wget -q -O /dev/null http://127.0.0.1:8200/v1/sys/health"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      - name: Restore
+        run: dotnet restore Rrf5.Fiscal.slnx
+      - name: Build (warnings are errors)
+        run: dotnet build Rrf5.Fiscal.slnx -c Release --no-restore
+      # S3-compatible store for T035 (services cannot pass SeaweedFS its command line).
+      - name: Start SeaweedFS
+        run: |
+          docker run -d --name seaweedfs -p 58333:8333 chrislusf/seaweedfs:3.97             server -dir=/data -s3 -s3.port=8333 -master.volumeSizeLimitMB=64 -volume.max=64
+          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:58333/ && break; sleep 1; done
+      - name: Test
+        run: dotnet test Rrf5.Fiscal.slnx -c Release --no-build
+
+  # T037 / L11: OpenAPI 3.1 lint with Redocly CLI v2 on Node 22 (no high findings).
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Lint the foundation contract
+        working-directory: specs/002-fiscal-foundation/contracts
+        run: npx --yes @redocly/cli@2.71.2 lint openapi.yaml --config redocly.yaml
+
+  image:
+    needs: build-test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { app: Api, image: rrf5-fiscal-api }
+          - { app: Worker, image: rrf5-fiscal-worker }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -f deploy/docker/Dockerfile --build-arg APP=${{ matrix.app }} -t ${{ matrix.image }}:ci .
+      - name: Runs as non-root
+        run: test "$(docker image inspect ${{ matrix.image }}:ci --format '{{.Config.User}}')" = "1654"
+      - name: No secret material in any image layer (SF-004)
+        run: |
+          docker save ${{ matrix.image }}:ci -o image.tar
+          python3 scripts/scan_image_layers.py image.tar
+          rm image.tar
+      - name: CycloneDX SBOM
+        run: |
+          mkdir -p sbom
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/sbom:/out" "$TRIVY_IMAGE" \
+            image --quiet --format cyclonedx --output /out/${{ matrix.app }}.cdx.json ${{ matrix.image }}:ci
+      - name: Vulnerability scan (fails on fixable high/critical)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" \
+            image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+            ${{ matrix.image }}:ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.app }}
+          path: sbom/${{ matrix.app }}.cdx.json

@@ -38,7 +38,7 @@ provenance; it must not be copied from this folder.
 | --- | --- | --- | --- |
 | `xmllint-wasm` 5.2.0 | npm declares MIT; bundled libxml2 notices must remain in distribution review | Active package; no native runtime toolchain | Accept for isolated XSD POC only; validate bundled notices before product use |
 | `openapi-fetch` 0.17.0 | MIT | Current release used by generated client; runtime audit clean | Accept for contract POC/client candidate |
-| Redocly CLI 1.34.24 | development CLI; license metadata retained in lock tree | Latest 1.x; maintained v2 requires Node 22 | Restricted to trusted local contract lint in CI; not runtime-approved; migrate to v2/Node 22 |
+| Redocly CLI 2.71.2 (was 1.34.24) | MIT; development CLI only | v2 line on Node 22; 2.71.2 published 2026-10-27 | Migrated 2026-11-11 (T037 of 002, closes L11): full `npm audit` 0 (the 3 high via v1 → `faker` are gone); lints the 001 and 002 contracts; not runtime |
 | Jackson 2.22.4 | Apache-2.0 (FasterXML) | Latest 2.x on Maven Central; a 3.x line (`tools.jackson`, renamed APIs) also exists | Accept for POC JSON parsing; a Java foundation must choose 2.x vs 3.x deliberately |
 | `QRCoder` 1.8.1 | MIT; `github.com/Shane32/QRCoder` | The most-used .NET QR encoder; `QRCoder.Core` is an unrelated fork and was not used | Accept for the DANFE POC. Only `QRCodeGenerator` is used, never the drawing API |
 | `System.Drawing.Common` | MIT (Microsoft) | 10.0.14 is in the supported .NET 10 servicing line | Pinned explicitly so the out-of-support 6.0.0 no longer resolves. Unused by the code; the foundation should still drop it from the shipped tree when QRCoder or the chosen encoder allows |
@@ -95,6 +95,22 @@ trivy image mcr.microsoft.com/dotnet/runtime:10.0-noble-chiseled
 
 Note: on PowerShell 5, write SBOMs without a UTF-8 BOM (Trivy rejects them
 otherwise) and quote Maven `-D` arguments containing dots.
+
+## Foundation runtime (feature 002)
+
+Product code under `src/` passes the same gate before a package enters
+`Directory.Packages.props`.
+
+| Package | Version | License | Maintenance evidence | Audit (2026-11-10) | Decision |
+| --- | --- | --- | --- | --- | --- |
+| `Npgsql` | 10.0.3 (published 2026-05-27) | PostgreSQL (`licenses.nuget.org/PostgreSQL`) | Official .NET data provider of the PostgreSQL ecosystem; 10.x line follows .NET 10 | `dotnet list package --vulnerable --include-transitive`: none. Transitive: `Microsoft.Extensions.Logging.Abstractions` 10.0.0, `Microsoft.Extensions.DependencyInjection.Abstractions` 10.0.0 (MIT) | Accept (ADR-014: the only runtime data dependency). GSSAPI negotiation is disabled by default because the chiseled image has no Kerberos library |
+| `OpenTelemetry.Extensions.Hosting`, `OpenTelemetry.Exporter.OpenTelemetryProtocol`, `OpenTelemetry.Instrumentation.AspNetCore` | 1.20.1 (published 2026-10-20/21) | Apache-2.0 | CNCF OpenTelemetry .NET; 1.20.2 of the ASP.NET Core instrumentation (2026-11-06) skipped as too recent | `dotnet list package --vulnerable --include-transitive`: none. Transitive: `OpenTelemetry`, `OpenTelemetry.Api*` 1.20.1 and `Microsoft.Extensions.*` 10.0.x (MIT) | Accept (T013). Spans pass through the redaction processor before any exporter; OTLP export only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set |
+| `Microsoft.AspNetCore.Authentication.JwtBearer` | 10.0.10 (same servicing line as the other ASP.NET Core packages) | MIT (Microsoft) | ASP.NET Core; pulls `Microsoft.IdentityModel.*` and `System.IdentityModel.Tokens.Jwt` 8.19.2 (MIT) | `dotnet list package --vulnerable --include-transitive`: none | Accept (ADR-013 item 4): bearer validation only; tokens are built and signed by the service through the vault |
+| `Microsoft.Extensions.Logging.Abstractions`, `Microsoft.Extensions.Diagnostics.Abstractions` | 10.0.10 | MIT (Microsoft) | .NET 10 servicing line, already transitive through hosting | none | Accept: lets the Application layer log and meter the expiry job without a host dependency |
+| `AWSSDK.S3` (+ `AWSSDK.Core`) | 4.0.104.7 (published 2026-10-26; 4.0.104.12 of 2026-11-10 skipped as too recent) | Apache-2.0 (Amazon) | Official AWS SDK; S3 API used against SeaweedFS locally and the cloud store later | none | Accept (T035). Optional trailing checksums and aws-chunked bodies are disabled: SeaweedFS 3.97 stored the chunk framing as object content; writes are now verified by reading back |
+| `OpenTelemetry.Exporter.InMemory` | 1.20.1 | Apache-2.0 | same project | none | Test-only (`tests/Security`), never shipped |
+
+The image SBOM and Trivy scan of the foundation CI cover these packages on every push.
 
 ## Closed since the first pass
 

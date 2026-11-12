@@ -1,0 +1,1481 @@
+openapi: 3.1.0
+info:
+  title: RRF5 Fiscal Service — Foundation administrative API
+  version: 0.2.0
+  summary: Identity, issuer registration, vault, tax profiles and schema selection (feature 002). No document emission.
+  description: |
+    Administrative contract of the foundation (FF-013). Every `/v1` call needs a bearer
+    token from `/oauth/token` (client credentials, ES256 JWT, 10 minutes) with the scope
+    named in each operation. Resources of other tenants, and establishments not granted
+    to the calling application, answer `404` exactly like missing ones.
+
+    Every mutation requires an `Idempotency-Key`: the same key and canonical request
+    replays the stored response (`Idempotent-Replayed: true`, secrets shown once are not
+    repeated); the same key with another request is `409 idempotency.conflict`.
+
+    Every error is Problem Details (RFC 9457) with a stable `code` (closed enum
+    `ErrorCode`) and the `correlationId` echoed from `X-Correlation-Id`. The token
+    endpoint answers RFC 6749 errors instead.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-RRF5-Proprietary
+servers:
+  - url: http://localhost:5179
+    description: Local development (deploy/compose stack)
+security:
+  - clientCredentials: []
+tags:
+  - name: auth
+    description: Token issuance and key publication (ADR-013).
+  - name: tenancy
+    description: Tenants, applications, secrets and establishment grants (F1).
+  - name: issuer
+    description: Companies, establishments, environments, configuration and series (F2).
+  - name: vault
+    description: A1 certificates and CSC, stored only in the vault (F3).
+  - name: rules
+    description: Tax profiles, rules and four-eyes versions (F4).
+  - name: regulatory
+    description: Schema selection and audited release of package-exclusive elements (F5).
+  - name: operations
+    description: Liveness.
+
+paths:
+  /health/live:
+    get:
+      tags: [operations]
+      operationId: getLiveness
+      summary: Process liveness (never reports SEFAZ availability)
+      security: []
+      responses:
+        "405": { $ref: "#/components/responses/MethodNotAllowed" }
+        "200":
+          description: The process answers.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { const: live }
+
+  /oauth/token:
+    post:
+      tags: [auth]
+      operationId: issueToken
+      summary: Issue an access token (client_credentials only)
+      description: Client authentication by HTTP Basic or by `client_id`/`client_secret` in the form, never both. Rate limited per client address.
+      security:
+        - clientBasic: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [grant_type]
+              properties:
+                grant_type: { const: client_credentials }
+                scope: { type: string, description: Space-separated subset of the application scopes. }
+                client_id: { type: string }
+                client_secret: { type: string, format: password }
+      responses:
+        "200":
+          description: Token issued.
+          headers:
+            Cache-Control: { schema: { const: no-store } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenResponse" }
+        "400":
+          description: Invalid request, unsupported grant or invalid scope.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OAuthError" }
+        "401":
+          description: Unknown client, wrong secret, or suspended application or tenant.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OAuthError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /.well-known/jwks.json:
+    get:
+      tags: [auth]
+      operationId: getJwks
+      summary: Public token verification keys
+      security: []
+      responses:
+        "405": { $ref: "#/components/responses/MethodNotAllowed" }
+        "200":
+          description: JWK set (EC P-256, ES256).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JwkSet" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/me:
+    get:
+      tags: [tenancy]
+      operationId: getCaller
+      summary: The calling application, its tenant, scopes and granted establishments
+      responses:
+        "200":
+          description: Caller.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Caller" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tenants:
+    post:
+      tags: [tenancy]
+      operationId: createTenant
+      summary: Create a tenant (scope platform.admin)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTenant" }
+      responses:
+        "201": { $ref: "#/components/responses/Tenant" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tenants/{tenantId}:
+    parameters: [{ $ref: "#/components/parameters/TenantId" }]
+    get:
+      tags: [tenancy]
+      operationId: getTenant
+      summary: Read a tenant (scope platform.admin)
+      responses:
+        "200": { $ref: "#/components/responses/Tenant" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tenants/{tenantId}/suspend:
+    parameters: [{ $ref: "#/components/parameters/TenantId" }]
+    post:
+      tags: [tenancy]
+      operationId: suspendTenant
+      summary: Suspend a tenant; its applications get no new token (scope platform.admin)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "200": { $ref: "#/components/responses/Tenant" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tenants/{tenantId}/applications:
+    parameters: [{ $ref: "#/components/parameters/TenantId" }]
+    post:
+      tags: [tenancy]
+      operationId: createTenantApplication
+      summary: Create an application in a tenant, typically its first tenant.admin (scope platform.admin)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateApplication" }
+      responses:
+        "201": { $ref: "#/components/responses/ApplicationWithSecret" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/applications:
+    post:
+      tags: [tenancy]
+      operationId: createApplication
+      summary: Create an application in the caller tenant (scope tenant.admin)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateApplication" }
+      responses:
+        "201": { $ref: "#/components/responses/ApplicationWithSecret" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/applications/{applicationId}:
+    parameters: [{ $ref: "#/components/parameters/ApplicationId" }]
+    get:
+      tags: [tenancy]
+      operationId: getApplication
+      summary: Read an application of the caller tenant (scope tenant.admin)
+      responses:
+        "200": { $ref: "#/components/responses/Application" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/applications/{applicationId}/rotate-secret:
+    parameters: [{ $ref: "#/components/parameters/ApplicationId" }]
+    post:
+      tags: [tenancy]
+      operationId: rotateApplicationSecret
+      summary: Replace the secret; the old one stops issuing tokens (scope tenant.admin)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "200": { $ref: "#/components/responses/ApplicationWithSecret" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/applications/{applicationId}/suspend:
+    parameters: [{ $ref: "#/components/parameters/ApplicationId" }]
+    post:
+      tags: [tenancy]
+      operationId: suspendApplication
+      summary: Suspend an application (scope tenant.admin)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "200": { $ref: "#/components/responses/Application" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/applications/{applicationId}/establishments:
+    parameters: [{ $ref: "#/components/parameters/ApplicationId" }]
+    get:
+      tags: [tenancy]
+      operationId: listApplicationGrants
+      summary: Establishments granted to the application (own grants without tenant.admin)
+      responses:
+        "200":
+          description: Grants.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [establishmentIds]
+                properties:
+                  establishmentIds: { type: array, items: { type: string, format: uuid } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/applications/{applicationId}/establishments/{establishmentId}:
+    parameters:
+      - { $ref: "#/components/parameters/ApplicationId" }
+      - { $ref: "#/components/parameters/EstablishmentId" }
+    put:
+      tags: [tenancy]
+      operationId: grantEstablishment
+      summary: Grant an establishment of the tenant to the application (scope tenant.admin)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "204": { description: Granted. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    delete:
+      tags: [tenancy]
+      operationId: revokeEstablishment
+      summary: Revoke an establishment grant (scope tenant.admin)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "204": { description: Revoked. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/companies:
+    post:
+      tags: [issuer]
+      operationId: createCompany
+      summary: Register a company by canonical CNPJ (scope issuer.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCompany" }
+      responses:
+        "201": { $ref: "#/components/responses/Company" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/companies/{companyId}:
+    parameters: [{ $ref: "#/components/parameters/CompanyId" }]
+    get:
+      tags: [issuer]
+      operationId: getCompany
+      summary: Read a company (scope issuer.read or issuer.write)
+      responses:
+        "200": { $ref: "#/components/responses/Company" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/companies/{companyId}/establishments:
+    parameters: [{ $ref: "#/components/parameters/CompanyId" }]
+    post:
+      tags: [issuer]
+      operationId: createEstablishment
+      summary: Register an establishment of the company; granted to the caller (scope issuer.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateEstablishment" }
+      responses:
+        "201": { $ref: "#/components/responses/Establishment" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/establishments/{establishmentId}:
+    parameters: [{ $ref: "#/components/parameters/EstablishmentId" }]
+    get:
+      tags: [issuer]
+      operationId: getEstablishment
+      summary: Read a granted establishment (scope issuer.read or issuer.write)
+      responses:
+        "200": { $ref: "#/components/responses/Establishment" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/establishments/{establishmentId}/environments:
+    parameters: [{ $ref: "#/components/parameters/EstablishmentId" }]
+    get:
+      tags: [issuer]
+      operationId: listEnvironments
+      summary: Environments of a granted establishment (scope issuer.read or issuer.write)
+      responses:
+        "200":
+          description: Environments.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Environment" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      tags: [issuer]
+      operationId: createEnvironment
+      summary: Create the HOMOLOGATION or PRODUCTION environment (one of each; scope issuer.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [environment]
+              properties:
+                environment: { $ref: "#/components/schemas/EnvironmentKind" }
+      responses:
+        "201":
+          description: Environment created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Environment" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/establishments/{establishmentId}/tax-resolution:
+    parameters: [{ $ref: "#/components/parameters/EstablishmentId" }]
+    get:
+      tags: [rules]
+      operationId: resolveTaxRule
+      summary: The approved rule version in force for the establishment UF, dimensions and date (scope fiscal.rules.read)
+      parameters:
+        - { name: profileId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: model, in: query, required: true, schema: { $ref: "#/components/schemas/Model" } }
+        - { name: operation, in: query, required: true, schema: { type: string } }
+        - { name: itemClass, in: query, required: true, schema: { type: string } }
+        - { name: date, in: query, required: false, description: Sao Paulo civil date; today when omitted., schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: Resolved rule and version.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rule, version]
+                properties:
+                  rule: { $ref: "#/components/schemas/TaxRule" }
+                  version: { $ref: "#/components/schemas/TaxRuleVersion" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/environments/{environmentId}/configuration:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    get:
+      tags: [issuer]
+      operationId: getConfiguration
+      summary: Active configuration version (scope issuer.read or issuer.write)
+      responses:
+        "200": { $ref: "#/components/responses/Configuration" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    put:
+      tags: [issuer]
+      operationId: replaceConfiguration
+      summary: Create the next configuration version (scope issuer.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfigurationInput" }
+      responses:
+        "200": { $ref: "#/components/responses/Configuration" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/environments/{environmentId}/series:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    get:
+      tags: [issuer]
+      operationId: listSeries
+      summary: Series of the environment (scope issuer.read or issuer.write)
+      responses:
+        "200":
+          description: Series.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Series" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      tags: [issuer]
+      operationId: createSeries
+      summary: Create a cloud-allocated series (scope issuer.write); numbers are reserved only by emission
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeriesInput" }
+      responses:
+        "201": { $ref: "#/components/responses/Series" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/series/{seriesId}:
+    parameters: [{ $ref: "#/components/parameters/SeriesId" }]
+    get:
+      tags: [issuer]
+      operationId: getSeries
+      summary: Read a series (scope issuer.read or issuer.write)
+      responses:
+        "200": { $ref: "#/components/responses/Series" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/series/{seriesId}/suspend:
+    parameters: [{ $ref: "#/components/parameters/SeriesId" }]
+    post:
+      tags: [issuer]
+      operationId: suspendSeries
+      summary: Suspend a series (scope issuer.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "200": { $ref: "#/components/responses/Series" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/environments/{environmentId}/certificates:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    get:
+      tags: [vault]
+      operationId: listCertificates
+      summary: Certificate metadata of the environment, never bytes or password (scope certificates.manage or issuer.read)
+      responses:
+        "200":
+          description: Certificates, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Certificate" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      tags: [vault]
+      operationId: uploadCertificate
+      summary: Upload an A1; checked before storage and sealed in the vault (scope certificates.manage)
+      description: The PKCS#12 must open with the password, hold one RSA key, be inside its validity, and its holder CNPJ-Base (ICP-Brasil OID 2.16.76.1.3.3) must equal the establishment CNPJ-Base (MOC rule F03, rejection 213). It supersedes the active certificate.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UploadCertificate" }
+      responses:
+        "201":
+          description: Certificate stored; metadata only.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Certificate" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/environments/{environmentId}/csc:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    put:
+      tags: [vault]
+      operationId: replaceCsc
+      summary: Store the CSC in the vault as a new configuration version (scope certificates.manage); there is no read endpoint
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReplaceCsc" }
+      responses:
+        "200": { $ref: "#/components/responses/Configuration" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/environments/{environmentId}/schema-selection:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    get:
+      tags: [regulatory]
+      operationId: getSchemaSelection
+      summary: Schema package for the environment authorizer and date, with exclusive elements (scope issuer.read or issuer.write)
+      parameters:
+        - { name: date, in: query, required: false, description: Sao Paulo civil date; today when omitted., schema: { type: string, format: date } }
+        - { name: model, in: query, required: false, schema: { $ref: "#/components/schemas/Model" } }
+      responses:
+        "200":
+          description: Selection.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchemaSelection" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/environments/{environmentId}/schema-releases:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    post:
+      tags: [regulatory]
+      operationId: releaseExclusiveElements
+      summary: Enable package-exclusive elements for this environment with evidence (scope issuer.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SchemaRelease" }
+      responses:
+        "200": { $ref: "#/components/responses/Configuration" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-rule-payload.schema.json:
+    get:
+      tags: [rules]
+      operationId: getRulePayloadSchema
+      summary: JSON Schema of the rule payload of the current generator
+      security: []
+      responses:
+        "405": { $ref: "#/components/responses/MethodNotAllowed" }
+        "200":
+          description: JSON Schema generated from the payload types.
+          content:
+            application/schema+json:
+              schema: { type: object }
+
+  /v1/tax-profiles:
+    post:
+      tags: [rules]
+      operationId: createTaxProfile
+      summary: Create a tax profile (scope fiscal.rules.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTaxProfile" }
+      responses:
+        "201": { $ref: "#/components/responses/TaxProfile" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-profiles/import:
+    post:
+      tags: [rules]
+      operationId: importDiscoveryProfile
+      summary: Import the discovery profile fixture as a DRAFT version (scope fiscal.rules.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        description: Body of pocs/fixtures/fiscal-profile-sp-sn-own-production-v1.json (status INTERIM_OPERATOR_APPROVED).
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "201":
+          description: Profile, rule and DRAFT version.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [profile, rule, version]
+                properties:
+                  profile: { $ref: "#/components/schemas/TaxProfile" }
+                  rule: { $ref: "#/components/schemas/TaxRule" }
+                  version: { $ref: "#/components/schemas/TaxRuleVersion" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-profiles/{profileId}:
+    parameters: [{ $ref: "#/components/parameters/ProfileId" }]
+    get:
+      tags: [rules]
+      operationId: getTaxProfile
+      summary: Profile and its rules (scope fiscal.rules.read, write or approve)
+      responses:
+        "200":
+          description: Profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [profile, rules]
+                properties:
+                  profile: { $ref: "#/components/schemas/TaxProfile" }
+                  rules: { type: array, items: { $ref: "#/components/schemas/TaxRule" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-profiles/{profileId}/rules:
+    parameters: [{ $ref: "#/components/parameters/ProfileId" }]
+    post:
+      tags: [rules]
+      operationId: createTaxRule
+      summary: Create a rule with explicit dimensions (scope fiscal.rules.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTaxRule" }
+      responses:
+        "201":
+          description: Rule created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaxRule" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-rules/{ruleId}/versions:
+    parameters: [{ $ref: "#/components/parameters/RuleId" }]
+    get:
+      tags: [rules]
+      operationId: listTaxRuleVersions
+      summary: Versions of the rule (scope fiscal.rules.read, write or approve)
+      responses:
+        "200":
+          description: Versions by number.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/TaxRuleVersion" } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      tags: [rules]
+      operationId: createTaxRuleVersion
+      summary: Create the next version as DRAFT (scope fiscal.rules.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VersionInput" }
+      responses:
+        "201": { $ref: "#/components/responses/TaxRuleVersion" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-rule-versions/{versionId}:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    get:
+      tags: [rules]
+      operationId: getTaxRuleVersion
+      summary: Read a version (scope fiscal.rules.read, write or approve)
+      responses:
+        "200": { $ref: "#/components/responses/TaxRuleVersion" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    put:
+      tags: [rules]
+      operationId: updateTaxRuleDraft
+      summary: Edit a DRAFT version; other states are immutable (scope fiscal.rules.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VersionInput" }
+      responses:
+        "200": { $ref: "#/components/responses/TaxRuleVersion" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-rule-versions/{versionId}/submit:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [rules]
+      operationId: submitTaxRuleVersion
+      summary: DRAFT to PENDING_APPROVAL (scope fiscal.rules.write)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "200": { $ref: "#/components/responses/TaxRuleVersion" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-rule-versions/{versionId}/approve:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [rules]
+      operationId: approveTaxRuleVersion
+      summary: PENDING_APPROVAL to APPROVED by an application other than the author (scope fiscal.rules.approve)
+      description: Refused when validity starts before today (Sao Paulo) or overlaps another APPROVED version of the rule.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "200": { $ref: "#/components/responses/TaxRuleVersion" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-rule-versions/{versionId}/reject:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [rules]
+      operationId: rejectTaxRuleVersion
+      summary: PENDING_APPROVAL back to DRAFT with a reason (scope fiscal.rules.approve)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        "200": { $ref: "#/components/responses/TaxRuleVersion" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-rule-versions/{versionId}/close:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [rules]
+      operationId: closeTaxRuleVersion
+      summary: Set validTo of an open-ended APPROVED version, once, today or later (scope fiscal.rules.approve)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [validTo]
+              properties:
+                validTo: { type: string, format: date }
+      responses:
+        "200": { $ref: "#/components/responses/TaxRuleVersion" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/tax-rule-versions/{versionId}/retire:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [rules]
+      operationId: retireTaxRuleVersion
+      summary: APPROVED to RETIRED (scope fiscal.rules.approve)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "200": { $ref: "#/components/responses/TaxRuleVersion" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+components:
+  securitySchemes:
+    clientCredentials:
+      type: oauth2
+      description: Machine-to-machine only (ADR-013). Tokens are ES256 JWTs signed by the vault, valid for 10 minutes.
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth/token
+          scopes:
+            platform.admin: Create and suspend tenants; bootstrap tenant applications (platform tenant only).
+            tenant.admin: Manage the caller tenant applications, secrets and establishment grants.
+            issuer.read: Read issuer registration.
+            issuer.write: Register companies, establishments, environments, configuration, series and schema releases.
+            certificates.manage: Upload A1 certificates and store the CSC.
+            fiscal.rules.read: Read and resolve tax rules.
+            fiscal.rules.write: Author tax profiles, rules and versions (never together with approve).
+            fiscal.rules.approve: Approve, reject, close and retire rule versions (never together with write).
+    clientBasic:
+      type: http
+      scheme: basic
+      description: client_secret_basic for /oauth/token.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: 1 to 255 visible ASCII characters, unique per operation and caller tenant.
+      schema: { type: string, minLength: 1, maxLength: 255, pattern: "^[!-~]+$" }
+    TenantId: { name: tenantId, in: path, required: true, schema: { type: string, format: uuid } }
+    ApplicationId: { name: applicationId, in: path, required: true, schema: { type: string, format: uuid } }
+    CompanyId: { name: companyId, in: path, required: true, schema: { type: string, format: uuid } }
+    EstablishmentId: { name: establishmentId, in: path, required: true, schema: { type: string, format: uuid } }
+    EnvironmentId: { name: environmentId, in: path, required: true, schema: { type: string, format: uuid } }
+    SeriesId: { name: seriesId, in: path, required: true, schema: { type: string, format: uuid } }
+    ProfileId: { name: profileId, in: path, required: true, schema: { type: string, format: uuid } }
+    RuleId: { name: ruleId, in: path, required: true, schema: { type: string, format: uuid } }
+    VersionId: { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }
+
+  headers:
+    CorrelationId:
+      description: Echo of a safe X-Correlation-Id, or a generated one.
+      schema: { type: string, pattern: "^[A-Za-z0-9._-]{1,128}$" }
+
+  responses:
+    Tenant:
+      description: Tenant.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Tenant" }
+    Application:
+      description: Application (never its secret).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Application" }
+    ApplicationWithSecret:
+      description: Application with clientSecret on the first response only; replays omit it.
+      headers:
+        Cache-Control: { schema: { const: no-store } }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApplicationWithSecret" }
+    Company:
+      description: Company.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Company" }
+    Establishment:
+      description: Establishment.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Establishment" }
+    Configuration:
+      description: Configuration version.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Configuration" }
+    Series:
+      description: Series.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Series" }
+    TaxProfile:
+      description: Tax profile.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TaxProfile" }
+    TaxRuleVersion:
+      description: Tax rule version.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TaxRuleVersion" }
+    InvalidRequest:
+      description: Invalid request (request.invalid, request.idempotency_key_invalid).
+      headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Unauthenticated:
+      description: Missing, expired or invalid token (auth.unauthenticated).
+      headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: Missing scope or forbidden action (auth.scope_missing, auth.forbidden, rules.four_eyes).
+      headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotFound:
+      description: Missing, of another tenant, or not granted (resource.not_found, rules.not_in_force, schema.not_resolved).
+      headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Conflict:
+      description: Conflict (resource.conflict, idempotency.conflict, state.immutable, state.invalid_transition, series.exhausted, rules.validity_overlap).
+      headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Unprocessable:
+      description: Consistency or support failure (validation.constraint, certificate.*, rules.*, artifact.refused).
+      headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    MethodNotAllowed:
+      description: Method not allowed on this path (request.method_not_allowed).
+      headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    RateLimited:
+      description: Too many requests (rate_limited).
+      headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Unavailable:
+      description: A dependency (database, vault, object storage) is unavailable; the operation failed closed (dependency.unavailable).
+      headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    ErrorCode:
+      description: Closed catalog of stable error codes (src/Rrf5.Fiscal.Application/Errors/ErrorCode.cs).
+      type: string
+      enum:
+        - request.invalid
+        - request.idempotency_key_invalid
+        - auth.unauthenticated
+        - auth.forbidden
+        - auth.scope_missing
+        - rules.four_eyes
+        - resource.not_found
+        - request.method_not_allowed
+        - resource.conflict
+        - idempotency.conflict
+        - state.immutable
+        - state.invalid_transition
+        - series.exhausted
+        - certificate.invalid
+        - certificate.outside_validity
+        - certificate.holder_mismatch
+        - rules.unsupported_group
+        - rules.payload_invalid
+        - rules.not_in_force
+        - rules.crt_mismatch
+        - rules.validity_overlap
+        - schema.not_resolved
+        - artifact.refused
+        - artifact.integrity_failed
+        - validation.constraint
+        - rate_limited
+        - dependency.unavailable
+        - internal.error
+    DocumentState:
+      description: Closed state set of a fiscal document (data-model.md, L10). No document endpoint exists in the foundation; emission (phase 2) uses exactly these values.
+      type: string
+      enum:
+        - DRAFT
+        - VALIDATING
+        - READY_TO_SIGN
+        - SIGNING
+        - SIGNED
+        - QUEUED
+        - SENDING
+        - WAITING_SEFAZ
+        - AUTHORIZED
+        - REJECTED
+        - ERROR
+        - CANCELLATION_REQUESTED
+        - CANCELLED
+    Problem:
+      type: object
+      required: [type, title, status, code, correlationId]
+      properties:
+        type: { type: string, description: "urn:rrf5:problem:<code>" }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string, description: Fixed sentence; never echoes request values or secrets. }
+        code: { $ref: "#/components/schemas/ErrorCode" }
+        correlationId: { type: string }
+        traceId: { type: string }
+    OAuthError:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, enum: [invalid_request, invalid_client, invalid_scope, unsupported_grant_type] }
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in, scope]
+      properties:
+        access_token: { type: string }
+        token_type: { const: Bearer }
+        expires_in: { type: integer, const: 600 }
+        scope: { type: string }
+    JwkSet:
+      type: object
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          items:
+            type: object
+            required: [kty, crv, kid, x, y]
+            properties:
+              kty: { const: EC }
+              crv: { const: P-256 }
+              use: { const: sig }
+              alg: { const: ES256 }
+              kid: { type: string }
+              x: { type: string }
+              y: { type: string }
+    Scope:
+      type: string
+      enum: [platform.admin, tenant.admin, issuer.read, issuer.write, certificates.manage, fiscal.rules.read, fiscal.rules.write, fiscal.rules.approve]
+    Caller:
+      type: object
+      required: [tenantId, applicationId, scopes, establishmentIds]
+      properties:
+        tenantId: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid }
+        scopes: { type: array, items: { $ref: "#/components/schemas/Scope" } }
+        establishmentIds: { type: array, items: { type: string, format: uuid } }
+    CreateTenant:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+    Tenant:
+      type: object
+      required: [id, name, status, kind, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        status: { type: string, enum: [ACTIVE, SUSPENDED] }
+        kind: { type: string, enum: [PLATFORM, CUSTOMER] }
+        createdAt: { type: string, format: date-time }
+    CreateApplication:
+      type: object
+      additionalProperties: false
+      required: [name, scopes]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        scopes: { type: array, minItems: 1, items: { $ref: "#/components/schemas/Scope" } }
+    Application:
+      type: object
+      required: [id, tenantId, clientId, name, scopes, status, secretRotatedAt, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        tenantId: { type: string, format: uuid }
+        clientId: { type: string, pattern: "^app_[a-f0-9]{32}$" }
+        name: { type: string }
+        scopes: { type: array, items: { $ref: "#/components/schemas/Scope" } }
+        status: { type: string, enum: [ACTIVE, SUSPENDED] }
+        secretRotatedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+    ApplicationWithSecret:
+      allOf:
+        - { $ref: "#/components/schemas/Application" }
+        - type: object
+          properties:
+            clientSecret: { type: string, description: "Shown once; prefixed rrf5s_. Absent on replays.", writeOnly: false }
+    Cnpj:
+      type: string
+      description: Canonical or formatted CNPJ, alphanumeric allowed; check digits per NT Conjunta 2025.001.
+      maxLength: 32
+    CreateCompany:
+      type: object
+      additionalProperties: false
+      required: [legalName, taxId]
+      properties:
+        legalName: { type: string, minLength: 1, maxLength: 200 }
+        taxId: { $ref: "#/components/schemas/Cnpj" }
+    Company:
+      type: object
+      required: [id, legalName, taxId, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        legalName: { type: string }
+        taxId: { type: string, pattern: "^[0-9A-Z]{12}[0-9]{2}$" }
+        createdAt: { type: string, format: date-time }
+    Address:
+      type: object
+      additionalProperties: false
+      required: [street, number, district, municipalityName, postalCode]
+      properties:
+        street: { type: string, maxLength: 60 }
+        number: { type: string, maxLength: 60 }
+        complement: { type: [string, "null"], maxLength: 60 }
+        district: { type: string, maxLength: 60 }
+        municipalityName: { type: string, maxLength: 60 }
+        postalCode: { type: string, description: 8 digits; punctuation ignored. }
+        phone: { type: [string, "null"] }
+    CreateEstablishment:
+      type: object
+      additionalProperties: false
+      required: [taxId, uf, municipalityCode, crt, address]
+      properties:
+        taxId: { $ref: "#/components/schemas/Cnpj" }
+        stateRegistration: { type: [string, "null"], description: "2 to 14 letters/digits or ISENTO; per-UF check digits are not validated." }
+        uf: { type: string, pattern: "^[A-Z]{2}$" }
+        municipalityCode: { type: string, pattern: "^[0-9]{7}$", description: IBGE code within the UF. }
+        cnae: { type: [string, "null"] }
+        crt: { type: integer, enum: [1, 2, 3, 4], description: Layout CRT enumeration. }
+        address: { $ref: "#/components/schemas/Address" }
+    Establishment:
+      type: object
+      required: [id, companyId, taxId, uf, municipalityCode, crt, address, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        companyId: { type: string, format: uuid }
+        taxId: { type: string }
+        stateRegistration: { type: [string, "null"] }
+        uf: { type: string }
+        municipalityCode: { type: string }
+        cnae: { type: [string, "null"] }
+        crt: { type: integer }
+        address: { $ref: "#/components/schemas/Address" }
+        status: { type: string, enum: [ACTIVE, SUSPENDED] }
+        createdAt: { type: string, format: date-time }
+    EnvironmentKind:
+      type: string
+      enum: [HOMOLOGATION, PRODUCTION]
+    Environment:
+      type: object
+      required: [id, establishmentId, environment, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        establishmentId: { type: string, format: uuid }
+        environment: { $ref: "#/components/schemas/EnvironmentKind" }
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+        createdAt: { type: string, format: date-time }
+    ConfigurationInput:
+      type: object
+      additionalProperties: false
+      required: [timezone, catalogVersion]
+      properties:
+        timezone: { type: string, description: "IANA id, for example America/Sao_Paulo." }
+        authorizer: { type: [string, "null"], description: Must equal the catalogued authorizer of the establishment UF (today SP). }
+        catalogVersion: { type: string }
+    Configuration:
+      type: object
+      required: [id, environmentId, version, timezone, authorizer, catalogVersion, cscConfigured, schemaPolicy, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        environmentId: { type: string, format: uuid }
+        version: { type: integer, minimum: 1 }
+        timezone: { type: string }
+        authorizer: { type: string }
+        catalogVersion: { type: string }
+        cscConfigured: { type: boolean, description: The CSC itself is never returned. }
+        schemaPolicy: { type: object, description: Audited releases of package-exclusive elements. }
+        status: { type: string, enum: [ACTIVE, SUPERSEDED] }
+        createdAt: { type: string, format: date-time }
+    Model:
+      type: string
+      enum: ["55", "65"]
+    SeriesInput:
+      type: object
+      additionalProperties: false
+      required: [model, series]
+      properties:
+        model: { $ref: "#/components/schemas/Model" }
+        series: { type: integer, minimum: 0, maximum: 999 }
+        numberMin: { type: [integer, "null"], minimum: 1 }
+        numberMax: { type: [integer, "null"], maximum: 999999999 }
+        nextNumber: { type: [integer, "null"], minimum: 1 }
+    Series:
+      type: object
+      required: [id, environmentId, model, series, numberMin, numberMax, nextNumber, allocationOwner, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        environmentId: { type: string, format: uuid }
+        model: { $ref: "#/components/schemas/Model" }
+        series: { type: integer }
+        numberMin: { type: integer }
+        numberMax: { type: integer }
+        nextNumber: { type: integer, description: Never decreases; numberMax + 1 means exhausted. }
+        allocationOwner: { type: string, enum: [CLOUD, LOCAL_AGENT] }
+        status: { type: string, enum: [ACTIVE, SUSPENDED] }
+        createdAt: { type: string, format: date-time }
+    UploadCertificate:
+      type: object
+      additionalProperties: false
+      required: [pkcs12, password]
+      properties:
+        pkcs12: { type: string, contentEncoding: base64, description: PKCS#12 up to 64 KiB. }
+        password: { type: string, format: password, writeOnly: true }
+    Certificate:
+      type: object
+      required: [id, environmentId, fingerprintSha256, subjectTaxId, notBefore, notAfter, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        environmentId: { type: string, format: uuid }
+        fingerprintSha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        subjectTaxId: { type: string }
+        notBefore: { type: string, format: date-time }
+        notAfter: { type: string, format: date-time }
+        status: { type: string, enum: [ACTIVE, SUPERSEDED, REVOKED] }
+        createdAt: { type: string, format: date-time }
+    ReplaceCsc:
+      type: object
+      additionalProperties: false
+      required: [cscId, csc]
+      properties:
+        cscId: { type: string, pattern: "^[0-9]{1,6}$" }
+        csc: { type: string, format: password, writeOnly: true, maxLength: 36 }
+    SchemaSelection:
+      type: object
+      required: [catalogReferenceId, package, packageVersion, artifactSha256, artifactStored, authorizer, environment, date, exclusiveElementsEnabled, exclusiveElementsDisabled]
+      properties:
+        catalogReferenceId: { type: string }
+        package: { type: string, pattern: "^[0-9]{3}[a-z]$" }
+        packageVersion: { type: string }
+        artifactSha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        artifactStored: { type: boolean }
+        authorizer: { type: string }
+        environment: { $ref: "#/components/schemas/EnvironmentKind" }
+        date: { type: string, format: date }
+        exclusiveElementsEnabled: { type: array, items: { type: string } }
+        exclusiveElementsDisabled: { type: array, items: { type: string } }
+    SchemaRelease:
+      type: object
+      additionalProperties: false
+      required: [package, elements, evidence]
+      properties:
+        package: { type: string, pattern: "^[0-9]{3}[a-z]$" }
+        elements: { type: array, minItems: 1, items: { type: string } }
+        evidence: { type: string, minLength: 10, maxLength: 500 }
+    CreateTaxProfile:
+      type: object
+      additionalProperties: false
+      required: [code, name]
+      properties:
+        code: { type: string, pattern: "^[A-Z0-9][A-Z0-9-]{1,63}$" }
+        name: { type: string, minLength: 1, maxLength: 200 }
+    TaxProfile:
+      type: object
+      required: [id, code, name, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+        createdAt: { type: string, format: date-time }
+    CreateTaxRule:
+      type: object
+      additionalProperties: false
+      required: [model, uf, operation, itemClass]
+      properties:
+        model: { $ref: "#/components/schemas/Model" }
+        uf: { type: string, pattern: "^[A-Z]{2}$" }
+        operation: { type: string, pattern: "^[A-Z0-9][A-Z0-9_]{1,63}$" }
+        itemClass: { type: string, pattern: "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$" }
+    TaxRule:
+      type: object
+      required: [id, profileId, model, uf, operation, itemClass, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        profileId: { type: string, format: uuid }
+        model: { $ref: "#/components/schemas/Model" }
+        uf: { type: string }
+        operation: { type: string }
+        itemClass: { type: string }
+        createdAt: { type: string, format: date-time }
+    SourceReference:
+      type: object
+      additionalProperties: false
+      required: [kind, reference]
+      properties:
+        kind: { type: string, maxLength: 64 }
+        reference: { type: string, maxLength: 500 }
+        date: { type: [string, "null"] }
+    VersionInput:
+      type: object
+      additionalProperties: false
+      required: [payload, validFrom, sourceRefs]
+      properties:
+        payload: { type: object, description: "Rule payload; JSON Schema at /v1/tax-rule-payload.schema.json." }
+        validFrom: { type: string, format: date }
+        validTo: { type: [string, "null"], format: date }
+        sourceRefs: { type: array, minItems: 1, items: { $ref: "#/components/schemas/SourceReference" } }
+    TaxRuleVersionStatus:
+      type: string
+      enum: [DRAFT, PENDING_APPROVAL, APPROVED, RETIRED]
+    TaxRuleVersion:
+      type: object
+      required: [id, ruleId, versionNumber, status, payload, generatorVersion, validFrom, sourceRefs, authorApplicationId]
+      properties:
+        id: { type: string, format: uuid }
+        ruleId: { type: string, format: uuid }
+        versionNumber: { type: integer, minimum: 1 }
+        status: { $ref: "#/components/schemas/TaxRuleVersionStatus" }
+        payload: { type: object }
+        generatorVersion: { type: string }
+        validFrom: { type: string, format: date }
+        validTo: { type: [string, "null"], format: date }
+        sourceRefs: { type: array, items: { $ref: "#/components/schemas/SourceReference" } }
+        authorApplicationId: { type: string, format: uuid }
+        approverApplicationId: { type: [string, "null"], format: uuid }
+        submittedAt: { type: [string, "null"], format: date-time }
+        approvedAt: { type: [string, "null"], format: date-time }
+        retiredAt: { type: [string, "null"], format: date-time }
+        rejectionReason: { type: [string, "null"] }

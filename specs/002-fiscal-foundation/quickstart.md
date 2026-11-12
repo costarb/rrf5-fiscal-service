@@ -1,0 +1,186 @@
+# Quickstart: Fiscal Service Foundation
+
+Development only. No real A1, CSC or secret is used anywhere in this guide.
+
+## Prerequisites
+
+- .NET SDK 10.0 (10.0.302 or later)
+- Docker Desktop with the Linux engine
+
+## Local stack
+
+```bash
+cd deploy/compose
+docker compose up -d --wait        # PostgreSQL, RabbitMQ, SeaweedFS (S3), OpenBao
+docker compose ps
+docker compose down                # keeps volumes; add -v to wipe them
+```
+
+| Service | Host address | Development credential |
+| --- | --- | --- |
+| PostgreSQL 17.6 | `127.0.0.1:55432`, db `rrf5_fiscal` | `rrf5_owner` / `local-dev-only` |
+| RabbitMQ 4.2 | `127.0.0.1:55672`, UI `http://127.0.0.1:55673` | `rrf5` / `local-dev-only` |
+| SeaweedFS S3 | `http://127.0.0.1:58333` | open (no identities yet; T035) |
+| OpenBao 2.4.1 (dev mode) | `http://127.0.0.1:58200` | token `local-dev-root`; transit enabled by `openbao-init` |
+
+Ports and passwords can be overridden with `RRF5_*` variables (see the compose
+file). OpenBao dev mode keeps data in memory: keys are lost on restart.
+
+## Database
+
+Migrations live in `db/migrations/` (SQL, ADR-014), are embedded in
+`Rrf5.Fiscal.Infrastructure` and applied with the owner connection:
+
+```bash
+ConnectionStrings__Owner="Host=127.0.0.1;Port=55432;Username=rrf5_owner;Password=local-dev-only;Database=rrf5_fiscal" \
+  dotnet run --project src/Rrf5.Fiscal.Worker -- migrate
+```
+
+An applied migration is never edited: the migrator refuses a changed hash. The
+runtime roles `rrf5_app` and `rrf5_worker` are created `NOLOGIN`; their logins
+are provisioned per environment, outside the repository. Database tests create
+and drop their own `rrf5_test_*` database on the same server (override with
+`RRF5_TEST_PG`), so the stack must be up before `dotnet test`.
+
+## First credential and a token
+
+```bash
+export ConnectionStrings__Owner="Host=127.0.0.1;Port=55432;Username=rrf5_owner;Password=local-dev-only;Database=rrf5_fiscal"
+RRF5_LOCAL_APP_PASSWORD=local-dev-only dotnet run --project src/Rrf5.Fiscal.Worker -- local-app-login
+dotnet run --project src/Rrf5.Fiscal.Worker -- bootstrap-platform-admin   # prints client_id and client_secret once
+cd src/Rrf5.Fiscal.Api && dotnet run                                        # Development settings point at the local stack
+
+curl -s -u "$CLIENT_ID:$CLIENT_SECRET" -d grant_type=client_credentials http://localhost:5179/oauth/token
+```
+
+`local-app-login` exists only for the local stack. The bootstrap secret cannot
+be recovered; run the command again to get another platform administrator.
+Tokens last 10 minutes and are signed by the OpenBao transit key
+`rrf5-token-signing`, which `openbao-init` creates.
+
+## Issuer registration (F2)
+
+With an `issuer.write` token (create the application with a `tenant.admin` token):
+
+| Step | Call |
+| --- | --- |
+| Company | `POST /v1/companies` `{legalName, taxId}` |
+| Establishment (granted to the caller) | `POST /v1/companies/{id}/establishments` `{taxId, stateRegistration, uf, municipalityCode, cnae, crt, address}` |
+| Environment | `POST /v1/establishments/{id}/environments` `{environment: HOMOLOGATION}` |
+| Configuration (new version each time) | `PUT /v1/environments/{id}/configuration` `{timezone, catalogVersion}` |
+| Series | `POST /v1/environments/{id}/series` `{model: "65", series, nextNumber}` |
+
+Every mutation needs an `Idempotency-Key` header. `taxId` accepts the alphanumeric
+CNPJ (check digits per NT Conjunta 2025.001); the establishment must share the
+company root, its municipality must belong to its UF and only catalogued
+authorizers (today SEFAZ-SP) can be configured. Numbers are reserved by the
+emission flow (phase 2), never through a public endpoint.
+
+## Certificate and CSC (F3)
+
+With a token holding `certificates.manage` on a granted establishment:
+
+| Step | Call |
+| --- | --- |
+| A1 upload (supersedes the active one) | `POST /v1/environments/{id}/certificates` `{pkcs12: <base64>, password}` |
+| Metadata only | `GET /v1/environments/{id}/certificates` |
+| CSC (new configuration version) | `PUT /v1/environments/{id}/csc` `{cscId, csc}` |
+
+The A1 is checked before anything is stored: the PKCS#12 opens with the password,
+holds one RSA key, is inside its validity and its holder CNPJ-Base (ICP-Brasil OID
+2.16.76.1.3.3) equals the establishment CNPJ-Base (MOC rule F03, rejection 213).
+Material is sealed in OpenBao (per-secret data key from transit `rrf5-envelope`,
+AES-256-GCM, KV `secret/rrf5/...`); no endpoint returns it. Use only throwaway
+"NOT AN A1" certificates locally. The worker (`ConnectionStrings:Worker`, role
+`rrf5_worker`) raises expiry alerts at 60, 30, 15, 7 and 1 days.
+
+## Tax profiles (F4)
+
+Author with `fiscal.rules.write`, approve with a separate application holding
+`fiscal.rules.approve` (the two scopes never go together).
+
+| Step | Call |
+| --- | --- |
+| Profile | `POST /v1/tax-profiles` `{code, name}` |
+| Rule (dimensions) | `POST /v1/tax-profiles/{id}/rules` `{model, uf, operation, itemClass}` |
+| Version (DRAFT) | `POST /v1/tax-rules/{id}/versions` `{payload, validFrom, validTo, sourceRefs}` |
+| Lifecycle | `.../tax-rule-versions/{id}/submit`, `approve`, `reject` `{reason}`, `close` `{validTo}`, `retire` |
+| Resolution | `GET /v1/establishments/{id}/tax-resolution?profileId=&model=&operation=&itemClass=&date=` |
+| Discovery import (DRAFT) | `POST /v1/tax-profiles/import` with the body of `pocs/fixtures/fiscal-profile-sp-sn-own-production-v1.json` |
+
+The payload schema is served at `GET /v1/tax-rule-payload.schema.json`. A version
+cannot start before its approval date, approved validities never overlap, and
+the imported profile stays a draft until the accountant ratifies it.
+
+## Regulatory catalog and schema selection (F5)
+
+```bash
+cd src/Rrf5.Fiscal.Worker
+dotnet run -- load-catalog                                   # schema_version from regulatory/catalog.json (also at worker start)
+dotnet run -- store-artifact <path-outside-git>/PL_010g_v1.03.zip xsd-nfe-010g-1-03
+```
+
+`store-artifact` refuses a file whose SHA-256 differs from the catalog and stores it
+write-once in SeaweedFS (`rrf5-regulatory`, versioned, COMPLIANCE object lock for 10
+years), verifying the bytes on write and on every read. Normative files never go
+into Git.
+
+`GET /v1/environments/{id}/schema-selection?date=` returns the package for the
+environment's authorizer and date (SP homologation on 2026-11-09: 010g) and the
+package-exclusive elements, all disabled. `POST /v1/environments/{id}/schema-releases`
+`{package, elements, evidence}` enables some of them for that environment only,
+as a new audited configuration version; use it only after an accepted probe.
+
+## Errors, logs and traces
+
+- Every error is Problem Details (`application/problem+json`) with a stable
+  `code` (catalog in `src/Rrf5.Fiscal.Application/Errors/ErrorCode.cs`) and the
+  `correlationId`. Send `X-Correlation-Id` (1 to 128 of `A-Za-z0-9._-`) to choose
+  it; otherwise one is generated and returned in the same header.
+- Logs are one JSON line each on stdout. Only fields in the allowlist
+  (`RedactionPolicy`) keep their value; everything else is `[REDACTED]`, and the
+  formatted message is never written, only its template.
+- Traces and metrics stay in the process unless `OTEL_EXPORTER_OTLP_ENDPOINT` is
+  set; span attributes outside the allowlist are redacted before export.
+
+## Build and test
+
+```bash
+dotnet build Rrf5.Fiscal.slnx -c Release      # warnings are errors
+dotnet test  Rrf5.Fiscal.slnx -c Release
+```
+
+## Images
+
+```bash
+docker build -f deploy/docker/Dockerfile --build-arg APP=Api    -t rrf5-fiscal-api:dev .
+docker build -f deploy/docker/Dockerfile --build-arg APP=Worker -t rrf5-fiscal-worker:dev .
+docker run --rm -p 127.0.0.1:58080:8080 rrf5-fiscal-api:dev    # GET /health/live
+```
+
+## Two-tenant onboarding walkthrough (T038, SF-001)
+
+The walkthrough is executable: `tests/Integration/TwoTenantOnboardingTests.cs` runs
+it against the local stack, for two tenants, using only the API:
+
+1. Platform administrator (bootstrap credential): `POST /v1/tenants`, then
+   `POST /v1/tenants/{id}/applications` with `["tenant.admin"]`.
+2. Tenant administrator: `POST /v1/applications` for an operator
+   (`issuer.write`, `certificates.manage`, `fiscal.rules.write`, `fiscal.rules.read`)
+   and for a separate approver (`fiscal.rules.approve`).
+3. Operator: company, establishment (granted automatically), homologation
+   environment, configuration, series, a throwaway "NOT AN A1" certificate and a
+   synthetic CSC.
+4. Operator authors a test profile, rule and version and submits it; the approver
+   approves it. The POC profile stays a draft until the accountant ratifies it.
+5. Operator resolves the rule and the schema; the other tenant gets `404` for every
+   one of these resources.
+
+```bash
+cd deploy/compose && docker compose up -d --wait && cd ../..
+dotnet test tests/Integration -c Release --filter TwoTenantOnboarding
+```
+
+Contract: `specs/002-fiscal-foundation/contracts/openapi.yaml` (OpenAPI 3.1), linted
+with `npx @redocly/cli@2.71.2 lint openapi.yaml --config redocly.yaml` on Node 22 and
+checked against the running routes by `tests/Contract`.

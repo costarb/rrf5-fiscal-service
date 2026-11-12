@@ -1,6 +1,6 @@
 {
   "catalogVersion": "1.0",
-  "checkedAt": "2026-11-09",
+  "checkedAt": "2026-11-11",
   "references": [
     {
       "id": "moc-7",
@@ -83,6 +83,7 @@
       "publishedAt": "2026-10-26",
       "effectiveFrom": "2026-11-16",
       "effectiveTo": null,
+      "homologationFrom": "2026-10-26",
       "models": ["55", "65"],
       "states": ["BR"],
       "artifactSha256": "b329ecbe7e4c05a41bfbc1527f105defb7047328acfeada7c77e1666da485eaf",
@@ -127,6 +128,24 @@
       "checkedAt": "2026-11-09",
       "impact": "Cria o grupo gPgtoVinc (split payment) e o evento 110300.",
       "notes": "PDF oficial v1.01; bytes fora do Git. Cronograma v1.01: homologacao ate 2026-10-26, producao 2026-11-16. A NT afirma que nao ha exigencia de preenchimento dos campos de split payment em 2026 em producao; ativacao prevista para 2027. Schema no pacote 010g v1.03."
+    },
+    {
+      "id": "nt-conjunta-2025-001",
+      "title": "Nota Tecnica Conjunta 2025.001 - CNPJ Alfanumerico",
+      "authority": "Portal Nacional da NF-e",
+      "sourceUrl": "https://www.nfe.fazenda.gov.br/portal/exibirArquivo.aspx?conteudo=5ZkvIZt10mQ%3D",
+      "documentVersion": "1.00",
+      "publishedAt": "2025-04-25",
+      "effectiveFrom": "2026-07-06",
+      "effectiveTo": null,
+      "models": ["55", "65"],
+      "states": ["BR"],
+      "artifactSha256": "671d546b24ad4682e267fc76a9eeca8f14ad15ead2be20721ee2aec5438cf964",
+      "sourcePageSha256": null,
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-11-11",
+      "impact": "CNPJ com 12 posicoes alfanumericas e 2 DV numericos; DV por modulo 11 sobre (codigo ASCII - 48); chave de acesso e QR aceitam letras.",
+      "notes": "PDF oficial v1.00; bytes fora do Git. Implantacao: homologacao 2026-04-06, producao 2026-07-06. A exclusao de letras (I, O, U, Q, F) e citada como a confirmar e NAO e aplicada pela validacao. Vetor oficial: 12ABC34501DE-35 (exemplo da Receita Federal/Serpro)."
     },
     {
       "id": "xsd-nfe-010f-1-04",
