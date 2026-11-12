@@ -141,3 +141,12 @@ authorized (`cStat` 100), without spending a new number.
 - The algorithms are proven in practice: SEFAZ-SP authorized a document signed by
   the .NET POC (`homologation.md`). The MOC 7.0 section reference was not recorded
   because the PDF is not on this host; it is listed in `discovery-results.md`.
+
+## Update 2026-11-12: MOC section recorded (L8 closed)
+
+The operator froze the MOC 7.0 Visão Geral (SHA-256 `f664dcf9…`, outside Git).
+§4.2.4 and Tabela 4-2 (pp. 53–55) set the profile: Enveloped XML-DSig,
+EndCertOnly `X509Data`, RSA-SHA1, SHA-1 digest, Enveloped and C14N transforms.
+§4.2.5 adds no namespace prefixes, with the namespace declared on `Signature`.
+This is the profile used by the POC and accepted by SEFAZ-SP; see
+`specs/005-nfce-homologation/normative-gates.md`.

@@ -7,10 +7,11 @@ Record of the checklist B items handled in Phase 1. The normative bytes stay out
 | Document | Version found | SHA-256 | Location (outside Git) |
 | --- | --- | --- | --- |
 | MOC 7.0 Anexo I — Leiaute e Regras de Validação da NF-e e da NFC-e | **7.00, November 2020** (cover) | `5eb4cf2010b10b0b62f78197c4eb64025f24535d4c6e61158bc7806dd008f55d` | `sefaz\moc\MOC_Anexo_I_Leiaute.pdf` |
+| MOC 7.0 Visão Geral (main volume) | **7.00, November 2020** (cover) | `f664dcf94b77cabb32311620d85a7eb02cdf86adb2d4632ce178af2572dd2ad1` | `sefaz\moc\MOC 7.0 - Visao Geral - NF-e e NFC-e.pdf` (downloaded by the operator on 2026-11-12) |
 | Schema package 010g v1.03 | 2026-10-26 | `b329ecbe7e4c05a41bfbc1527f105defb7047328acfeada7c77e1666da485eaf` (catalog `xsd-nfe-010g-1-03`) | `sefaz\schemas\PL_010g_v1.03.zip` |
 | ITI ICP-Brasil bundle | 2026-11-04 | catalog `icp-brasil-ac-bundle` | `icp-brasil\ACcompactado.zip` |
 
-The Anexo I copy is the 2020 edition. Rules changed by later technical notes are not in it. It is not used as the current source for anything those notes changed (see T003).
+On 2026-11-12 the operator downloaded the Anexo I again. The file is byte-identical to the frozen copy (same SHA-256), so the portal still serves the 2020 edition. The Anexo I copy is the 2020 edition. Rules changed by later technical notes are not in it. It is not used as the current source for anything those notes changed (see T003).
 
 ## T001 — Golden XML against 010g v1.03: done
 
@@ -34,20 +35,29 @@ The Anexo I copy is the 2020 edition. Rules changed by later technical notes are
 - `Authorizer.TlsRootSha256` holds the pin. `SefazTlsTrust.PolicyFor` builds a `CustomRootTrust` policy with only that root, taken from the hash-verified ITI bundle; the operating system store is not used. A missing root fails closed.
 - Evidence: `IcpBrasilBundleTests` (the pinned root is in the official bundle and is the only trust anchor).
 
-## T002 — MOC signature section (L8): blocked, document missing
+## T002 — MOC signature section (L8): done
 
-The algorithm and transforms are already proven: SEFAZ authorized a document signed by the POC (`xmldsig-poc.md`, `homologation.md` run 3). What is missing is the official section reference, which lives in the **main volume of MOC 7.0** (the signature chapter, not Anexo I). That volume is not in `rrf5-private\sefaz\moc`.
+- **Source:** MOC 7.0 Visão Geral (7.00, November 2020), §4.2.4 "Padrão de Assinatura Digital", Tabela 4-2 "Padrões de Assinatura Digital" (pp. 53–55), and §4.2.5 "Validação de Assinatura Digital pela Secretaria de Fazenda Estadual".
+- **Requirements recorded from the official text:**
+  - XML Digital Signature, "Enveloped" format; key and certificate from an AC accredited in ICP-Brasil, A1 or A3;
+  - `X509Data` with **EndCertOnly** (only the end-user certificate);
+  - signature RSA (`xmldsig#rsa-sha1`), digest SHA-1 (`xmldsig#sha1`), Base64;
+  - required transforms Enveloped (`xmldsig#enveloped-signature`) and C14N (`REC-xml-c14n-20010315`); `CanonicalizationMethod` C14N;
+  - no `X509SubjectName`, `X509IssuerSerial`, `X509IssuerName`, `X509SerialNumber` or `X509SKI`; avoid `KeyValue`/`RSAKeyValue`;
+  - the issuer does not supply the revocation list;
+  - no namespace prefixes, and the `xmldsig` namespace is declared on the `Signature` element itself (§4.2.5);
+  - the signing certificate carries the CNPJ of an establishment of the issuer (OID 2.16.76.1.3.3, §4.2.4.1).
+- **Comparison with the POC:** this is exactly the profile the POC signed with and SEFAZ-SP authorized (`homologation.md` run 3), so the L8 limitation is closed. T015 implements this profile and asserts each element listed above.
 
-**Needed from the operator:** download the current main MOC 7.0 from the Portal NF-e (Documentos → Manuais) into `rrf5-private\sefaz\moc`.
+## T003 — `tPag` table and DANFE labels (L5): blocked, current source identified
 
-## T003 — `tPag` table and DANFE labels (L5): blocked, current source missing
+- The 010g XSD constrains `tPag` only to `[0-9]{2}`, so the code list comes from the MOC and the technical publications.
+- The frozen Anexo I (2020) lists 01–05, 10–13, 15–19, 90 and 99. It is outdated, and the portal still serves this edition.
+- **Official pointer:** NT 2026.006 v1.01, already frozen (SHA-256 `2c5770b5…`), refers to the "Tabela Nacional de Códigos de Meios de Pagamento (Informe Técnico 2026.001 dos DF-e)". The same NT cites NT 2024.002 for the ECONF event.
+- **Third-party sources:** they say the payment table was updated by Informe Técnico 2024.002 (codes 20, 21 and 22 in v1.00; later versions add 23 and 24). This is not used until the official documents confirm it.
+- The table must not be completed from memory or from third-party sites.
 
-- The 010g XSD constrains `tPag` only to `[0-9]{2}`, so the code list comes from the MOC.
-- The frozen Anexo I (2020) lists 01–05, 10–13, 15–19, 90 and 99. Codes or meanings added by technical notes after 2020 would be missing.
-- The table must not be completed from memory.
-
-**Needed from the operator:**
-- the current consolidated Anexo I from the Portal NF-e, if a newer edition is published;
-- or the technical notes that changed `YA02`/`tPag` after 2020.
-
-Until then, T011 (payment mapping) can be built and tested only for the codes the MVP scenarios use (cash, Pix, credit and debit card) once their current meaning is confirmed in the current source.
+**Needed from the operator:** from the Portal NF-e, "Documentos → Informes Técnicos", download into `rrf5-private\sefaz
+t`:
+- **Informe Técnico 2026.001** (Tabela Nacional de Códigos de Meios de Pagamento), latest version;
+- **Informe Técnico 2024.002**, latest version, for the history of `tPag` and its effective dates.

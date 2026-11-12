@@ -9,8 +9,8 @@ Tasks marked **[operator]** use the real A1 or the real issuer and are run by th
 ## Phase 1 — Normative gates (checklist B)
 
 - [x] T001 Regenerate and pin the golden XML against 010g v1.03 without 010g-only elements; record its hash in `pocs/fixtures/golden/` and `normative-baseline.md` (E4, E5) Done 2026-11-12: golden pinned and valid against 010g; no regeneration needed (`normative-gates.md`, `GoldenXmlTests`).
-- [ ] T002 [P] Record the MOC 7.0 section that defines the signature algorithm and transforms, from the frozen copy outside Git, in `pocs/evidence/xmldsig-poc.md` (L8) **Blocked:** main MOC 7.0 volume not on the machine (`normative-gates.md`).
-- [ ] T003 [P] Extract the `tPag` code table and the DANFE labels from the frozen MOC copy into a versioned resource with its source reference (L5) **Blocked:** the frozen Anexo I is the 2020 edition; current source needed (`normative-gates.md`).
+- [x] T002 [P] Record the MOC 7.0 section that defines the signature algorithm and transforms, from the frozen copy outside Git, in `pocs/evidence/xmldsig-poc.md` (L8) Done 2026-11-12: MOC 7.0 Visão Geral §4.2.4, Tabela 4-2, §4.2.5 (`normative-gates.md`).
+- [ ] T003 [P] Extract the `tPag` code table and the DANFE labels from the frozen MOC copy into a versioned resource with its source reference (L5) **Blocked:** needs Informe Técnico 2026.001 (named by NT 2026.006) and IT 2024.002 (`normative-gates.md`).
 - [x] T004 [P] Record the layout rounding rule with its source, and port the POC boundary cases as tests (checklist B) Done 2026-11-12: MOC Anexo I footnote (*4); half away from zero as a technical choice (`FiscalRounding`).
 - [x] T005 [P] Pin the ICP-Brasil roots per authorizer for the SEFAZ TLS endpoints, reusing the catalog bundle, with TLS validation always on (checklist B) Done 2026-11-12: SP pinned to AC Raiz v10 from the ITI bundle (`SefazTlsTrust`).
 - [ ] T006 Record ADR-005, ADR-007 and ADR-016 in `docs/fiscal-service/adr/`
