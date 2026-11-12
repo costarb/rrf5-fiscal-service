@@ -61,6 +61,12 @@ O operador decidiu os dois modos em 2026-11-12.
 - **Síncrono:** a API espera o estado terminal lendo o banco até `Documents:SyncTimeoutSeconds`, depois responde 201 ou 202.
 - **Denegação:** o enum fechado não tem `DENIED`, e a documentação do produto diz para não generalizá-lo para NFC-e.
   - Uma denegação (110, 301–303) fica em `WAITING_SEFAZ` com alerta de revisão manual, sem reenvio e sem estado novo.
-- **Entrega, ainda sem broker (decisão pendente do operador):** o `DocumentOutbox` lê a `outbox` direto, com `for update skip locked`, e mantém a trava durante o processamento.
+- **Entrega sem broker (decisão do operador em 2026-11-12, opção A):** o `DocumentOutbox` lê a `outbox` direto, com `for update skip locked`, e mantém a trava durante o processamento.
   - Se o worker cair, a trava cai e a mensagem é entregue de novo: entrega pelo menos uma vez, idempotente pelo estado.
-  - O salto pelo RabbitMQ (item 2) não foi implementado.
+  - Vale para a homologação local com um worker.
+  - O salto pelo RabbitMQ (item 2) entra quando houver mais de um worker ou na ida para a nuvem; a `outbox` e o processador não mudam, muda só quem entrega a mensagem.
+- **Telemetria (T025):**
+  - spans `document.sign`, `document.send` e `document.consult`, só com atributos da allowlist: tenant, id do documento, operação e código;
+  - métricas `rrf5.document.transitions` e `rrf5.sefaz.duration`;
+  - auditoria em cada etapa;
+  - um teste ponta a ponta com o pipeline real (logs JSON redigidos e processador de spans) prova que chave de acesso, CPF, `digVal` e XML não aparecem em logs nem em spans.

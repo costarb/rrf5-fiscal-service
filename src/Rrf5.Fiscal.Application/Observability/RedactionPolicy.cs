@@ -32,7 +32,7 @@ public static class RedactionPolicy
         "db.collection.name", "db.response.status_code", "db.statement", "db.query.text",
         "db.connection_id", "db.npgsql.data_source", "net.peer.name", "net.peer.ip", "net.peer.port",
         "net.transport", "network.peer.address", "network.peer.port", "network.transport",
-        "rrf5.tenant_id", "rrf5.correlation_id", "rrf5.operation", "rrf5.code",
+        "rrf5.tenant_id", "rrf5.correlation_id", "rrf5.operation", "rrf5.code", "rrf5.document_id",
     }.ToFrozenSet(StringComparer.Ordinal);
 
     public static bool IsAllowedField(string name) => AllowedFields.Contains(name);

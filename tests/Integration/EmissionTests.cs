@@ -5,7 +5,12 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using OpenTelemetry.Trace;
+using Rrf5.Fiscal.Infrastructure.Observability;
 using Npgsql;
 using Rrf5.Fiscal.Adapters.Sefaz;
 using Rrf5.Fiscal.Application.Documents;
@@ -46,6 +51,9 @@ public sealed class EmissionTests : IClassFixture<StackFixture>, IAsyncLifetime
     private Guid _environment;
     private Guid _series;
     private string _nature = null!;
+    private StringWriter _apiLogs = null!;
+    private StringWriter _workerLogs = null!;
+    private readonly List<Activity> _spans = [];
 
     public EmissionTests(StackFixture stack) => _stack = stack;
 
@@ -53,7 +61,9 @@ public sealed class EmissionTests : IClassFixture<StackFixture>, IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _factory = _stack.CreateFactory(new Dictionary<string, string?> { ["Documents:SyncTimeoutSeconds"] = "20" });
+        (_apiLogs, _workerLogs) = (NewLog(), NewLog());
+        _factory = _stack.CreateFactory(new Dictionary<string, string?> { ["Documents:SyncTimeoutSeconds"] = "20" })
+            .WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSingleton(new LogSink(_apiLogs))));
         _client = _factory.CreateClient();
         var tenant = await TenantSetup.TenantWithAdminAsync(_client, _stack, "Emission tenant");
         _tenant = tenant.TenantId;
@@ -107,6 +117,7 @@ public sealed class EmissionTests : IClassFixture<StackFixture>, IAsyncLifetime
 
         _sefaz = await SefazTestServer.StartAsync(_a1);
         _worker = WorkerServices();
+        _ = _worker.GetRequiredService<TracerProvider>();
         await _worker.GetRequiredService<Rrf5.Fiscal.Infrastructure.Storage.S3ArtifactStore>().EnsureBucketAsync(CancellationToken.None);
     }
 
@@ -117,6 +128,8 @@ public sealed class EmissionTests : IClassFixture<StackFixture>, IAsyncLifetime
         _client.Dispose();
         await _factory.DisposeAsync();
         _a1.Dispose();
+        _apiLogs.Dispose();
+        _workerLogs.Dispose();
     }
 
     [Fact]
@@ -282,6 +295,68 @@ public sealed class EmissionTests : IClassFixture<StackFixture>, IAsyncLifetime
         Assert.Equal(0L, (long)(await count.ExecuteScalarAsync())!);
     }
 
+    [Fact]
+    public async Task TelemetryNeverCarriesTheAccessKeyCpfDigestOrXml()
+    {
+        // One authorized document and one resolved by consultation after a timeout.
+        var (_, first) = await Send(HttpMethod.Post, $"/v1/environments/{_environment}/documents/async", _manager, Sale());
+        await DrainAsync();
+        _sefaz.Scenario = SefazScenario.TimeoutAfterAuthorization;
+        var (_, second) = await Send(HttpMethod.Post, $"/v1/environments/{_environment}/documents/async", _manager, Sale());
+        Assert.True(await Outbox.RunOneAsync(_tenant, CancellationToken.None));
+        _sefaz.Scenario = SefazScenario.ConsultFound;
+        await DrainAsync();
+
+        var secrets = new List<string> { "12345678909", "<NFe", "<?xml", "infNFe", "nfeProc", "<Signature" };
+        foreach (var id in new[] { first.GetProperty("id").GetGuid(), second.GetProperty("id").GetGuid() })
+        {
+            var (_, document) = await Send(HttpMethod.Get, $"/v1/documents/{id}", _manager);
+            Assert.Equal("AUTHORIZED", document.GetProperty("state").GetString());
+            secrets.Add(document.GetProperty("accessKey").GetString()!);
+            secrets.Add(await DigestAsync(id));
+        }
+
+        await Task.Delay(200);
+        var logs = _apiLogs + Environment.NewLine + _workerLogs;
+        var spans = SpanSnapshot();
+
+        // Not vacuous: the stages were logged and traced.
+        Assert.Contains("\"resourceId\"", _workerLogs.ToString(), StringComparison.Ordinal);
+        Assert.Contains(spans, s => s.DisplayName == "document.send");
+        Assert.Contains(spans, s => s.DisplayName == "document.consult" && Equals(s.GetTagItem("rrf5.code"), "100"));
+
+        foreach (var secret in secrets)
+        {
+            Assert.DoesNotContain(secret, logs, StringComparison.Ordinal);
+            foreach (var span in spans)
+            {
+                Assert.DoesNotContain(secret, span.DisplayName, StringComparison.Ordinal);
+                Assert.DoesNotContain(secret, span.StatusDescription ?? string.Empty, StringComparison.Ordinal);
+                Assert.All(span.TagObjects.Concat(span.Events.SelectMany(e => e.Tags)), tag =>
+                    Assert.DoesNotContain(secret, Convert.ToString(tag.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty, StringComparison.Ordinal));
+            }
+        }
+    }
+
+    private List<Activity> SpanSnapshot()
+    {
+        lock (_spans)
+        {
+            return [.. _spans];
+        }
+    }
+
+    private async Task<string> DigestAsync(Guid id)
+    {
+        await using var owner = await _stack.OpenOwnerAsync();
+        await using var command = new NpgsqlCommand("select dig_val from fiscal_document where id = $1", owner);
+        command.Parameters.Add(new NpgsqlParameter { Value = id });
+        return (string)(await command.ExecuteScalarAsync())!;
+    }
+
+    // Disposed in DisposeAsync (xUnit IAsyncLifetime).
+    private static StringWriter NewLog() => new(System.Globalization.CultureInfo.InvariantCulture);
+
     private DocumentOutbox Outbox => _worker.GetRequiredService<DocumentOutbox>();
 
     private async Task DrainAsync()
@@ -306,7 +381,12 @@ public sealed class EmissionTests : IClassFixture<StackFixture>, IAsyncLifetime
             ["ObjectStorage:Bucket"] = "rrf5-test-artifacts",
         }).Build();
         var services = new ServiceCollection();
+        // The production log and trace pipeline: redacting JSON logs and the redacting span processor (T025).
         services.AddLogging();
+        services.AddSingleton(new LogSink(_workerLogs));
+        services.AddSingleton<ILoggerProvider, RedactingJsonLoggerProvider>();
+        services.AddRrf5Telemetry(configuration, "rrf5-fiscal-worker-test");
+        services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddInMemoryExporter(_spans));
         services.AddMetrics();
         services.AddRrf5Foundation(configuration, "Worker");
         services.AddSingleton<ISefazTrust>(new TestSefazTrust());

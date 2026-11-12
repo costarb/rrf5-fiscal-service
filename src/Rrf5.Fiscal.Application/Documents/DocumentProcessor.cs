@@ -8,6 +8,7 @@ using Rrf5.Fiscal.Adapters.Sefaz;
 using Rrf5.Fiscal.Application.Auditing;
 using Rrf5.Fiscal.Application.Certificates;
 using Rrf5.Fiscal.Application.Identity;
+using Rrf5.Fiscal.Application.Observability;
 using Rrf5.Fiscal.Application.Regulatory;
 using Rrf5.Fiscal.Domain.Issuer;
 using Rrf5.Fiscal.Nfce;
@@ -106,6 +107,7 @@ public sealed partial class DocumentProcessor(
 
     private async Task<ProcessResult?> SignAsync(Guid tenantId, Guid documentId, CancellationToken cancellationToken)
     {
+        using var activity = EmissionTelemetry.Start("sign", tenantId, documentId);
         Prepared prepared;
         await using (var uow = await database.BeginAsync(tenantId, platform: false, cancellationToken).ConfigureAwait(false))
         {
@@ -172,6 +174,7 @@ public sealed partial class DocumentProcessor(
             await uow.Documents.SetStateAsync(documentId, DocumentStates.Queued, cancellationToken).ConfigureAwait(false);
             await AuditAsync(uow, tenantId, "document.signed", documentId, null, cancellationToken).ConfigureAwait(false);
             await uow.CommitAsync(cancellationToken).ConfigureAwait(false);
+            EmissionTelemetry.Transition(DocumentStates.Queued);
         }
 
         return null;
@@ -310,6 +313,7 @@ public sealed partial class DocumentProcessor(
             await uow.Documents.SetStateAsync(documentId, DocumentStates.Error, cancellationToken).ConfigureAwait(false);
             await AuditAsync(uow, tenantId, "document.error", documentId, "signing: " + reason, cancellationToken).ConfigureAwait(false);
             await uow.CommitAsync(cancellationToken).ConfigureAwait(false);
+            EmissionTelemetry.Transition(DocumentStates.Error);
             LogError(logger, documentId, "signing: " + reason);
         }
 
@@ -333,6 +337,7 @@ public sealed partial class DocumentProcessor(
 
     private async Task<ProcessResult?> SendAsync(Guid tenantId, Guid documentId, CancellationToken cancellationToken)
     {
+        using var activity = EmissionTelemetry.Start("send", tenantId, documentId);
         Target target;
         await using (var uow = await database.BeginAsync(tenantId, platform: false, cancellationToken).ConfigureAwait(false))
         {
@@ -356,6 +361,9 @@ public sealed partial class DocumentProcessor(
             result = await client.AuthorizeAsync(target.Endpoint, signedXml, target.Document.AccessKey!, target.Document.DigVal!, "2", batchId, cancellationToken).ConfigureAwait(false);
         }
 
+        activity?.SetTag("rrf5.code", result.Status ?? result.Outcome.ToString());
+        EmissionTelemetry.Exchange("AUTHORIZE", result.Outcome.ToString(), result.Exchange.ElapsedMilliseconds);
+
         var proc = result.Outcome == SefazOutcome.Authorized ? await StoreProcAsync(signedXml, result.Protocol!, cancellationToken).ConfigureAwait(false) : null;
         var exchange = await StoreExchangeAsync(result, cancellationToken).ConfigureAwait(false);
         await using (var uow = await database.BeginAsync(tenantId, platform: false, cancellationToken).ConfigureAwait(false))
@@ -373,11 +381,13 @@ public sealed partial class DocumentProcessor(
                     await uow.Documents.MarkAuthorizedAsync(documentId, proc!.Sha256, proc.ObjectKey, proc.Version, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
                     await AuditAsync(uow, tenantId, "document.authorized", documentId, null, cancellationToken).ConfigureAwait(false);
                     await uow.CommitAsync(cancellationToken).ConfigureAwait(false);
+                    EmissionTelemetry.Transition(DocumentStates.Authorized);
                     return ProcessResult.Finished;
                 case SefazOutcome.Rejected:
                     await uow.Documents.SetStateAsync(documentId, DocumentStates.Rejected, cancellationToken).ConfigureAwait(false);
                     await AuditAsync(uow, tenantId, "document.rejected", documentId, result.Status, cancellationToken).ConfigureAwait(false);
                     await uow.CommitAsync(cancellationToken).ConfigureAwait(false);
+                    EmissionTelemetry.Transition(DocumentStates.Rejected);
                     return ProcessResult.Finished;
                 case SefazOutcome.NotSent:
                     await uow.Documents.SetStateAsync(documentId, DocumentStates.Queued, cancellationToken).ConfigureAwait(false);
@@ -389,6 +399,7 @@ public sealed partial class DocumentProcessor(
                     await uow.Documents.SetStateAsync(documentId, DocumentStates.WaitingSefaz, cancellationToken).ConfigureAwait(false);
                     await AuditAsync(uow, tenantId, "document.waiting_sefaz", documentId, result.Outcome.ToString(), cancellationToken).ConfigureAwait(false);
                     await uow.CommitAsync(cancellationToken).ConfigureAwait(false);
+                    EmissionTelemetry.Transition(DocumentStates.WaitingSefaz);
                     LogWaiting(logger, documentId, result.Outcome.ToString(), result.Status ?? "-");
                     return ProcessResult.Retry(options.ConsultBackoff[0]);
             }
@@ -414,6 +425,7 @@ public sealed partial class DocumentProcessor(
 
     private async Task<ProcessResult?> ConsultAsync(Guid tenantId, Guid documentId, CancellationToken cancellationToken)
     {
+        using var activity = EmissionTelemetry.Start("consult", tenantId, documentId);
         Target target;
         int consultations;
         await using (var uow = await database.BeginAsync(tenantId, platform: false, cancellationToken).ConfigureAwait(false))
@@ -435,6 +447,9 @@ public sealed partial class DocumentProcessor(
             result = await client.ConsultAsync(target.Endpoint, target.Document.AccessKey!, target.Document.DigVal!, "2", cancellationToken).ConfigureAwait(false);
         }
 
+        activity?.SetTag("rrf5.code", result.Status ?? result.Outcome.ToString());
+        EmissionTelemetry.Exchange("CONSULT", result.Outcome.ToString(), result.Exchange.ElapsedMilliseconds);
+
         var proc = result.Outcome == SefazOutcome.Authorized
             ? await StoreProcAsync(await ReadSentXmlAsync(target.Document, cancellationToken).ConfigureAwait(false), result.Protocol!, cancellationToken).ConfigureAwait(false)
             : null;
@@ -454,6 +469,7 @@ public sealed partial class DocumentProcessor(
                     await uow.Documents.MarkAuthorizedAsync(documentId, proc!.Sha256, proc.ObjectKey, proc.Version, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
                     await AuditAsync(uow, tenantId, "document.authorized", documentId, "consultation", cancellationToken).ConfigureAwait(false);
                     await uow.CommitAsync(cancellationToken).ConfigureAwait(false);
+                    EmissionTelemetry.Transition(DocumentStates.Authorized);
                     return ProcessResult.Finished;
                 case SefazOutcome.NotFound:
                     // 217 after the last send: the database allows the resend (migration 0011).
