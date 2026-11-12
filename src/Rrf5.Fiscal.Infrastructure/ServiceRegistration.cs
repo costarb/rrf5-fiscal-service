@@ -55,6 +55,9 @@ public static class ServiceRegistration
         services.AddSingleton<Application.TaxRules.TaxRuleAdministration>();
 
         services.AddSingleton(_ => Regulatory.RegulatoryCatalog.LoadEmbedded());
+        services.AddSingleton(_ => Regulatory.PaymentMethods.LoadEmbedded());
+        services.AddSingleton<Application.Documents.PaymentMappingAdministration>();
+        services.AddSingleton<Application.Documents.DocumentPrevalidation>();
         var storage = new Storage.ObjectStorageOptions();
         configuration.GetSection(Storage.ObjectStorageOptions.Section).Bind(storage);
         services.AddSingleton(storage);

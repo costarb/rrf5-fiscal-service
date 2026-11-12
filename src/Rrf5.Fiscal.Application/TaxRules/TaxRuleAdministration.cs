@@ -211,6 +211,18 @@ public sealed partial class TaxRuleAdministration(IUnitOfWorkFactory database, T
 
         var establishment = await uow.Issuer.GetEstablishmentAsync(establishmentId, cancellationToken).ConfigureAwait(false)
             ?? throw new DomainException(ErrorCodes.NotFound);
+        return await ResolveInForceAsync(uow, establishment, profileId, model, operation, itemClass, date, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The single APPROVED version in force for these dimensions and date, inside the caller's
+    /// unit of work and without a scope check (the document emission path, 005 T010).
+    /// </summary>
+    public static async Task<ResolvedRule> ResolveInForceAsync(
+        IUnitOfWork uow, Issuer.EstablishmentRecord establishment, Guid profileId, string? model, string? operation, string? itemClass, DateOnly date, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(uow);
+        ArgumentNullException.ThrowIfNull(establishment);
         var (m, u, o, i) = RequireDimensions(model, establishment.Uf, operation, itemClass);
         var rule = await uow.TaxRules.FindRuleAsync(profileId, m, u, o, i, cancellationToken).ConfigureAwait(false)
             ?? throw new DomainException(ErrorCodes.RuleNotInForce, "No rule of the profile matches these dimensions.");

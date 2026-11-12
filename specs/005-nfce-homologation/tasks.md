@@ -23,8 +23,8 @@ Tasks marked **[operator]** use the real A1 or the real issuer and are run by th
 
 ## Phase 3 — E2 Pre-validation
 
-- [ ] T010 Validate the request: establishment and environment, `ACTIVE` A1 within validity, CSC configured only when the QR version in use requires it, approved profile in force on the document date, items covered by rules, totals and payments consistent; typed problems for every failure; no number reserved
-- [ ] T011 Map commercial payment methods to official `tPag` through the T003 table; mixed payments and change must add up exactly
+- [x] T010 Validate the request: establishment and environment, `ACTIVE` A1 within validity, CSC configured only when the QR version in use requires it, approved profile in force on the document date, items covered by rules, totals and payments consistent; typed problems for every failure; no number reserved Done 2026-11-12: `DocumentPrevalidation` and `POST /v1/environments/{id}/documents/prevalidate`; every problem with a JSON pointer; payment rules MOC YA 865/866/869/904/391/392/437, CPF E05-10 (237); 737 (tpIntegra=2) left to the UF (L6). The request now carries `operation` and each item `fiscalProfileId` (ADR-015).
+- [x] T011 Map commercial payment methods to official `tPag` through the T003 table; mixed payments and change must add up exactly Done 2026-11-12: per-environment mapping (operator decision), migration 0012 and `GET/PUT /v1/environments/{id}/payment-methods`; codes checked against the national table and its validity.
 
 ## Phase 4 — Generation and signing (`Rrf5.Fiscal.Nfce`)
 

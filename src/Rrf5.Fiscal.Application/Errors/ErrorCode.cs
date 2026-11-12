@@ -53,6 +53,13 @@ public static class ErrorCodes
     public static readonly ErrorCode CertificateUntrusted = new("certificate.untrusted", ErrorCategory.Unprocessable, "The certificate does not chain to an ICP-Brasil root.");
     public static readonly ErrorCode CertificateRevoked = new("certificate.revoked", ErrorCategory.Unprocessable, "The certificate or one of its issuers is revoked.");
     public static readonly ErrorCode RevocationUnavailable = new("certificate.revocation_unavailable", ErrorCategory.Unavailable, "The ICP-Brasil revocation lists could not be checked.");
+    public static readonly ErrorCode CertificateNotActive = new("certificate.not_active", ErrorCategory.Unprocessable, "No ACTIVE certificate is within its validity for this environment and date.");
+    public static readonly ErrorCode SeriesNotAvailable = new("series.not_available", ErrorCategory.Unprocessable, "No usable NFC-e series is available for this environment.");
+    public static readonly ErrorCode PaymentMethodNotConfigured = new("payment.method_not_configured", ErrorCategory.Unprocessable, "The environment does not map this payment method to a tPag code.");
+    public static readonly ErrorCode PaymentMethodNotInForce = new("payment.method_not_in_force", ErrorCategory.Unprocessable, "The tPag code is not in the national table or not in force on that date.");
+    public static readonly ErrorCode PaymentCardRequired = new("payment.card_invalid", ErrorCategory.Unprocessable, "The card payment data is missing or invalid (MOC group YA).");
+    public static readonly ErrorCode TotalsMismatch = new("document.totals_mismatch", ErrorCategory.Unprocessable, "Totals, payments or change do not add up (MOC rules W16 and YA).");
+    public static readonly ErrorCode ConsumerInvalid = new("document.consumer_invalid", ErrorCategory.Unprocessable, "The consumer identification is invalid.");
     public static readonly ErrorCode ConstraintViolated = new("validation.constraint", ErrorCategory.Unprocessable, "The request violates a consistency rule.");
     public static readonly ErrorCode RateLimited = new("rate_limited", ErrorCategory.RateLimited, "Too many requests.");
     public static readonly ErrorCode Unavailable = new("dependency.unavailable", ErrorCategory.Unavailable, "A required dependency is unavailable.");
@@ -62,7 +69,7 @@ public static class ErrorCodes
     public static IReadOnlyList<ErrorCode> All { get; } =
     [
         RequestInvalid, IdempotencyKeyInvalid, Unauthenticated, Forbidden, ScopeMissing, FourEyes, NotFound,
-        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, CertificateInvalid, CertificateExpired, CertificateHolderMismatch, UnsupportedGroup, RulePayloadInvalid, RuleNotInForce, RuleCrtMismatch, ValidityOverlap, SchemaNotResolved, ArtifactRefused, ArtifactIntegrity, CertificateUntrusted, CertificateRevoked, RevocationUnavailable, ConstraintViolated,
+        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, CertificateInvalid, CertificateExpired, CertificateHolderMismatch, UnsupportedGroup, RulePayloadInvalid, RuleNotInForce, RuleCrtMismatch, ValidityOverlap, SchemaNotResolved, ArtifactRefused, ArtifactIntegrity, CertificateUntrusted, CertificateRevoked, RevocationUnavailable, CertificateNotActive, SeriesNotAvailable, PaymentMethodNotConfigured, PaymentMethodNotInForce, PaymentCardRequired, TotalsMismatch, ConsumerInvalid, ConstraintViolated,
         RateLimited, Unavailable, Internal,
     ];
 }

@@ -1001,12 +1001,52 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "429": { $ref: "#/components/responses/RateLimited" }
 
+  /v1/environments/{environmentId}/payment-methods:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    get:
+      tags: [documents]
+      operationId: getPaymentMethods
+      summary: Active mapping from commercial payment method to official tPag (scope issuer.read or issuer.write)
+      responses:
+        "200":
+          description: The active mapping of the environment.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentMethods" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    put:
+      tags: [documents]
+      operationId: replacePaymentMethods
+      summary: Replace the mapping; the previous rows are superseded, never edited (scope issuer.write)
+      description: Every tPag must be in the national Tabela de Meios de Pagamento and in force today (regulatory/payment-methods.json). The mapping is the tenant's configuration; the service never infers it.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentMethods" }
+      responses:
+        "200":
+          description: The new active mapping.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentMethods" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
   /v1/environments/{environmentId}/documents/prevalidate:
     parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
     post:
       tags: [documents]
       operationId: prevalidateDocument
-      x-rrf5-planned: true
       summary: Check a sale without reserving a number or transmitting (scope documents.issue)
       description: Checks issuer, environment, ACTIVE certificate within validity, approved tax rule in force on the issue date for every item, totals and payments. Never reserves a number and never calls SEFAZ.
       requestBody:
@@ -1369,6 +1409,13 @@ components:
         - certificate.untrusted
         - certificate.revoked
         - certificate.revocation_unavailable
+        - certificate.not_active
+        - series.not_available
+        - payment.method_not_configured
+        - payment.method_not_in_force
+        - payment.card_invalid
+        - document.totals_mismatch
+        - document.consumer_invalid
         - rules.unsupported_group
         - rules.payload_invalid
         - rules.not_in_force
@@ -1744,8 +1791,9 @@ components:
     CreateDocument:
       type: object
       additionalProperties: false
-      required: [externalId, items, payments]
+      required: [externalId, operation, items, payments]
       properties:
+        operation: { type: string, minLength: 1, maxLength: 60, description: "Business operation code of the approved tax rules, e.g. VENDA (ADR-015)." }
         externalId: { type: string, minLength: 1, maxLength: 100, description: The client's sale id; unique per environment. }
         seriesId: { type: string, format: uuid, description: Optional; defaults to the environment's only active NFC-e series. }
         consumer:
@@ -1768,8 +1816,9 @@ components:
     DocumentItem:
       type: object
       additionalProperties: false
-      required: [productCode, description, itemClass, unit, quantity, unitPrice]
+      required: [productCode, description, fiscalProfileId, itemClass, unit, quantity, unitPrice]
       properties:
+        fiscalProfileId: { type: string, format: uuid, description: Tax profile whose approved rules cover this item. }
         productCode: { type: string, minLength: 1, maxLength: 60 }
         description: { type: string, minLength: 1, maxLength: 120 }
         itemClass: { type: string, minLength: 1, maxLength: 60, description: Business item class that selects the approved tax rule. The service never infers tax treatment. }
@@ -1800,6 +1849,16 @@ components:
       required: [valid, problems]
       properties:
         valid: { type: boolean }
+        totals:
+          type: [object, "null"]
+          description: "Computed totals: vProd, vDesc, vOutro, vNF (rule W16), payments and change."
+          properties:
+            products: { $ref: "#/components/schemas/Money" }
+            discounts: { $ref: "#/components/schemas/Money" }
+            surcharges: { $ref: "#/components/schemas/Money" }
+            total: { $ref: "#/components/schemas/Money" }
+            payments: { $ref: "#/components/schemas/Money" }
+            change: { $ref: "#/components/schemas/Money" }
         problems:
           type: array
           items:
@@ -1843,3 +1902,14 @@ components:
         qrCodeUrl: { type: string, format: uri }
         consultationUrl: { type: string, format: uri }
         accessKey: { type: string, pattern: "^[0-9]{6}[0-9A-Z]{12}[0-9]{26}$" }
+    PaymentMethods:
+      type: object
+      additionalProperties: false
+      required: [methods]
+      properties:
+        methods:
+          type: object
+          description: Commercial method to official tPag code.
+          propertyNames: { enum: [CASH, PIX, CREDIT_CARD, DEBIT_CARD, VOUCHER, STORE_CREDIT, OTHER] }
+          additionalProperties: { type: string, pattern: "^[0-9]{2}$" }
+          minProperties: 1

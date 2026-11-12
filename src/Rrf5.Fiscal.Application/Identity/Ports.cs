@@ -70,6 +70,8 @@ public interface IUnitOfWork : IAsyncDisposable
 
     Regulatory.ISchemaRepository Schemas { get; }
 
+    Documents.IPaymentMappingRepository PaymentMappings { get; }
+
     /// <summary>Moves the tenant context, for platform operations on a target tenant.</summary>
     Task SwitchTenantAsync(Guid tenantId, CancellationToken cancellationToken);
 
