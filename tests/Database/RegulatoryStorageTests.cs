@@ -33,7 +33,7 @@ public sealed class RegulatoryStorageTests(DatabaseFixture db)
         Assert.Equal((0, 3), (second.Inserted, second.Unchanged));
 
         // Same id with a different hash: refused, the loaded row keeps its hash.
-        var drifted = JsonSerializer.SerializeToNode(JsonDocument.Parse(File.ReadAllText(CatalogPath())).RootElement)!;
+        var drifted = JsonSerializer.SerializeToNode(JsonElement.Parse(File.ReadAllText(CatalogPath())))!;
         foreach (var reference in drifted["references"]!.AsArray())
         {
             if ((string?)reference!["id"] == "xsd-nfe-010g-1-03")
@@ -42,7 +42,7 @@ public sealed class RegulatoryStorageTests(DatabaseFixture db)
             }
         }
 
-        var report = await new CatalogLoader(factory, RegulatoryCatalog.Parse(JsonDocument.Parse(drifted.ToJsonString()).RootElement)).LoadAsync(CancellationToken.None);
+        var report = await new CatalogLoader(factory, RegulatoryCatalog.Parse(JsonElement.Parse(drifted.ToJsonString()))).LoadAsync(CancellationToken.None);
         Assert.Contains(report.Refused, r => r.CatalogReferenceId == "xsd-nfe-010g-1-03");
         await using var owner = await db.OpenOwnerAsync();
         Assert.Equal("b329ecbe7e4c05a41bfbc1527f105defb7047328acfeada7c77e1666da485eaf",
@@ -54,12 +54,12 @@ public sealed class RegulatoryStorageTests(DatabaseFixture db)
     {
         var content = RandomNumberGenerator.GetBytes(4096);
         var sha = Convert.ToHexStringLower(SHA256.HashData(content));
-        var catalog = RegulatoryCatalog.Parse(JsonDocument.Parse($$"""
+        var catalog = RegulatoryCatalog.Parse(JsonElement.Parse($$"""
             {"catalogVersion":"t","references":[
               {"id":"test-artifact","title":"synthetic","sourceUrl":"https://example.invalid/a","documentVersion":"1","models":["65"],"states":["BR"],"artifactSha256":"{{sha}}","hashStatus":"VERIFIED"},
               {"id":"test-unverified","title":"synthetic","sourceUrl":"https://example.invalid/b","documentVersion":"1","models":["65"],"states":["BR"],"artifactSha256":null,"hashStatus":"SOURCE_PAGE_ONLY"}
             ]}
-            """).RootElement);
+            """));
 
         var options = new ObjectStorageOptions { ServiceUrl = S3, AccessKey = "local-dev-only", SecretKey = "local-dev-only", Bucket = "rrf5-test-artifacts" };
         using var store = new S3ArtifactStore(options);

@@ -157,7 +157,7 @@ public sealed class TaxRuleLifecycleTests : IClassFixture<StackFixture>, IAsyncL
     [Fact]
     public async Task DiscoveryProfileIsImportedAsADraftOnly()
     {
-        var fixture = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(RepositoryRoot(), "pocs", "fixtures", "fiscal-profile-sp-sn-own-production-v1.json"))).RootElement;
+        var fixture = JsonElement.Parse(await File.ReadAllTextAsync(Path.Combine(RepositoryRoot(), "pocs", "fixtures", "fiscal-profile-sp-sn-own-production-v1.json")));
         var (response, body) = await Send(HttpMethod.Post, "/v1/tax-profiles/import", _writer, fixture);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal("SP-SN-OWN-PRODUCTION", body.GetProperty("profile").GetProperty("code").GetString());
