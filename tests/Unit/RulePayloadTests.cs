@@ -109,7 +109,7 @@ public sealed class RulePayloadTests
             Assert.Throws<DomainException>(() => TaxRuleAdministration.MapDiscoveryFixture(Parse(notInterim.ToJsonString()), new DateOnly(2026, 11, 20))).Code);
     }
 
-    private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement.Clone();
+    private static JsonElement Parse(string json) => JsonElement.Parse(json);
 
     private static JsonElement With(Action<JsonNode> change)
     {

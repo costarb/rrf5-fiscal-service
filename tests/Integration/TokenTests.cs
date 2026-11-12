@@ -265,7 +265,7 @@ public sealed class TokenTests : IClassFixture<StackFixture>, IDisposable
     {
         var parts = token.Split('.');
         return (
-            JsonDocument.Parse(Base64Url.DecodeFromChars(parts[0])).RootElement.Clone(),
-            JsonDocument.Parse(Base64Url.DecodeFromChars(parts[1])).RootElement.Clone());
+            JsonElement.Parse(Base64Url.DecodeFromChars(parts[0])),
+            JsonElement.Parse(Base64Url.DecodeFromChars(parts[1])));
     }
 }
