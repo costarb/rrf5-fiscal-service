@@ -236,9 +236,15 @@ public sealed class ConstraintTests(DatabaseFixture db)
         var document = await InsertDocumentAsync(owner, issuer.TenantId, issuer.EstablishmentId, issuer.HomologationId, series, "65", 7);
         var key = new string('3', 44);
 
+        // The state machine (0011) is walked in order up to SIGNED.
+        foreach (var state in new[] { "VALIDATING", "READY_TO_SIGN", "SIGNING" })
+        {
+            await Sql.ExecuteAsync(owner, $"update fiscal_document set state = '{state}' where id = $1", document);
+        }
+
         await Sql.ExecuteAsync(owner,
-            "update fiscal_document set access_key = $1, signed_xml_sha256 = $2, signed_at = now(), state = 'SIGNED' where id = $3",
-            key, Hash, document);
+            "update fiscal_document set access_key = $1, signed_xml_sha256 = $2, dig_val = $3, signed_at = now(), state = 'SIGNED' where id = $4",
+            key, Hash, DocumentStateMachineTests.DigVal, document);
 
         await using var session = await db.BeginAsAppAsync(issuer.TenantId);
         foreach (var mutation in new[]
