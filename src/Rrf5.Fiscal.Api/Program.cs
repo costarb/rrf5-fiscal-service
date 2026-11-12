@@ -18,6 +18,9 @@ builder.Services.AddRrf5Telemetry(builder.Configuration, "rrf5-fiscal-api")
 
 builder.Services.AddRrf5ProblemDetails();
 builder.Services.AddRrf5Foundation(builder.Configuration);
+var documentEmission = new Rrf5.Fiscal.Api.Endpoints.DocumentEmissionOptions();
+builder.Configuration.GetSection(Rrf5.Fiscal.Api.Endpoints.DocumentEmissionOptions.Section).Bind(documentEmission);
+builder.Services.AddSingleton(documentEmission);
 builder.Services.AddRrf5Authentication();
 
 // Token endpoint: fixed window per client address (ADR-013 item 5). Rejections are 429 problems.

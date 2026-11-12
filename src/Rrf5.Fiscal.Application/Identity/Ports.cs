@@ -72,6 +72,8 @@ public interface IUnitOfWork : IAsyncDisposable
 
     Documents.IPaymentMappingRepository PaymentMappings { get; }
 
+    Documents.IDocumentRepository Documents { get; }
+
     /// <summary>Moves the tenant context, for platform operations on a target tenant.</summary>
     Task SwitchTenantAsync(Guid tenantId, CancellationToken cancellationToken);
 

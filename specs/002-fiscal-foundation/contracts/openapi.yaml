@@ -1071,7 +1071,6 @@ paths:
     post:
       tags: [documents]
       operationId: issueDocument
-      x-rrf5-planned: true
       summary: Issue an NFC-e and wait for the result up to the configured timeout (scope documents.issue)
       description: Same path as the asynchronous issue (ADR-005). Answers 201 when SEFAZ answered in time (AUTHORIZED or REJECTED) and 202 with the non-terminal document otherwise; the client then polls the document. The same Idempotency-Key with the same payload returns the same document; with another payload, 409.
       parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
@@ -1101,7 +1100,6 @@ paths:
     post:
       tags: [documents]
       operationId: issueDocumentAsync
-      x-rrf5-planned: true
       summary: Issue an NFC-e and return at once (scope documents.issue)
       parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
       requestBody:
@@ -1125,7 +1123,6 @@ paths:
     get:
       tags: [documents]
       operationId: getDocument
-      x-rrf5-planned: true
       summary: Current state of a document; poll while it is not terminal (scope documents.read)
       responses:
         "200":
@@ -1418,6 +1415,7 @@ components:
         - document.consumer_invalid
         - document.product_invalid
         - document.tax_mismatch
+        - document.invalid
         - rules.unsupported_group
         - rules.payload_invalid
         - rules.not_in_force
@@ -1458,6 +1456,16 @@ components:
         code: { $ref: "#/components/schemas/ErrorCode" }
         correlationId: { type: string }
         traceId: { type: string }
+        problems:
+          type: array
+          description: "With document.invalid: every pre-validation problem, with its JSON pointer into the request."
+          items:
+            type: object
+            required: [code, detail]
+            properties:
+              code: { type: string }
+              detail: { type: string }
+              pointer: { type: [string, "null"] }
     OAuthError:
       type: object
       required: [error]

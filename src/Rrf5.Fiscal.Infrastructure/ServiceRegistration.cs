@@ -71,6 +71,17 @@ public static class ServiceRegistration
         configuration.GetSection(Application.Certificates.CertificateOptions.Section).Bind(certificates);
         services.AddSingleton(certificates);
         services.AddSingleton<Application.Certificates.ICertificateTrustProvider, Application.Certificates.IcpBrasilTrustProvider>();
+
+        // 005 Phase 6: issue and read in the API; the worker processes (only it can open the A1).
+        services.AddSingleton<Application.Documents.DocumentIssue>();
+        services.AddSingleton<Application.Documents.DocumentQueries>();
+        services.AddSingleton(_ => Regulatory.SefazEndpoints.LoadEmbedded());
+        services.AddSingleton<Application.Documents.ISefazEndpointCatalog, Application.Documents.EmbeddedSefazEndpointCatalog>();
+        services.AddSingleton<Application.Documents.ISefazTrust, Application.Documents.IcpBrasilSefazTrust>();
+        services.AddSingleton<Application.Documents.INfceSchemaProvider, Application.Documents.StoredNfceSchemaProvider>();
+        services.AddSingleton(new Application.Documents.EmissionOptions());
+        services.AddSingleton<Application.Documents.DocumentProcessor>();
+        services.AddSingleton<Application.Documents.DocumentOutbox>();
         return services;
     }
 

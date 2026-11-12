@@ -17,6 +17,8 @@ public sealed class SefazEndpoints
 {
     public const string Authorization = "NFeAutorizacao4";
     public const string ProtocolQuery = "NFeConsultaProtocolo4";
+    public const string QrCode = "NFCeQrCode";
+    public const string KeyConsultation = "NFCeConsultaChave";
 
     private readonly FrozenDictionary<(string, string, string, string), SefazEndpoint> _byKey;
 

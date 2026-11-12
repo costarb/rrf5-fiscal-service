@@ -50,3 +50,17 @@ O operador decidiu os dois modos em 2026-11-12.
 
 - **Chamar a SEFAZ na própria requisição síncrona:** menor latência, mas a API precisaria do A1 (contraria o ADR-004 e a política `rrf5-api`), e uma queda no meio deixaria o resultado incerto sem dono.
 - **Fila sem outbox:** perde a mensagem se o processo cair entre o commit e a publicação.
+
+## Implementação (2026-11-12, T016 e T020–T024)
+
+- **Entrada única:** `DocumentIssue`.
+  - Na mesma transação, reivindica a idempotência, roda a pré-validação, grava o documento em `READY_TO_SIGN` com itens, pagamentos e o snapshot das versões de regra aprovadas, e grava uma mensagem `PROCESS` na `document_outbox`.
+  - Se a pré-validação falha, a resposta é 422 `document.invalid` com os problemas, e nada fica gravado.
+- **Worker:** `DocumentProcessor`, com a sequência numerar → assinar → guardar → enviar → finalizar, e reconciliação por consulta.
+  - Cada passo trava o documento e confere o estado esperado; o banco recusa qualquer transição fora da máquina.
+- **Síncrono:** a API espera o estado terminal lendo o banco até `Documents:SyncTimeoutSeconds`, depois responde 201 ou 202.
+- **Denegação:** o enum fechado não tem `DENIED`, e a documentação do produto diz para não generalizá-lo para NFC-e.
+  - Uma denegação (110, 301–303) fica em `WAITING_SEFAZ` com alerta de revisão manual, sem reenvio e sem estado novo.
+- **Entrega, ainda sem broker (decisão pendente do operador):** o `DocumentOutbox` lê a `outbox` direto, com `for update skip locked`, e mantém a trava durante o processamento.
+  - Se o worker cair, a trava cai e a mensagem é entregue de novo: entrega pelo menos uma vez, idempotente pelo estado.
+  - O salto pelo RabbitMQ (item 2) não foi implementado.

@@ -69,6 +69,7 @@ public sealed class PostgresUnitOfWork : IUnitOfWork
         TaxRules = new PostgresTaxRuleRepository(connection, transaction);
         Schemas = new PostgresSchemaRepository(connection, transaction);
         PaymentMappings = new PostgresPaymentMappingRepository(connection, transaction);
+        Documents = new PostgresDocumentRepository(connection, transaction);
     }
 
     public IIdempotencyStore Idempotency { get; }
@@ -86,6 +87,8 @@ public sealed class PostgresUnitOfWork : IUnitOfWork
     public Application.Regulatory.ISchemaRepository Schemas { get; }
 
     public Application.Documents.IPaymentMappingRepository PaymentMappings { get; }
+
+    public Application.Documents.IDocumentRepository Documents { get; }
 
     public Task SwitchTenantAsync(Guid tenantId, CancellationToken cancellationToken) =>
         TenantTransaction.SetTenantAsync(_connection, _transaction, tenantId, cancellationToken);

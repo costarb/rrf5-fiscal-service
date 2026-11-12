@@ -35,6 +35,9 @@ public sealed class StackFixture : IAsyncLifetime
 
     public string AppConnectionString { get; private set; } = string.Empty;
 
+    /// <summary>The rrf5_worker login (the emission worker of 005 Phase 6).</summary>
+    public string WorkerConnectionString { get; private set; } = string.Empty;
+
     public BootstrapCredential PlatformAdmin { get; private set; } = null!;
 
     public async Task InitializeAsync()
@@ -78,9 +81,16 @@ public sealed class StackFixture : IAsyncLifetime
             Username = "rrf5_app",
             Password = LocalPassword,
         }.ConnectionString;
+        WorkerConnectionString = new NpgsqlConnectionStringBuilder(_server)
+        {
+            Database = _database,
+            Username = "rrf5_worker",
+            Password = LocalPassword,
+        }.ConnectionString;
 
         await SqlMigrator.MigrateAsync(OwnerConnectionString);
         await PlatformBootstrap.EnableLocalAppLoginAsync(OwnerConnectionString, LocalPassword);
+        await PlatformBootstrap.EnableLocalLoginAsync(OwnerConnectionString, "rrf5_worker", LocalPassword);
         PlatformAdmin = await PlatformBootstrap.CreatePlatformAdminAsync(OwnerConnectionString, "Test platform administrator");
         await using var dataSource = NpgsqlDataSource.Create(OwnerConnectionString);
         var report = await new Rrf5.Fiscal.Application.Regulatory.CatalogLoader(

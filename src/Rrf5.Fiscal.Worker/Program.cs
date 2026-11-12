@@ -94,10 +94,11 @@ if (args is ["load-catalog", ..] or ["store-artifact", _, _, ..])
     return;
 }
 
-// Internal jobs run as rrf5_worker (ConnectionStrings:Worker); there is no fiscal
-// transmission in the foundation.
+// Internal jobs run as rrf5_worker (ConnectionStrings:Worker). The document outbox
+// (005 Phase 6) signs and transmits NFC-e; only this process can open the A1.
 builder.Services.AddRrf5Foundation(builder.Configuration, "Worker");
 builder.Services.AddHostedService<CertificateExpiryAlertService>();
 builder.Services.AddHostedService<CatalogLoadService>();
+builder.Services.AddHostedService<DocumentOutboxService>();
 var host = builder.Build();
 await host.RunAsync().ConfigureAwait(false);
