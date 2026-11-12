@@ -18,4 +18,5 @@ A1 e CSC só no cofre (OpenBao, envelope com chave de dados por segredo), sem en
 
 - **Cadeia ICP-Brasil:** passou a ser exigida, montada só contra as raízes do pacote vigente do ITI (catalogado com hash), com LCR consultada online e falha fechada.
 - **Ativação com controle duplo:** o envio fica `PENDING_APPROVAL` e é ativado por outra aplicação com `certificates.approve`; os dois scopes nunca vão juntos. O banco também garante isso (migração 0010).
+- **Revogação (decidido em 2026-11-12):** LCR consultada online, com falha fechada (`certificate.revocation_unavailable`) quando não responde. O padrão está em `Certificates:Revocation = Online`; mudar exige nova decisão registrada aqui.
 - **Validação com o A1 real (2026-11-12):** executada pelo operador com `scripts/operator/validate-a1-dual-control.ps1` na stack local. As 6 verificações passaram: cadeia até a AC Raiz Brasileira v5, sem revogação na LCR, e os perfis gestor e aprovador segregados. Registro em `pocs/evidence/threat-model.md` (TM-03).
