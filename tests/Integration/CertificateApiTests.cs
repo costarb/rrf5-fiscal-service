@@ -16,6 +16,9 @@ public sealed class CertificateApiTests : IClassFixture<StackFixture>, IAsyncLif
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
     private string _token = null!;
+    private string _admin = null!;
+    private string _approverToken = null!;
+    private Guid _approverId;
     private Guid _tenant;
 
     public CertificateApiTests(StackFixture stack)
@@ -29,9 +32,105 @@ public sealed class CertificateApiTests : IClassFixture<StackFixture>, IAsyncLif
     {
         var tenant = await TenantSetup.TenantWithAdminAsync(_client, _stack, "Certificate tenant");
         _tenant = tenant.TenantId;
-        var admin = await ApiClient.TokenAsync(_client, tenant.ClientId, tenant.Secret);
-        var app = await TenantSetup.ApplicationAsync(_client, admin, "Certificate manager", Scopes.IssuerWrite, Scopes.CertificatesManage);
+        _admin = await ApiClient.TokenAsync(_client, tenant.ClientId, tenant.Secret);
+        var app = await TenantSetup.ApplicationAsync(_client, _admin, "Certificate manager", Scopes.IssuerWrite, Scopes.CertificatesManage);
         _token = await ApiClient.TokenAsync(_client, app.ClientId, app.Secret);
+        var approver = await TenantSetup.ApplicationAsync(_client, _admin, "Certificate approver", Scopes.CertificatesApprove);
+        _approverId = approver.Id;
+        _approverToken = await ApiClient.TokenAsync(_client, approver.ClientId, approver.Secret);
+    }
+
+    [Fact]
+    public async Task ActivationNeedsASecondApplicationWithTheApprovalScope()
+    {
+        var root = IssuerSetup.NewRoot();
+        var (_, establishment, environment) = await IssuerSetup.HomologationIssuerAsync(_client, _token, root);
+        var (created, body) = await Upload(environment, TestCertificates.Pkcs12(Password, IssuerSetup.Cnpj(root)), Password);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal("PENDING_APPROVAL", body.GetProperty("status").GetString());
+        Assert.Equal(TestCertificates.TestRootName, body.GetProperty("chainRoot").GetString());
+        var id = body.GetProperty("id").GetGuid();
+
+        // The uploader cannot approve: it lacks the scope, and the scopes never go together.
+        var (self, p1) = await ApiClient.SendAsync(_client, HttpMethod.Post, $"/v1/certificates/{id}/approve", _token, null, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.Forbidden, self.StatusCode);
+        Assert.Equal("auth.scope_missing", p1.GetProperty("code").GetString());
+        var (both, p2) = await ApiClient.SendAsync(_client, HttpMethod.Post, "/v1/applications", _admin,
+            new { name = "both", scopes = new[] { Scopes.CertificatesManage, Scopes.CertificatesApprove } }, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.Forbidden, both.StatusCode);
+        Assert.Equal("rules.four_eyes", p2.GetProperty("code").GetString());
+
+        // The approver cannot upload, and without the establishment grant it sees nothing.
+        var (upload, _) = await ApiClient.SendAsync(_client, HttpMethod.Post, $"/v1/environments/{environment}/certificates", _approverToken,
+            new { pkcs12 = Convert.ToBase64String(TestCertificates.Pkcs12(Password, IssuerSetup.Cnpj(root, "0009"))), password = Password }, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.Forbidden, upload.StatusCode);
+        var (ungranted, _) = await ApiClient.SendAsync(_client, HttpMethod.Post, $"/v1/certificates/{id}/approve", _approverToken, null, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.NotFound, ungranted.StatusCode);
+
+        await GrantApproverAsync(establishment);
+        var (approved, approvedBody) = await ApiClient.SendAsync(_client, HttpMethod.Post, $"/v1/certificates/{id}/approve", _approverToken, null, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
+        Assert.Equal("ACTIVE", approvedBody.GetProperty("status").GetString());
+        Assert.Equal(_approverId, approvedBody.GetProperty("approverApplicationId").GetGuid());
+
+        var (again, p3) = await ApiClient.SendAsync(_client, HttpMethod.Post, $"/v1/certificates/{id}/approve", _approverToken, null, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
+        Assert.Equal("state.invalid_transition", p3.GetProperty("code").GetString());
+
+        // Approval is audited with the approver as principal.
+        await using var owner = await _stack.OpenOwnerAsync();
+        await using var command = new NpgsqlCommand(
+            "select count(*) from audit_log where action = 'certificate.approve' and resource_id = $1 and principal_id = $2", owner);
+        command.Parameters.Add(new NpgsqlParameter { Value = id.ToString("D") });
+        command.Parameters.Add(new NpgsqlParameter { Value = _approverId.ToString("D") });
+        Assert.Equal(1L, (long)(await command.ExecuteScalarAsync())!);
+    }
+
+    [Fact]
+    public async Task RejectedUploadNeverActivatesAndCanBeCorrected()
+    {
+        var root = IssuerSetup.NewRoot();
+        var (_, establishment, environment) = await IssuerSetup.HomologationIssuerAsync(_client, _token, root);
+        await GrantApproverAsync(establishment);
+        var pkcs12 = TestCertificates.Pkcs12(Password, IssuerSetup.Cnpj(root));
+        var (_, body) = await Upload(environment, pkcs12, Password);
+        var id = body.GetProperty("id").GetGuid();
+
+        var (rejected, rejectedBody) = await ApiClient.SendAsync(_client, HttpMethod.Post, $"/v1/certificates/{id}/reject", _approverToken,
+            new { reason = "Certificado de outra matriz" }, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.OK, rejected.StatusCode);
+        Assert.Equal("REJECTED", rejectedBody.GetProperty("status").GetString());
+        var (late, _) = await ApiClient.SendAsync(_client, HttpMethod.Post, $"/v1/certificates/{id}/approve", _approverToken, null, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.Conflict, late.StatusCode);
+
+        var (corrected, correctedBody) = await Upload(environment, pkcs12, Password);
+        Assert.Equal(HttpStatusCode.Created, corrected.StatusCode);
+        Assert.Equal("PENDING_APPROVAL", correctedBody.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task CertificateOutsideTheTrustedChainIsRefused()
+    {
+        var root = IssuerSetup.NewRoot();
+        var (_, _, environment) = await IssuerSetup.HomologationIssuerAsync(_client, _token, root);
+        var (response, problem) = await Upload(environment, TestCertificates.Pkcs12(Password, IssuerSetup.Cnpj(root), selfSigned: true), Password);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal("certificate.untrusted", problem.GetProperty("code").GetString());
+        Assert.Equal(0L, await CertificateRowsAsync(environment));
+    }
+
+    private async Task GrantApproverAsync(Guid establishment)
+    {
+        var (granted, _) = await ApiClient.SendAsync(_client, HttpMethod.Put, $"/v1/applications/{_approverId}/establishments/{establishment}", _admin, null, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.NoContent, granted.StatusCode);
+    }
+
+    private async Task<Guid> ApproveAsync(System.Text.Json.JsonElement uploaded)
+    {
+        var id = uploaded.GetProperty("id").GetGuid();
+        var (approved, _) = await ApiClient.SendAsync(_client, HttpMethod.Post, $"/v1/certificates/{id}/approve", _approverToken, null, ApiClient.NewKey());
+        Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
+        return id;
     }
 
     public Task DisposeAsync()
@@ -45,13 +144,15 @@ public sealed class CertificateApiTests : IClassFixture<StackFixture>, IAsyncLif
     public async Task UploadStoresOnlyMetadataAndTheVaultReturnsTheMaterial()
     {
         var root = IssuerSetup.NewRoot();
-        var (_, _, environment) = await IssuerSetup.HomologationIssuerAsync(_client, _token, root);
+        var (_, establishment, environment) = await IssuerSetup.HomologationIssuerAsync(_client, _token, root);
+        await GrantApproverAsync(establishment);
         var pkcs12 = TestCertificates.Pkcs12(Password, IssuerSetup.Cnpj(root));
 
         var (created, body) = await Upload(environment, pkcs12, Password);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         Assert.Equal(IssuerSetup.Cnpj(root), body.GetProperty("subjectTaxId").GetString());
-        Assert.Equal("ACTIVE", body.GetProperty("status").GetString());
+        Assert.Equal("PENDING_APPROVAL", body.GetProperty("status").GetString());
+        await ApproveAsync(body);
         Assert.False(body.TryGetProperty("pkcs12", out _));
         Assert.False(body.TryGetProperty("password", out _));
         Assert.False(body.TryGetProperty("vaultRef", out _));
@@ -67,8 +168,9 @@ public sealed class CertificateApiTests : IClassFixture<StackFixture>, IAsyncLif
             vault.OpenCertificateAsync(Guid.NewGuid(), id, vaultRef, CancellationToken.None));
 
         // A second certificate supersedes the first; the same certificate again conflicts.
-        var (second, _) = await Upload(environment, TestCertificates.Pkcs12(Password, IssuerSetup.Cnpj(root, "0002")), Password);
+        var (second, secondBody) = await Upload(environment, TestCertificates.Pkcs12(Password, IssuerSetup.Cnpj(root, "0002")), Password);
         Assert.Equal(HttpStatusCode.Created, second.StatusCode);
+        await ApproveAsync(secondBody);
         var (list, listBody) = await ApiClient.SendAsync(_client, HttpMethod.Get, $"/v1/environments/{environment}/certificates", _token);
         Assert.Equal(HttpStatusCode.OK, list.StatusCode);
         var statuses = listBody.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("status").GetString()).ToList();

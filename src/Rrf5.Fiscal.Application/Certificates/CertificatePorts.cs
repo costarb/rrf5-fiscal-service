@@ -38,15 +38,27 @@ public sealed record CertificateRecord(
     DateTimeOffset NotBefore,
     DateTimeOffset NotAfter,
     string Status,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    Guid? UploadedBy = null,
+    Guid? ApproverId = null,
+    DateTimeOffset? ApprovedAt = null,
+    string? ChainRoot = null,
+    string? RejectionReason = null);
 
 /// <summary>A certificate inside an alert window, with its days to expiry in Sao Paulo dates.</summary>
 public sealed record ExpiringCertificate(Guid Id, Guid TenantId, Guid EnvironmentId, string FingerprintSha256, int DaysToExpiry);
 
 public interface ICertificateRepository
 {
-    /// <summary>Supersedes the ACTIVE certificate of the environment (if any) and inserts the new one as ACTIVE.</summary>
-    Task<CertificateRecord> ReplaceActiveAsync(CertificateRecord certificate, CancellationToken cancellationToken);
+    /// <summary>Inserts an uploaded certificate as PENDING_APPROVAL (dual control, TM-03).</summary>
+    Task<CertificateRecord> InsertPendingAsync(CertificateRecord certificate, CancellationToken cancellationToken);
+
+    Task<CertificateRecord?> GetAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>Supersedes the ACTIVE certificate of the environment and activates the pending one; the database checks four-eyes.</summary>
+    Task<CertificateRecord?> ActivateAsync(Guid id, Guid approver, CancellationToken cancellationToken);
+
+    Task<CertificateRecord?> RejectAsync(Guid id, string reason, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<CertificateRecord>> ListAsync(Guid environmentId, CancellationToken cancellationToken);
 

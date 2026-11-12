@@ -57,15 +57,23 @@ public sealed class CertificateExpiryTests(DatabaseFixture db)
     private static async Task<Guid> InsertCertificateAsync(NpgsqlConnection owner, int days, string status)
     {
         var issuer = await Seed.IssuerAsync(owner);
+        var uploader = await Seed.ApplicationAsync(owner, issuer.TenantId, ["certificates.manage"]);
+        var approver = await Seed.ApplicationAsync(owner, issuer.TenantId, ["certificates.approve"]);
         var id = Guid.NewGuid();
         await Sql.ExecuteAsync(owner,
-            $"""
+            """
             insert into digital_certificate (id, tenant_id, establishment_id, environment_id, vault_ref, fingerprint_sha256,
-              subject_tax_id, not_before, not_after, status, revoked_at)
+              subject_tax_id, not_before, not_after, status, uploaded_by_application_id, chain_root)
             values ($1, $2, $3, $4, 'openbao-kv:test', $5, '12ABC34501DE35', now() - interval '1 day', now() + make_interval(days => $6),
-              '{status}', {(status == "REVOKED" ? "now()" : "null")})
+              'PENDING_APPROVAL', $7, 'test root')
             """,
-            id, issuer.TenantId, issuer.EstablishmentId, issuer.HomologationId, Convert.ToHexStringLower(Guid.NewGuid().ToByteArray()) + Convert.ToHexStringLower(Guid.NewGuid().ToByteArray()), days);
+            id, issuer.TenantId, issuer.EstablishmentId, issuer.HomologationId, Convert.ToHexStringLower(Guid.NewGuid().ToByteArray()) + Convert.ToHexStringLower(Guid.NewGuid().ToByteArray()), days, uploader);
+        await Sql.ExecuteAsync(owner, "update digital_certificate set status = 'ACTIVE', approver_application_id = $2, approved_at = now() where id = $1", id, approver);
+        if (status == "REVOKED")
+        {
+            await Sql.ExecuteAsync(owner, "update digital_certificate set status = 'REVOKED', revoked_at = now() where id = $1", id);
+        }
+
         return id;
     }
 

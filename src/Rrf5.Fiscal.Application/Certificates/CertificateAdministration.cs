@@ -12,9 +12,11 @@ namespace Rrf5.Fiscal.Application.Certificates;
 /// F3 use cases (T023, T024). The A1 is inspected before anything is stored; the
 /// vault write happens before the database row, and a failure on either side
 /// leaves neither (the vault entry is deleted when the database does not commit).
-/// Reads return metadata only.
+/// Reads return metadata only. An upload is PENDING_APPROVAL until a different
+/// application with <c>certificates.approve</c> activates it (dual control, TM-03).
 /// </summary>
-public sealed partial class CertificateAdministration(IUnitOfWorkFactory database, ICertificateVault vault, ISecretStore secrets, TimeProvider clock)
+public sealed partial class CertificateAdministration(
+    IUnitOfWorkFactory database, ICertificateVault vault, ISecretStore secrets, ICertificateTrustProvider trust, TimeProvider clock)
 {
     [GeneratedRegex("^[0-9]{1,6}$", RegexOptions.CultureInvariant)]
     private static partial Regex CscIdPattern();
@@ -33,7 +35,8 @@ public sealed partial class CertificateAdministration(IUnitOfWorkFactory databas
         await using var uow = await database.BeginAsync(caller.TenantId, platform: false, cancellationToken).ConfigureAwait(false);
         var (environment, establishment) = await RequireEnvironmentAsync(uow, caller, environmentId, cancellationToken).ConfigureAwait(false);
 
-        var facts = CertificateInspection.Inspect(pkcs12, password, clock.GetUtcNow());
+        var anchors = await trust.GetAsync(cancellationToken).ConfigureAwait(false);
+        var facts = CertificateInspection.Inspect(pkcs12, password, clock.GetUtcNow(), anchors);
         CertificateInspection.RequireSameRoot(facts, establishment.TaxId);
 
         string? vaultRef = null;
@@ -43,9 +46,10 @@ public sealed partial class CertificateAdministration(IUnitOfWorkFactory databas
             {
                 var id = Guid.NewGuid();
                 vaultRef = await vault.StoreCertificateAsync(caller.TenantId, id, new A1Material(pkcs12, password), ct).ConfigureAwait(false);
-                var record = await uow.Certificates.ReplaceActiveAsync(
+                var record = await uow.Certificates.InsertPendingAsync(
                     new CertificateRecord(id, caller.TenantId, establishment.Id, environment.Id, vaultRef, facts.FingerprintSha256,
-                        facts.HolderTaxId.Value, facts.NotBefore, facts.NotAfter, "ACTIVE", clock.GetUtcNow()),
+                        facts.HolderTaxId.Value, facts.NotBefore, facts.NotAfter, "PENDING_APPROVAL", clock.GetUtcNow(),
+                        UploadedBy: caller.ApplicationId, ChainRoot: facts.ChainRoot),
                     ct).ConfigureAwait(false);
                 await uow.Audit.AppendAsync(Audit(caller, "certificate.upload", "digital_certificate", id,
                     new() { ["environmentId"] = environmentId.ToString("D") }), ct).ConfigureAwait(false);
@@ -67,6 +71,64 @@ public sealed partial class CertificateAdministration(IUnitOfWorkFactory databas
         {
             Array.Clear(pkcs12);
         }
+    }
+
+    /// <summary>Activates a pending certificate; the previous ACTIVE one of the environment is superseded.</summary>
+    public async Task<IdempotentResponse> ApproveCertificateAsync(Caller caller, MutationRequest request, Guid certificateId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        caller.Require(Scopes.CertificatesApprove);
+        await using var uow = await database.BeginAsync(caller.TenantId, platform: false, cancellationToken).ConfigureAwait(false);
+        var current = await RequireCertificateAsync(uow, caller, certificateId, cancellationToken).ConfigureAwait(false);
+        var result = await IdempotentOperation.RunAsync(uow.Idempotency, Claim(caller, request, "certificate.approve"), async ct =>
+        {
+            if (current.Status != "PENDING_APPROVAL")
+            {
+                throw new DomainException(ErrorCodes.InvalidTransition, "Only a PENDING_APPROVAL certificate can be approved.");
+            }
+
+            if (current.NotAfter <= clock.GetUtcNow())
+            {
+                throw new DomainException(ErrorCodes.CertificateExpired);
+            }
+
+            var record = await uow.Certificates.ActivateAsync(certificateId, caller.ApplicationId, ct).ConfigureAwait(false)
+                ?? throw new DomainException(ErrorCodes.InvalidTransition);
+            await uow.Audit.AppendAsync(Audit(caller, "certificate.approve", "digital_certificate", certificateId,
+                new() { ["environmentId"] = record.EnvironmentId.ToString("D"), ["fromStatus"] = "PENDING_APPROVAL", ["toStatus"] = "ACTIVE" }), ct).ConfigureAwait(false);
+            return new OperationResult(new StoredResponse(200, "digital_certificate", certificateId, View(record)));
+        }, cancellationToken).ConfigureAwait(false);
+        await uow.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    public async Task<IdempotentResponse> RejectCertificateAsync(Caller caller, MutationRequest request, Guid certificateId, string? reason, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        caller.Require(Scopes.CertificatesApprove);
+        var text = reason?.Trim() ?? string.Empty;
+        if (text.Length is < 1 or > 500)
+        {
+            throw new DomainException(ErrorCodes.RequestInvalid, "reason must have 1 to 500 characters.");
+        }
+
+        await using var uow = await database.BeginAsync(caller.TenantId, platform: false, cancellationToken).ConfigureAwait(false);
+        var current = await RequireCertificateAsync(uow, caller, certificateId, cancellationToken).ConfigureAwait(false);
+        var result = await IdempotentOperation.RunAsync(uow.Idempotency, Claim(caller, request, "certificate.reject"), async ct =>
+        {
+            if (current.Status != "PENDING_APPROVAL")
+            {
+                throw new DomainException(ErrorCodes.InvalidTransition, "Only a PENDING_APPROVAL certificate can be rejected.");
+            }
+
+            var record = await uow.Certificates.RejectAsync(certificateId, text, ct).ConfigureAwait(false)
+                ?? throw new DomainException(ErrorCodes.InvalidTransition);
+            await uow.Audit.AppendAsync(Audit(caller, "certificate.reject", "digital_certificate", certificateId,
+                new() { ["fromStatus"] = "PENDING_APPROVAL", ["toStatus"] = "REJECTED" }), ct).ConfigureAwait(false);
+            return new OperationResult(new StoredResponse(200, "digital_certificate", certificateId, View(record)));
+        }, cancellationToken).ConfigureAwait(false);
+        await uow.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return result;
     }
 
     public async Task<IReadOnlyList<CertificateRecord>> ListCertificatesAsync(Caller caller, Guid environmentId, CancellationToken cancellationToken)
@@ -138,6 +200,11 @@ public sealed partial class CertificateAdministration(IUnitOfWorkFactory databas
             notBefore = c.NotBefore,
             notAfter = c.NotAfter,
             status = c.Status,
+            chainRoot = c.ChainRoot,
+            uploadedBy = c.UploadedBy,
+            approverApplicationId = c.ApproverId,
+            approvedAt = c.ApprovedAt,
+            rejectionReason = c.RejectionReason,
             createdAt = c.CreatedAt,
         });
     }
@@ -174,10 +241,22 @@ public sealed partial class CertificateAdministration(IUnitOfWorkFactory databas
         return (environment, establishment);
     }
 
+    private static async Task<CertificateRecord> RequireCertificateAsync(IUnitOfWork uow, Caller caller, Guid certificateId, CancellationToken cancellationToken)
+    {
+        var certificate = await uow.Certificates.GetAsync(certificateId, cancellationToken).ConfigureAwait(false);
+        if (certificate is null
+            || !(await uow.Identity.ListEstablishmentGrantsAsync(caller.ApplicationId, cancellationToken).ConfigureAwait(false)).Contains(certificate.EstablishmentId))
+        {
+            throw new DomainException(ErrorCodes.NotFound);
+        }
+
+        return certificate;
+    }
+
     private static void RequireRead(Caller caller)
     {
         ArgumentNullException.ThrowIfNull(caller);
-        if (!caller.Scopes.Contains(Scopes.CertificatesManage) && !caller.Scopes.Contains(Scopes.IssuerRead))
+        if (!caller.Scopes.Contains(Scopes.CertificatesManage) && !caller.Scopes.Contains(Scopes.CertificatesApprove) && !caller.Scopes.Contains(Scopes.IssuerRead))
         {
             throw new DomainException(ErrorCodes.ScopeMissing);
         }

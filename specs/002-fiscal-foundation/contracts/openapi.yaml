@@ -577,8 +577,8 @@ paths:
     post:
       tags: [vault]
       operationId: uploadCertificate
-      summary: Upload an A1; checked before storage and sealed in the vault (scope certificates.manage)
-      description: The PKCS#12 must open with the password, hold one RSA key, be inside its validity, and its holder CNPJ-Base (ICP-Brasil OID 2.16.76.1.3.3) must equal the establishment CNPJ-Base (MOC rule F03, rejection 213). It supersedes the active certificate.
+      summary: Upload an A1 as PENDING_APPROVAL; checked before storage and sealed in the vault (scope certificates.manage)
+      description: The PKCS#12 must open with the password, hold one RSA key, be inside its validity, chain to an ICP-Brasil root (current ITI bundle) with no revoked certificate, and its holder CNPJ-Base (ICP-Brasil OID 2.16.76.1.3.3) must equal the establishment CNPJ-Base (MOC rule F03, rejection 213). Another application with certificates.approve activates it.
       parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
       requestBody:
         required: true
@@ -599,6 +599,57 @@ paths:
         "422": { $ref: "#/components/responses/Unprocessable" }
         "429": { $ref: "#/components/responses/RateLimited" }
         "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/certificates/{certificateId}/approve:
+    parameters: [{ $ref: "#/components/parameters/CertificateId" }]
+    post:
+      tags: [vault]
+      operationId: approveCertificate
+      summary: Activate a PENDING_APPROVAL certificate; another application than the uploader (scope certificates.approve)
+      description: Supersedes the ACTIVE certificate of the environment. The approver needs the establishment grant.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      responses:
+        "200":
+          description: Certificate activated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Certificate" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/certificates/{certificateId}/reject:
+    parameters: [{ $ref: "#/components/parameters/CertificateId" }]
+    post:
+      tags: [vault]
+      operationId: rejectCertificate
+      summary: Reject a PENDING_APPROVAL certificate with a reason (scope certificates.approve)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 500 }
+      responses:
+        "200":
+          description: Certificate rejected.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Certificate" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
 
   /v1/environments/{environmentId}/csc:
     parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
@@ -961,7 +1012,8 @@ components:
             tenant.admin: Manage the caller tenant applications, secrets and establishment grants.
             issuer.read: Read issuer registration.
             issuer.write: Register companies, establishments, environments, configuration, series and schema releases.
-            certificates.manage: Upload A1 certificates and store the CSC.
+            certificates.manage: Upload A1 certificates and store the CSC (never together with certificates.approve).
+            certificates.approve: Activate or reject uploaded certificates (never together with certificates.manage).
             fiscal.rules.read: Read and resolve tax rules.
             fiscal.rules.write: Author tax profiles, rules and versions (never together with approve).
             fiscal.rules.approve: Approve, reject, close and retire rule versions (never together with write).
@@ -983,6 +1035,7 @@ components:
     EstablishmentId: { name: establishmentId, in: path, required: true, schema: { type: string, format: uuid } }
     EnvironmentId: { name: environmentId, in: path, required: true, schema: { type: string, format: uuid } }
     SeriesId: { name: seriesId, in: path, required: true, schema: { type: string, format: uuid } }
+    CertificateId: { name: certificateId, in: path, required: true, schema: { type: string, format: uuid } }
     ProfileId: { name: profileId, in: path, required: true, schema: { type: string, format: uuid } }
     RuleId: { name: ruleId, in: path, required: true, schema: { type: string, format: uuid } }
     VersionId: { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -1116,6 +1169,9 @@ components:
         - certificate.invalid
         - certificate.outside_validity
         - certificate.holder_mismatch
+        - certificate.untrusted
+        - certificate.revoked
+        - certificate.revocation_unavailable
         - rules.unsupported_group
         - rules.payload_invalid
         - rules.not_in_force
@@ -1188,7 +1244,7 @@ components:
               y: { type: string }
     Scope:
       type: string
-      enum: [platform.admin, tenant.admin, issuer.read, issuer.write, certificates.manage, fiscal.rules.read, fiscal.rules.write, fiscal.rules.approve]
+      enum: [platform.admin, tenant.admin, issuer.read, issuer.write, certificates.manage, certificates.approve, fiscal.rules.read, fiscal.rules.write, fiscal.rules.approve]
     Caller:
       type: object
       required: [tenantId, applicationId, scopes, establishmentIds]
@@ -1373,7 +1429,12 @@ components:
         subjectTaxId: { type: string }
         notBefore: { type: string, format: date-time }
         notAfter: { type: string, format: date-time }
-        status: { type: string, enum: [ACTIVE, SUPERSEDED, REVOKED] }
+        status: { type: string, enum: [PENDING_APPROVAL, ACTIVE, SUPERSEDED, REVOKED, REJECTED] }
+        chainRoot: { type: [string, "null"], description: Name of the ICP-Brasil root the chain ends at. }
+        uploadedBy: { type: [string, "null"], format: uuid }
+        approverApplicationId: { type: [string, "null"], format: uuid }
+        approvedAt: { type: [string, "null"], format: date-time }
+        rejectionReason: { type: [string, "null"] }
         createdAt: { type: string, format: date-time }
     ReplaceCsc:
       type: object

@@ -129,3 +129,36 @@ Fail-closed cases exercised: vault unavailable on token issue (503) and validati
 (401); vault unavailable on certificate upload (503, no row); application without
 an establishment grant (404); schema not resolvable (404 `schema.not_resolved`);
 stored object hash differing from the record (`artifact.integrity_failed`).
+
+### Update 2026-11-11: TM-03 implemented (feature 003)
+
+- **Chain:** A1 uploads must chain to an ICP-Brasil root of the current ITI bundle
+  (`icp-brasil-ac-bundle` in the catalog: 6 roots, AC Raiz v5, v6, v7, v10, v11 and v12, and 176
+  intermediate ACs; SHA-512 equal to the one published by the ITI). The bundle is
+  read from the hash-verified artifact store. Revocation is checked online, excluding
+  the root. An unreachable LCR fails closed (`certificate.revocation_unavailable`).
+  Evidence: `IcpBrasilBundleTests` (real bundle, real chain), `CertificateInspectionTests`
+  and `CertificateApiTests` (`certificate.untrusted`).
+- **Dual control:** an upload is `PENDING_APPROVAL`. Only another application with
+  `certificates.approve` (never together with `certificates.manage`) and the
+  establishment grant activates or rejects it. Migration 0010 enforces this in the
+  database. Evidence: `CertificateDualControlTests`, `CertificateApiTests`.
+- **Rehearsal:** a self-signed "NOT AN A1" stopped as expected at `certificate.untrusted`.
+
+### Update 2026-11-12: TM-03 validated with the real A1 (operator run)
+
+The operator ran `scripts/operator/validate-a1-dual-control.ps1` with the real A1 on
+the local stack (local OpenBao and PostgreSQL only; nothing was sent to SEFAZ). The
+script printed no CNPJ, fingerprint or password. All six checks passed:
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| 1. Wrong password refused | PASS | 422 `certificate.invalid` |
+| 2. ICP-Brasil chain and LCR | PASS | Chains to Autoridade Certificadora Raiz Brasileira v5; not revoked; within validity |
+| 3. Manager cannot activate its own upload | PASS | 403 `auth.scope_missing` |
+| 4. Approver without the establishment grant cannot see it | PASS | 404 `resource.not_found` |
+| 5. Approver with the grant activates it (audited) | PASS | 200 `ACTIVE` |
+| 6. Cannot be activated twice | PASS | 409 `state.invalid_transition` |
+
+TM-03 status: **Mitigated**. The residual risk is unchanged: CA or identity-proofing
+compromise.

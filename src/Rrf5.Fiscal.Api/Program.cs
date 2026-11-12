@@ -35,6 +35,7 @@ builder.Services.AddSingleton<IEndpointModule, IssuerEndpoints>();
 builder.Services.AddSingleton<IEndpointModule, CertificateEndpoints>();
 builder.Services.AddSingleton<IEndpointModule, TaxRuleEndpoints>();
 builder.Services.AddSingleton<IEndpointModule, SchemaEndpoints>();
+builder.Services.AddSingleton<IEndpointModule, CertificateApprovalEndpoints>();
 
 var app = builder.Build();
 

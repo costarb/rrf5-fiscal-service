@@ -94,6 +94,23 @@ AES-256-GCM, KV `secret/rrf5/...`); no endpoint returns it. Use only throwaway
 "NOT AN A1" certificates locally. The worker (`ConnectionStrings:Worker`, role
 `rrf5_worker`) raises expiry alerts at 60, 30, 15, 7 and 1 days.
 
+### Real A1 validation (operator, local stack)
+
+`scripts/operator/validate-a1-dual-control.ps1 -IssuerFile <outside-git>.json -PfxPath <outside-git>.pfx`
+builds the solution, prepares the local stack (migrations, local logins, catalog, ICP-Brasil
+bundle), starts the API on port 58090 and runs six checks:
+
+1. a wrong password is refused;
+2. the chain reaches an ICP-Brasil root and no revocation list revokes it;
+3. the manager cannot activate its own upload;
+4. an approver without the establishment grant does not see the certificate;
+5. the approver activates it, and the approval is audited;
+6. the certificate cannot be activated twice.
+
+The A1 password is asked on screen. No CNPJ, fingerprint or password is printed.
+Uploads are `PENDING_APPROVAL` until an application with `certificates.approve`
+calls `POST /v1/certificates/{id}/approve`.
+
 ## Tax profiles (F4)
 
 Author with `fiscal.rules.write`, approve with a separate application holding

@@ -148,6 +148,24 @@
       "notes": "PDF oficial v1.00; bytes fora do Git. Implantacao: homologacao 2026-04-06, producao 2026-07-06. A exclusao de letras (I, O, U, Q, F) e citada como a confirmar e NAO e aplicada pela validacao. Vetor oficial: 12ABC34501DE-35 (exemplo da Receita Federal/Serpro)."
     },
     {
+      "id": "icp-brasil-ac-bundle",
+      "title": "Certificados das ACs da ICP-Brasil - Arquivo Unico Compactado (cadeia vigente)",
+      "authority": "Instituto Nacional de Tecnologia da Informacao (ITI)",
+      "sourceUrl": "https://acraiz.icpbrasil.gov.br/credenciadas/CertificadosAC-ICP-Brasil/ACcompactado.zip",
+      "documentVersion": "atualizacao de 2026-11-04",
+      "publishedAt": "2026-11-04",
+      "effectiveFrom": null,
+      "effectiveTo": null,
+      "models": ["55", "65"],
+      "states": ["BR"],
+      "artifactSha256": "8617ea8c102c7c8e21f08e28b4ff836a4dbcdaa46fcb097c814c779c1833d910",
+      "sourcePageSha256": null,
+      "hashStatus": "VERIFIED",
+      "checkedAt": "2026-11-11",
+      "impact": "Ancoras de confianca do A1 (TM-03): raizes AC Raiz Brasileira v5, v6, v7, v10, v11 e v12 e 176 ACs intermediarias.",
+      "notes": "ZIP fora do Git. SHA-512 igual ao hashsha512.txt publicado pelo ITI no mesmo diretorio (baa87acf...de95a3). Pagina oficial: https://www.gov.br/iti/pt-br/assuntos/repositorio/certificados-das-acs-da-icp-brasil-arquivo-unico-compactado. Atualizar quando o ITI publicar nova versao."
+    },
+    {
       "id": "xsd-nfe-010f-1-04",
       "title": "Schemas XML NF-e - Pacote 010f v1.04",
       "authority": "Portal Nacional da NF-e",

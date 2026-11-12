@@ -19,13 +19,16 @@ public static class Scopes
     public const string IssuerRead = "issuer.read";
     public const string IssuerWrite = "issuer.write";
     public const string CertificatesManage = "certificates.manage";
+
+    /// <summary>Activates or rejects uploaded certificates; never together with <see cref="CertificatesManage"/>.</summary>
+    public const string CertificatesApprove = "certificates.approve";
     public const string FiscalRulesRead = "fiscal.rules.read";
     public const string FiscalRulesWrite = "fiscal.rules.write";
     public const string FiscalRulesApprove = "fiscal.rules.approve";
 
     public static FrozenSet<string> All { get; } = new[]
     {
-        PlatformAdmin, TenantAdmin, IssuerRead, IssuerWrite, CertificatesManage,
+        PlatformAdmin, TenantAdmin, IssuerRead, IssuerWrite, CertificatesManage, CertificatesApprove,
         FiscalRulesRead, FiscalRulesWrite, FiscalRulesApprove,
     }.ToFrozenSet(StringComparer.Ordinal);
 
@@ -46,6 +49,11 @@ public static class Scopes
         if (scopes.Contains(FiscalRulesWrite) && scopes.Contains(FiscalRulesApprove))
         {
             throw new DomainException(ErrorCodes.FourEyes, "Authoring and approving fiscal rules need separate applications.");
+        }
+
+        if (scopes.Contains(CertificatesManage) && scopes.Contains(CertificatesApprove))
+        {
+            throw new DomainException(ErrorCodes.FourEyes, "Uploading and approving certificates need separate applications.");
         }
 
         if (scopes.Contains(PlatformAdmin) && !platformTenant)

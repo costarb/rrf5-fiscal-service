@@ -13,7 +13,7 @@ public sealed class CertificateInspectionTests
     [Fact]
     public void ReadsHolderValidityAndFingerprintFromTheIcpBrasilOtherName()
     {
-        var facts = CertificateInspection.Inspect(TestCertificates.Pkcs12(Password, Holder), Password, DateTimeOffset.UtcNow);
+        var facts = CertificateInspection.Inspect(TestCertificates.Pkcs12(Password, Holder), Password, DateTimeOffset.UtcNow, TestCertificates.Trust);
         Assert.Equal(Holder, facts.HolderTaxId.Value);
         Assert.Matches("^[a-f0-9]{64}$", facts.FingerprintSha256);
         Assert.True(facts.NotAfter > DateTimeOffset.UtcNow);
@@ -22,7 +22,7 @@ public sealed class CertificateInspectionTests
     [Fact]
     public void FallsBackToTheSubjectSerialNumber()
     {
-        var facts = CertificateInspection.Inspect(TestCertificates.Pkcs12(Password, Holder, cnpjInSerialNumberOnly: true), Password, DateTimeOffset.UtcNow);
+        var facts = CertificateInspection.Inspect(TestCertificates.Pkcs12(Password, Holder, cnpjInSerialNumberOnly: true), Password, DateTimeOffset.UtcNow, TestCertificates.Trust);
         Assert.Equal(Holder, facts.HolderTaxId.Value);
     }
 
@@ -30,7 +30,7 @@ public sealed class CertificateInspectionTests
     public void WrongPasswordFailsWithoutEchoingIt()
     {
         var exception = Assert.Throws<DomainException>(() =>
-            CertificateInspection.Inspect(TestCertificates.Pkcs12(Password, Holder), "CANARY-WRONG-PASSWORD", DateTimeOffset.UtcNow));
+            CertificateInspection.Inspect(TestCertificates.Pkcs12(Password, Holder), "CANARY-WRONG-PASSWORD", DateTimeOffset.UtcNow, TestCertificates.Trust));
         Assert.Equal(ErrorCodes.CertificateInvalid, exception.Code);
         Assert.DoesNotContain("CANARY", exception.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("CANARY", exception.ToString(), StringComparison.Ordinal);
@@ -43,7 +43,7 @@ public sealed class CertificateInspectionTests
     {
         var pkcs12 = TestCertificates.Pkcs12(Password, Holder, DateTimeOffset.UtcNow.AddDays(fromDays), DateTimeOffset.UtcNow.AddDays(toDays));
         Assert.Equal(ErrorCodes.CertificateExpired,
-            Assert.Throws<DomainException>(() => CertificateInspection.Inspect(pkcs12, Password, DateTimeOffset.UtcNow)).Code);
+            Assert.Throws<DomainException>(() => CertificateInspection.Inspect(pkcs12, Password, DateTimeOffset.UtcNow, TestCertificates.Trust)).Code);
     }
 
     [Fact]
@@ -58,21 +58,32 @@ public sealed class CertificateInspectionTests
         })
         {
             Assert.Equal(ErrorCodes.CertificateInvalid,
-                Assert.Throws<DomainException>(() => CertificateInspection.Inspect(pkcs12, Password, DateTimeOffset.UtcNow)).Code);
+                Assert.Throws<DomainException>(() => CertificateInspection.Inspect(pkcs12, Password, DateTimeOffset.UtcNow, TestCertificates.Trust)).Code);
         }
     }
 
     [Fact]
     public void HolderRootMustMatchTheEstablishmentRoot()
     {
-        var facts = CertificateInspection.Inspect(TestCertificates.Pkcs12(Password, Holder), Password, DateTimeOffset.UtcNow);
+        var facts = CertificateInspection.Inspect(TestCertificates.Pkcs12(Password, Holder), Password, DateTimeOffset.UtcNow, TestCertificates.Trust);
         CertificateInspection.RequireSameRoot(facts, "12ABC345000250");   // branch of the same company: accepted (MOC rule F03)
         Assert.Equal(ErrorCodes.CertificateHolderMismatch,
             Assert.Throws<DomainException>(() => CertificateInspection.RequireSameRoot(facts, "11222333000181")).Code);
     }
 
     [Fact]
+    public void CertificateOutsideTheTrustedChainIsRefused()
+    {
+        var selfSigned = TestCertificates.Pkcs12(Password, Holder, selfSigned: true);
+        Assert.Equal(ErrorCodes.CertificateUntrusted,
+            Assert.Throws<DomainException>(() => CertificateInspection.Inspect(selfSigned, Password, DateTimeOffset.UtcNow, TestCertificates.Trust)).Code);
+
+        var facts = CertificateInspection.Inspect(TestCertificates.Pkcs12(Password, Holder), Password, DateTimeOffset.UtcNow, TestCertificates.Trust);
+        Assert.Equal(TestCertificates.TestRootName, facts.ChainRoot);
+    }
+
+    [Fact]
     public void OversizedFileIsRefusedBeforeParsing() =>
         Assert.Equal(ErrorCodes.CertificateInvalid,
-            Assert.Throws<DomainException>(() => CertificateInspection.Inspect(new byte[CertificateInspection.MaxPkcs12Bytes + 1], Password, DateTimeOffset.UtcNow)).Code);
+            Assert.Throws<DomainException>(() => CertificateInspection.Inspect(new byte[CertificateInspection.MaxPkcs12Bytes + 1], Password, DateTimeOffset.UtcNow, TestCertificates.Trust)).Code);
 }
