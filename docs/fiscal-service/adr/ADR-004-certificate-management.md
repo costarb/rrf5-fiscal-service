@@ -1,6 +1,6 @@
 # ADR-004 — Gerenciamento de certificado
 
-**Status:** Aceito com evidência da fundação (2026-11-11), sujeito ao sign-off da 002  
+**Status:** Aceito com evidência da fundação; sign-off da 002 aprovado em 2026-11-11  
 
 ## Decisão
 

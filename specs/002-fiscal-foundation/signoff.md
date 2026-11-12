@@ -1,6 +1,6 @@
 # Sign-off: Fiscal Service Foundation (feature 002)
 
-**Status:** PENDENTE — aguardando aprovação do operador  
+**Status:** APROVADO pelo operador em 2026-11-11  
 **Preparado em:** 2026-11-11  
 **Branch:** `feature/002-fiscal-foundation`
 
@@ -63,4 +63,4 @@ stack local. **Não emite documento fiscal.**
 
 | Papel | Nome | Data | Decisão |
 | --- | --- | --- | --- |
-| Operador e proprietário do emitente | | | Pendente |
+| Operador e proprietário do emitente | Operador (conta `costarb`) | 2026-11-11 | Aprovado ("de acordo"), com os itens abertos acima mantidos nos checklists B e C e no T011 da 001 (retorno do contador previsto até 2026-11-13) |

@@ -66,7 +66,7 @@
 - [x] T037 Replace the contract lint with Node 22 + Redocly v2 or another OpenAPI 3.1 validator with no high findings (L11)
 - [x] T038 Write the two-tenant onboarding walkthrough in `specs/002-fiscal-foundation/quickstart.md` and run it on a clean machine
 - [x] T039 Retest the threat model items reachable on the local stack and record the result in `pocs/evidence/threat-model.md`
-- [ ] T040 Update `specs/001-fiscal-service/checklists/foundation-entry.md` (section B) with evidence and record sign-off in `specs/002-fiscal-foundation/signoff.md`
+- [x] T040 Update `specs/001-fiscal-service/checklists/foundation-entry.md` (section B) with evidence and record sign-off in `specs/002-fiscal-foundation/signoff.md`
 
 ## Dependencies
 
