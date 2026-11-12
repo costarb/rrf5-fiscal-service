@@ -57,7 +57,6 @@ On 2026-11-12 the operator downloaded the Anexo I again. The file is byte-identi
 - **Third-party sources:** they say the payment table was updated by Informe Técnico 2024.002 (codes 20, 21 and 22 in v1.00; later versions add 23 and 24). This is not used until the official documents confirm it.
 - The table must not be completed from memory or from third-party sites.
 
-**Needed from the operator:** from the Portal NF-e, "Documentos → Informes Técnicos", download into `rrf5-private\sefaz
-t`:
+**Needed from the operator:** from the Portal NF-e, "Documentos → Informes Técnicos", download into `rrf5-private\sefaz\nt`:
 - **Informe Técnico 2026.001** (Tabela Nacional de Códigos de Meios de Pagamento), latest version;
 - **Informe Técnico 2024.002**, latest version, for the history of `tPag` and its effective dates.
