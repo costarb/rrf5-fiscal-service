@@ -150,7 +150,7 @@ public sealed class SefazAdapterTests : IAsyncLifetime
         var http = new SefazEndpoint("TEST", "65", "HOMOLOGATION", SefazEndpoints.Authorization, new Uri("http://127.0.0.1/ws/NFeAutorizacao4.asmx"));
         await Assert.ThrowsAsync<ArgumentException>(() => _sefaz.AuthorizeAsync(http, xml, key, digest, "2", 1, CancellationToken.None));
         await Assert.ThrowsAsync<ArgumentException>(() => _sefaz.AuthorizeAsync(_server.Endpoint(SefazEndpoints.ProtocolQuery), xml, key, digest, "2", 1, CancellationToken.None));
-        await Assert.ThrowsAsync<ArgumentException>(() => _sefaz.AuthorizeAsync(_server.Endpoint(SefazEndpoints.Authorization), xml, key[..43] + "0", digest, "2", 1, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => _sefaz.AuthorizeAsync(_server.Endpoint(SefazEndpoints.Authorization), xml, key[..43] + (char)('0' + ((key[43] - '0' + 1) % 10)), digest, "2", 1, CancellationToken.None));
         await Assert.ThrowsAsync<ArgumentException>(() => _sefaz.AuthorizeAsync(_server.Endpoint(SefazEndpoints.Authorization), xml, key, digest, "3", 1, CancellationToken.None));
         Assert.Empty(_server.Requests);
     }
