@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-12
 
-**Status**: Rascunho para revisão do operador
+**Status**: Rascunho com decisões do operador de 2026-11-12
 
 **Input**:
 - Fase 2 do roadmap (`docs/fiscal-service/14-implementation-roadmap.md`): pré-validação, perfil fiscal básico, numeração, XML/XSD/assinatura, autorização/consulta, pagamentos, QR Code/DANFE e rejeições. Aceite: a matriz de vendas do food truck é autorizada ou rejeitada como esperado.
@@ -107,24 +107,28 @@ FiscalDocument, FiscalDocumentItem, FiscalDocumentPayment, FiscalProtocol, Sefaz
 | Rótulos de `tPag` extraídos do MOC congelado (L5) | aberto | E5 |
 | Arredondamento pela regra do leiaute | aberto | FE-004 |
 | Raízes ICP-Brasil fixadas por autorizador para TLS | aberto | FE-007 |
-| Threat model revisado para o ambiente de deploy escolhido | depende do provedor | homologação fora da máquina local |
+| Threat model revisado para o ambiente de deploy escolhido | provedor a definir; homologação local primeiro (decisão 2) | migração para a nuvem |
 | `danfe-selftest` no container Linux (L3) | aberto | E5 |
 
 ## Out of Scope
 
 Produção; cancelamento e inutilização; webhooks; contingência oficial; painel; NF-e 55; cenários sem decisão fiscal (8, 12, 18–22 e 31–40).
 
-## Open Questions
+## Decisões do operador (2026-11-12)
 
-1. **[NEEDS CLARIFICATION] Modo de emissão no MVP:** síncrono (`indSinc=1`, como na POC), assíncrono com polling, ou os dois (FR-005)?
-2. **[NEEDS CLARIFICATION] Onde rodar a homologação:**
-   - na máquina local, com a stack endurecida da 004;
-   - ou já no provedor de nuvem escolhido.
+1. **Modo de emissão: os dois.**
+   - Síncrono: `indSinc=1`, como na POC. A resposta HTTP espera o resultado até o tempo-limite configurado. Se esse tempo acabar, o documento segue no assíncrono e a resposta é não terminal.
+   - Assíncrono: `202` com o recurso do documento, e o cliente acompanha por polling.
 
-   A 002 adiou a escolha do provedor para antes da primeira emissão em homologação.
-3. **[NEEDS CLARIFICATION] DANFE:**
-   - entra nesta fase com impressão térmica real;
-   - ou só com geração e `danfe-selftest`, deixando a impressora para o checklist C (L4).
+   Os dois caminhos compartilham o mesmo estado, a mesma idempotência e a mesma consulta antes de reenvio.
+2. **Homologação local primeiro**, com a stack endurecida da 004. A migração para a nuvem vem depois, quando o operador preparar a conta.
+
+   Até lá, o item "threat model revisado para o ambiente de deploy" continua aberto e não bloqueia a homologação local.
+3. **DANFE sem impressora física.** Quem imprime são os ERPs integrados. O serviço entrega:
+   - o DANFE NFC-e pronto para impressão: HTML da POC, nas larguras de 80 e 58 mm;
+   - os dados de impressão: URL do QR Code, conteúdo do QR e URL de consulta.
+
+   A impressão é simulada por teste: o layout é renderizado em 80 e 58 mm, as margens e a zona de silêncio são conferidas, e o QR é decodificado da imagem renderizada e comparado com o esperado. A impressão térmica real (L4) continua no checklist C, para o ERP ou o operador fazer antes da produção.
 
 ## Assumptions
 
