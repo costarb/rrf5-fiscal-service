@@ -41,6 +41,8 @@ inutilização, webhooks e contingência ficam para a Fase 3.
 | ADR-007 | Integração SEFAZ | Adaptador por autorizador com endpoints do catálogo; SOAP 1.2 e TLS mútuo com o A1; raízes ICP-Brasil fixadas por autorizador; tempo-limite e retentativa técnica só antes do envio ou depois de consultar |
 | ADR-016 | Geração, assinatura e QR/DANFE | Gerador XML próprio por versão de leiaute; XSD do pacote resolvido; XMLDSig conforme a seção do MOC registrada (L8); QR e DANFE pelo Manual DANFE NFC-e v6.0 |
 
+ADR-005, ADR-007, ADR-016 e ADR-017 (natureza de operação, decidido durante a feature) foram aceitos pelo operador em 2026-11-12.
+
 ADR-010 (contingência) continua "Proposto". Esta feature não implementa contingência.
 
 ## Technical Context

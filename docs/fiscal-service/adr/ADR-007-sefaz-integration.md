@@ -1,6 +1,6 @@
 # ADR-007 — Integração com SEFAZ
 
-**Status:** Proposto; detalhado em 2026-11-12 para a feature 005, aguarda aceite do operador
+**Status:** Aceito pelo operador em 2026-11-12 (detalhado para a feature 005)
 **Escopo:** autorização e consulta NFC-e na SEFAZ-SP (005, FE-007, FE-009, FE-010)
 
 ## Decisão original

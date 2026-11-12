@@ -1,6 +1,6 @@
 # ADR-017 — Natureza de operação e atributos do produto vindos do ERP
 
-**Status:** Proposto em 2026-11-12, aguarda aceite do operador. As decisões 1 e 6 foram tomadas pelo operador em 2026-11-12.
+**Status:** Aceito pelo operador em 2026-11-12 (decisões 1 e 6 tomadas pelo operador no mesmo dia)
 **Escopo:** pré-validação e emissão da 005 (FE-005, T010, T013); altera o ADR-015 nos itens 1, 2 e 3
 
 ## Contexto

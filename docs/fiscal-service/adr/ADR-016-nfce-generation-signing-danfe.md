@@ -1,6 +1,6 @@
 # ADR-016 — Geração, assinatura, QR Code e DANFE da NFC-e
 
-**Status:** Proposto em 2026-11-12, aguarda aceite do operador
+**Status:** Aceito pelo operador em 2026-11-12
 **Escopo:** `Rrf5.Fiscal.Nfce` (005, FE-002 a FE-006, E5); detalha o ADR-011
 
 ## Contexto

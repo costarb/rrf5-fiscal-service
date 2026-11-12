@@ -1,6 +1,6 @@
 # ADR-005 — Processamento síncrono e assíncrono
 
-**Status:** Proposto; detalhado em 2026-11-12 para a feature 005, aguarda aceite do operador
+**Status:** Aceito pelo operador em 2026-11-12 (detalhado para a feature 005; entrega sem broker na homologação local, opção A)
 **Escopo:** emissão NFC-e (005, FE-010, FE-011); FR-005 e FR-007 da 001
 
 ## Decisão original
