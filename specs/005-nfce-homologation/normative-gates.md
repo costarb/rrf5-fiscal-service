@@ -49,14 +49,27 @@ On 2026-11-12 the operator downloaded the Anexo I again. The file is byte-identi
   - the signing certificate carries the CNPJ of an establishment of the issuer (OID 2.16.76.1.3.3, §4.2.4.1).
 - **Comparison with the POC:** this is exactly the profile the POC signed with and SEFAZ-SP authorized (`homologation.md` run 3), so the L8 limitation is closed. T015 implements this profile and asserts each element listed above.
 
-## T003 — `tPag` table and DANFE labels (L5): blocked, current source identified
+## T003 — `tPag` table and DANFE labels (L5): blocked, national table needed
 
-- The 010g XSD constrains `tPag` only to `[0-9]{2}`, so the code list comes from the MOC and the technical publications.
-- The frozen Anexo I (2020) lists 01–05, 10–13, 15–19, 90 and 99. It is outdated, and the portal still serves this edition.
-- **Official pointer:** NT 2026.006 v1.01, already frozen (SHA-256 `2c5770b5…`), refers to the "Tabela Nacional de Códigos de Meios de Pagamento (Informe Técnico 2026.001 dos DF-e)". The same NT cites NT 2024.002 for the ECONF event.
-- **Third-party sources:** they say the payment table was updated by Informe Técnico 2024.002 (codes 20, 21 and 22 in v1.00; later versions add 23 and 24). This is not used until the official documents confirm it.
-- The table must not be completed from memory or from third-party sites.
+**Frozen on 2026-11-12** (operator download, outside Git, `rrf5-private\sefaz\nt`):
 
-**Needed from the operator:** from the Portal NF-e, "Documentos → Informes Técnicos", download into `rrf5-private\sefaz\nt`:
-- **Informe Técnico 2026.001** (Tabela Nacional de Códigos de Meios de Pagamento), latest version;
-- **Informe Técnico 2024.002**, latest version, for the history of `tPag` and its effective dates.
+| Document | Version | SHA-256 |
+| --- | --- | --- |
+| Informe Técnico 2024.002 — Atualiza Tabela de Meios de Pagamento | 1.11 (cover: February 2026) | `19953feb5695e728cf15a91be144b7115b3079a31be5ba0fa6eb46af58db1172` |
+| Informe Técnico 2026.001 — Tabela de Meios de Pagamento para Vinculação Pgto | 1.01 (August 2026) | `1e58913755c4e617f30619448909dd9ef82b0c772bcd44dc85774e77bcd28900` |
+
+What they establish:
+
+- **IT 2026.001 is not the `tPag` table.** It lists the codes valid for `tpMeioPgto` in the split-payment group `gPgtoVinc` (NT 2026.006): 15, 17, 18, 20, 23 and 24. Any other code is rejected with 1003. The group is exclusive to 010g, so it stays disabled in SP (E4). The IT also says the national table is published on the Portal NF-e and on the DF-e portal of SEFAZ Virtual RS.
+- **IT 2024.002 v1.11 records only the changes** to the "Tabela de Meios de Pagamento". The table itself is "disponível no Portal Nacional da NF-e, na aba Documentos, opção Diversos". Changes recorded, with their production dates:
+
+  | IT version | Change | Production |
+  | --- | --- | --- |
+  | 1.00 | 05 renamed "Cartão da Loja (Private Label)"; 17 becomes "Dinâmico"; adds 20 "Pagamento Instantâneo (PIX) – Estático", 21 "Crédito em Loja", 22 "Pagamento Eletrônico não Informado - falha de hardware do sistema emissor"; notes for 14 and 99; new "Observações" column | 2024-07-01 |
+  | 1.01 | text of 05 corrected | — |
+  | 1.10 | adds 91 "Pagamento Posterior" | 2025-11-03 |
+  | 1.11 | adds 23 "Pagamento Instantâneo (PIX) – Automático" and 24 "TEF – 'Book Transfer'"; changes the description of 18 and the note of 20 | 2026-05-04 |
+
+- **What is still missing:** the full current texts of 05, 18 and 20 are not in the IT. They and the "Observações" column are only in the national table. The table must not be completed from memory or from third-party sites.
+
+**Needed from the operator:** the **Tabela de Meios de Pagamento** itself, from the Portal NF-e, "Documentos → Diversos" (or the DF-e portal of SVRS), downloaded into `rrf5-private\sefaz\nt`.
