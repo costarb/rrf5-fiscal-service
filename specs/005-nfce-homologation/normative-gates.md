@@ -49,7 +49,7 @@ On 2026-11-12 the operator downloaded the Anexo I again. The file is byte-identi
   - the signing certificate carries the CNPJ of an establishment of the issuer (OID 2.16.76.1.3.3, §4.2.4.1).
 - **Comparison with the POC:** this is exactly the profile the POC signed with and SEFAZ-SP authorized (`homologation.md` run 3), so the L8 limitation is closed. T015 implements this profile and asserts each element listed above.
 
-## T003 — `tPag` table and DANFE labels (L5): blocked, national table needed
+## T003 — `tPag` table and DANFE labels (L5): done
 
 **Frozen on 2026-11-12** (operator download, outside Git, `rrf5-private\sefaz\nt`):
 
@@ -72,4 +72,15 @@ What they establish:
 
 - **What is still missing:** the full current texts of 05, 18 and 20 are not in the IT. They and the "Observações" column are only in the national table. The table must not be completed from memory or from third-party sites.
 
-**Needed from the operator:** the **Tabela de Meios de Pagamento** itself, from the Portal NF-e, "Documentos → Diversos" (or the DF-e portal of SVRS), downloaded into `rrf5-private\sefaz\nt`.
+**Resolved on 2026-11-12.** The operator downloaded the national table from the Portal NF-e (Documentos → Diversos):
+
+| File (outside Git, `rrf5-private\sefaz\nt`) | SHA-256 |
+| --- | --- |
+| `Tabela_Meios_de_Pagamento_04032026.xlsx` | `f85d4a6d50390f824921703d166d3f2f4ec637b7244fa922248ef14e782d8a2d` |
+
+- **Contents:** 23 codes (01–05, 10–24, 90, 91, 99), each with its description, `dIniVig`, `dFimVig` and "Observações".
+- **Agreement with IT 2024.002 v1.11:** the start dates match the change log: 2024-07-01 for 05, 17, 20, 21 and 22; 2025-11-03 for 91; 2026-05-04 for 23 and 24. Every other code starts on 2020-01-01. No code has an end date.
+- **Versioned resource:** `regulatory/payment-methods.json` holds the code, description and validity of each method. A script transcribes them from the spreadsheet, so nothing is typed by hand. The resource records the source hash. The "Observações" column stays in the official file.
+- **Loader:** `PaymentMethods` (Regulatory) resolves a code only within its validity.
+- Evidence: `PaymentMethodsTests` checks the source hash, the code list, the validity edges and the official descriptions.
+- **DANFE labels:** T027 uses the official descriptions. They replace the short label table of the POC (`danfe-qr.md`, gap 2).

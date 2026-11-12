@@ -1,0 +1,151 @@
+{
+  "source": {
+    "title": "Tabela de Meios de Pagamento (tPag)",
+    "publisher": "Portal Nacional da NF-e, Documentos > Diversos",
+    "file": "Tabela_Meios_de_Pagamento_04032026.xlsx",
+    "sha256": "f85d4a6d50390f824921703d166d3f2f4ec637b7244fa922248ef14e782d8a2d",
+    "frozenAt": "2026-11-12",
+    "changeLog": "Informe Tecnico 2024.002 v1.11 (SHA-256 19953feb5695e728cf15a91be144b7115b3079a31be5ba0fa6eb46af58db1172)",
+    "note": "Codes, descriptions and validity transcribed by script from the official spreadsheet; the Observacoes column stays in the official file."
+  },
+  "methods": [
+    {
+      "code": "01",
+      "description": "Dinheiro",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "02",
+      "description": "Cheque",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "03",
+      "description": "Cartão de Crédito",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "04",
+      "description": "Cartão de Débito",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "05",
+      "description": "Cartão da Loja (Private Label), Crediário Digital, Outros Crediários",
+      "validFrom": "2024-07-01",
+      "validTo": null
+    },
+    {
+      "code": "10",
+      "description": "Vale Alimentação",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "11",
+      "description": "Vale Refeição",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "12",
+      "description": "Vale Presente",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "13",
+      "description": "Vale Combustível",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "14",
+      "description": "Duplicata Mercantil",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "15",
+      "description": "Boleto Bancário",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "16",
+      "description": "Depósito Bancário",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "17",
+      "description": "Pagamento Instantâneo (PIX) - Dinâmico",
+      "validFrom": "2024-07-01",
+      "validTo": null
+    },
+    {
+      "code": "18",
+      "description": "TED (Transferência Eletrônica Disponível)",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "19",
+      "description": "Programa de fidelidade, Cashback, Crédito Virtual",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "20",
+      "description": "Pagamento Instantâneo (PIX) - Estático",
+      "validFrom": "2024-07-01",
+      "validTo": null
+    },
+    {
+      "code": "21",
+      "description": "Crédito em Loja",
+      "validFrom": "2024-07-01",
+      "validTo": null
+    },
+    {
+      "code": "22",
+      "description": "Pagamento Eletrônico não Informado - falha de hardware do sistema emissor",
+      "validFrom": "2024-07-01",
+      "validTo": null
+    },
+    {
+      "code": "23",
+      "description": "Pagamento Instantâneo (PIX) - Automático",
+      "validFrom": "2026-05-04",
+      "validTo": null
+    },
+    {
+      "code": "24",
+      "description": "TEF - \"Book Transfer\"",
+      "validFrom": "2026-05-04",
+      "validTo": null
+    },
+    {
+      "code": "90",
+      "description": "Sem Pagamento",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    },
+    {
+      "code": "91",
+      "description": "Pagamento Posterior",
+      "validFrom": "2025-11-03",
+      "validTo": null
+    },
+    {
+      "code": "99",
+      "description": "Outros",
+      "validFrom": "2020-01-01",
+      "validTo": null
+    }
+  ]
+}
