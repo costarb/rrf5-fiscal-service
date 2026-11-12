@@ -47,6 +47,19 @@ if (args is ["local-app-login", ..])
     return;
 }
 
+// "ensure-bucket" creates the artifact bucket with versioning and object lock. It is an
+// operator step run once with the storage admin identity (scripts/local/hardened-stack.ps1):
+// the runtime identities of the API and the worker cannot create buckets.
+if (args is ["ensure-bucket", ..])
+{
+    builder.Services.AddRrf5Foundation(builder.Configuration, "Worker");
+    using var tools = builder.Build();
+    var locked = await tools.Services.GetRequiredService<Rrf5.Fiscal.Infrastructure.Storage.S3ArtifactStore>().EnsureBucketAsync(CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"bucket ready; object lock {(locked ? "COMPLIANCE available" : "UNAVAILABLE")}");
+    Environment.ExitCode = locked ? 0 : 1;
+    return;
+}
+
 // "load-catalog" loads the shipped catalog into schema_version and prints the report.
 // "store-artifact <file> <catalogReferenceId>" stores an official artifact after
 // checking its hash against the catalog (T035). Both run as rrf5_worker.

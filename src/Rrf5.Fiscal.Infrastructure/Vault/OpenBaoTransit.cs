@@ -8,7 +8,11 @@ using Rrf5.Fiscal.Application.Identity;
 
 namespace Rrf5.Fiscal.Infrastructure.Vault;
 
-/// <summary>OpenBao connection settings. The token comes from the environment, never from the repository.</summary>
+/// <summary>
+/// OpenBao connection settings. Credentials come from the environment, never from the
+/// repository. With <see cref="RoleId"/> set the process logs in through AppRole and
+/// <see cref="Token"/> is ignored; a static token is for the test stack only.
+/// </summary>
 public sealed class OpenBaoOptions
 {
     public const string Section = "OpenBao";
@@ -16,6 +20,12 @@ public sealed class OpenBaoOptions
     public Uri? Address { get; set; }
 
     public string? Token { get; set; }
+
+    public string? RoleId { get; set; }
+
+    public string? SecretId { get; set; }
+
+    public string AppRoleMount { get; set; } = "approle";
 
     public string TokenSigningKey { get; set; } = "rrf5-token-signing";
 
@@ -146,14 +156,13 @@ public sealed class OpenBaoTransitSigner : ITokenSigner, IDisposable
 
     private HttpRequestMessage Request(HttpMethod method, string path)
     {
-        if (_options.Address is null || string.IsNullOrEmpty(_options.Token))
+        if (_options.Address is null)
         {
             throw new DomainException(ErrorCodes.Unavailable, "The vault is not configured.");
         }
 
-        var request = new HttpRequestMessage(method, new Uri(_options.Address, path));
-        request.Headers.Add("X-Vault-Token", _options.Token);
-        return request;
+        // The token is added by OpenBaoAuthHandler.
+        return new HttpRequestMessage(method, new Uri(_options.Address, path));
     }
 
     private async Task<JsonDocument> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

@@ -39,7 +39,8 @@ public interface IArtifactStore
 {
     Task<StoredObject> PutAsync(string sha256, byte[] content, CancellationToken cancellationToken);
 
-    Task<byte[]> GetAsync(string objectKey, CancellationToken cancellationToken);
+    /// <summary>Reads one object; with <paramref name="version"/> it reads exactly that version, so a later version or a delete marker cannot change what is read.</summary>
+    Task<byte[]> GetAsync(string objectKey, string? version, CancellationToken cancellationToken);
 }
 
 public sealed record CatalogLoadReport(int Inserted, int Unchanged, int Updated, IReadOnlyList<RefusedPackage> Refused);
@@ -245,7 +246,7 @@ public sealed class ArtifactService(IUnitOfWorkFactory database, IArtifactStore 
         var stored = await store.PutAsync(sha, content, cancellationToken).ConfigureAwait(false);
 
         // Verify on write: the store must return exactly the bytes that were sent.
-        var echoed = await store.GetAsync(stored.ObjectKey, cancellationToken).ConfigureAwait(false);
+        var echoed = await store.GetAsync(stored.ObjectKey, stored.Version, cancellationToken).ConfigureAwait(false);
         if (Convert.ToHexStringLower(SHA256.HashData(echoed)) != sha)
         {
             throw new DomainException(ErrorCodes.ArtifactIntegrity, "The object store did not keep the bytes that were written.");
@@ -266,7 +267,7 @@ public sealed class ArtifactService(IUnitOfWorkFactory database, IArtifactStore 
                 ?? throw new DomainException(ErrorCodes.NotFound);
         }
 
-        var content = await store.GetAsync(artifact.ObjectKey, cancellationToken).ConfigureAwait(false);
+        var content = await store.GetAsync(artifact.ObjectKey, artifact.ObjectVersion, cancellationToken).ConfigureAwait(false);
         if (Convert.ToHexStringLower(SHA256.HashData(content)) != artifact.Sha256)
         {
             throw new DomainException(ErrorCodes.ArtifactIntegrity);

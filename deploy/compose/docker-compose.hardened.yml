@@ -1,0 +1,73 @@
+# Hardened local stack: the vault and the bucket configured the way production
+# expects them, on this machine. Started by scripts/local/hardened-stack.ps1, which
+# generates the credentials into RRF5_PRIVATE_DIR (outside Git) first.
+#
+# - OpenBao 2.4.1 NOT in dev mode: persistent raft storage, sealed on every start,
+#   unsealed by the bootstrap; the root token is revoked after the bootstrap; each
+#   process logs in through AppRole with its own policy (openbao/policies).
+# - SeaweedFS 3.97 with S3 identities: no anonymous access; the admin identity only
+#   creates the bucket; the worker and the API are limited to the artifact bucket.
+#
+# The test stack (docker-compose.yml) stays in dev mode because the test suite needs a
+# privileged token to create its fixtures. Ports bind to 127.0.0.1 only.
+name: rrf5-hardened
+
+services:
+  openbao:
+    image: openbao/openbao:2.4.1
+    command: "server -config=/rrf5/config.hcl"
+    ports: ["127.0.0.1:${RRF5_HARDENED_BAO_PORT:-58201}:8200"]
+    volumes:
+      - openbao-data:/openbao/file
+      - ./openbao:/rrf5:ro
+    healthcheck:
+      # seal-status answers 200 while sealed too; readiness to serve is checked by the bootstrap.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8200/v1/sys/seal-status"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  # One-shot: initializes (first run), unseals, configures and revokes the root token.
+  openbao-bootstrap:
+    image: openbao/openbao:2.4.1
+    profiles: ["tools"]
+    depends_on:
+      openbao: { condition: service_healthy }
+    environment:
+      BAO_ADDR: http://openbao:8200
+    entrypoint: ["/bin/sh", "/rrf5/bootstrap.sh"]
+    volumes:
+      - ./openbao:/rrf5:ro
+      - ${RRF5_PRIVATE_DIR:?set RRF5_PRIVATE_DIR}/openbao-local:/out
+    restart: "no"
+
+  # One-shot: AppRole logins and the allow/deny matrix of each policy.
+  openbao-verify:
+    image: openbao/openbao:2.4.1
+    profiles: ["tools"]
+    depends_on:
+      openbao: { condition: service_healthy }
+    environment:
+      BAO_ADDR: http://openbao:8200
+    entrypoint: ["/bin/sh", "/rrf5/verify-policies.sh"]
+    volumes:
+      - ./openbao:/rrf5:ro
+      - ${RRF5_PRIVATE_DIR:?set RRF5_PRIVATE_DIR}/openbao-local:/out:ro
+    restart: "no"
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.97
+    command: "server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/rrf5/s3.json -master.volumeSizeLimitMB=64 -volume.max=64"
+    ports: ["127.0.0.1:${RRF5_HARDENED_S3_PORT:-58334}:8333"]
+    volumes:
+      - seaweedfs-data:/data
+      - ${RRF5_PRIVATE_DIR:?set RRF5_PRIVATE_DIR}/seaweedfs-local:/etc/rrf5:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  openbao-data:
+  seaweedfs-data:

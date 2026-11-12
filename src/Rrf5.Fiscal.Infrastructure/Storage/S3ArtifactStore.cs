@@ -110,11 +110,17 @@ public sealed class S3ArtifactStore : IArtifactStore, IDisposable
         }
     }
 
-    public async Task<byte[]> GetAsync(string objectKey, CancellationToken cancellationToken)
+    public async Task<byte[]> GetAsync(string objectKey, string? version, CancellationToken cancellationToken)
     {
         try
         {
-            using var response = await _client.Value.GetObjectAsync(_options.Bucket, objectKey, cancellationToken).ConfigureAwait(false);
+            var request = new GetObjectRequest { BucketName = _options.Bucket, Key = objectKey };
+            if (!string.IsNullOrEmpty(version) && version != "null")
+            {
+                request.VersionId = version;
+            }
+
+            using var response = await _client.Value.GetObjectAsync(request, cancellationToken).ConfigureAwait(false);
             using var buffer = new MemoryStream();
             await response.ResponseStream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
             return buffer.ToArray();

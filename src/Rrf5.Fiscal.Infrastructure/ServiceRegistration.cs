@@ -34,10 +34,11 @@ public static class ServiceRegistration
         var openBao = new OpenBaoOptions();
         configuration.GetSection(OpenBaoOptions.Section).Bind(openBao);
         services.AddSingleton(openBao);
+        services.AddSingleton(sp => new OpenBaoTokenSource(sp.GetRequiredService<OpenBaoOptions>(), sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton(sp => new OpenBaoTransitSigner(
-            new HttpClient { Timeout = TimeSpan.FromSeconds(5) }, sp.GetRequiredService<OpenBaoOptions>(), sp.GetRequiredService<TimeProvider>()));
+            VaultClient(sp), sp.GetRequiredService<OpenBaoOptions>(), sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton<ITokenSigner>(sp => sp.GetRequiredService<OpenBaoTransitSigner>());
-        services.AddSingleton(sp => new OpenBaoEnvelopeVault(new HttpClient { Timeout = TimeSpan.FromSeconds(5) }, sp.GetRequiredService<OpenBaoOptions>()));
+        services.AddSingleton(sp => new OpenBaoEnvelopeVault(VaultClient(sp), sp.GetRequiredService<OpenBaoOptions>()));
         services.AddSingleton<Application.Certificates.ICertificateVault>(sp => sp.GetRequiredService<OpenBaoEnvelopeVault>());
         services.AddSingleton<Application.Certificates.ISecretStore>(sp => sp.GetRequiredService<OpenBaoEnvelopeVault>());
 
@@ -69,4 +70,10 @@ public static class ServiceRegistration
         services.AddSingleton<Application.Certificates.ICertificateTrustProvider, Application.Certificates.IcpBrasilTrustProvider>();
         return services;
     }
+
+    private static HttpClient VaultClient(IServiceProvider services) =>
+        new(new OpenBaoAuthHandler(services.GetRequiredService<OpenBaoTokenSource>()) { InnerHandler = new HttpClientHandler() })
+        {
+            Timeout = TimeSpan.FromSeconds(5),
+        };
 }

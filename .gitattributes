@@ -1,2 +1,6 @@
 # Migration hashes are computed over LF text; keep SQL in LF everywhere.
 *.sql text eol=lf
+
+# Shell scripts and vault policies run inside Linux containers.
+*.sh text eol=lf
+*.hcl text eol=lf

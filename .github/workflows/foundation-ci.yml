@@ -58,6 +58,17 @@ jobs:
           for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:58333/ && break; sleep 1; done
       - name: Test
         run: dotnet test Rrf5.Fiscal.slnx -c Release --no-build
+      # Hardened local stack: OpenBao outside dev mode (AppRole per process, root token
+      # revoked) and SeaweedFS with S3 identities; credentials stay in the runner temp dir.
+      - name: Hardened stack (vault policies and storage identities)
+        shell: pwsh
+        run: |
+          $private = Join-Path $env:RUNNER_TEMP 'rrf5-private'
+          ./scripts/local/hardened-stack.ps1 -Action Up -PrivateDir $private
+          # The bootstrap container writes its files as root with mode 600.
+          sudo chown -R "$(id -u):$(id -g)" $private
+          ./scripts/local/hardened-stack.ps1 -Action Verify -PrivateDir $private
+          ./scripts/local/hardened-stack.ps1 -Action Down -Reset -PrivateDir $private
 
   # T037 / L11: OpenAPI 3.1 lint with Redocly CLI v2 on Node 22 (no high findings).
   contract:

@@ -110,7 +110,7 @@ clone with a fresh stack).
 
 | ID | Result | Evidence | Open item |
 | --- | --- | --- | --- |
-| TM-01 | **Partial** | No route returns certificate bytes, password or CSC (`ContractTests` route list); envelope encryption with a per-secret data key from transit and AES-256-GCM bound to tenant/kind/id; only ciphertext in KV (`SecretCanaryTests`, `CertificateApiTests`) | The API and worker use the OpenBao dev root token; a vault policy restricted to the worker identity is a deployment item (checklist B, L1) |
+| TM-01 | **Partial** | No route returns certificate bytes, password or CSC (`ContractTests` route list); envelope encryption with a per-secret data key from transit and AES-256-GCM bound to tenant/kind/id; only ciphertext in KV (`SecretCanaryTests`, `CertificateApiTests`) | The API and worker use the OpenBao dev root token; a vault policy restricted to the worker identity is a deployment item (checklist B, L1). **Update 2026-11-12:** implemented on the hardened local stack, see below |
 | TM-02 | **Pass (local)** | Password and CSC canaries absent from responses, logs, spans, every table and vault entries (`SecretCanaryTests`, mutation-checked); allowlist logging and span redaction (`TelemetryRedactionTests`); every image layer scanned in CI (`scripts/scan_image_layers.py`) | Crash-dump policy and memory exposure belong to the deployment environment |
 | TM-03 | **Partial** | Holder CNPJ-Base equals the establishment CNPJ-Base (MOC F03 / 213), validity window, single RSA key, SHA-256 fingerprint, audit of each upload (`CertificateInspectionTests`, `CertificateApiTests`) | **ICP-Brasil chain validation is not implemented** and rotation is single-control (any `certificates.manage` application). Both must be decided before production |
 | TM-04 | **Pass (storage)** | CSC only as a vault reference; reads expose `cscConfigured` only; no read endpoint (`CertificateApiTests`, `SecretCanaryTests`) | QR generation and its diagnostics come with emission |
@@ -162,3 +162,34 @@ script printed no CNPJ, fingerprint or password. All six checks passed:
 
 TM-03 status: **Mitigated**. The residual risk is unchanged: CA or identity-proofing
 compromise.
+
+### Update 2026-11-12: vault and bucket hardening (local)
+
+The hardened local stack (`deploy/compose/docker-compose.hardened.yml`, run by
+`scripts/local/hardened-stack.ps1`, described in `deploy/compose/README-hardened.md`)
+configures the vault and the bucket the way production expects them. The test stack
+stays in dev mode.
+
+- **TM-01 (now Pass, local):**
+  - OpenBao runs in server mode and the root token is revoked after the bootstrap.
+  - Each process logs in through AppRole with its own policy. `rrf5-api` can seal an
+    A1 but has no KV read and no `transit/decrypt`; only `rrf5-worker` can open one.
+  - Evidence: `VaultPolicyTests` runs against the test stack, applies the versioned
+    policies and exercises the API's real code paths. `openbao/verify-policies.sh`
+    checks the allow/deny matrix (24 checks) and `HardenedStackTests` checks the
+    hardened server. Both run in CI.
+  - Residual risk: a compromised worker can use decrypted material in memory.
+- **TM-08 (Pass, local):**
+  - SeaweedFS has S3 identities, and anonymous access is refused.
+  - The runtime identities are confined to the artifact bucket and cannot create buckets.
+  - Artifact reads are pinned to the recorded object version and hash-verified, so a
+    new version or a delete marker does not change what is read.
+  - Evidence: `HardenedStackTests`, `RegulatoryStorageTests`.
+  - Limitation: SeaweedFS 3.97 refuses reads to an identity without `Write`, so the
+    API identity also holds `Write` on that bucket. The cloud bucket policy must
+    grant the API read only.
+- **TM-15 (partial):**
+  - Nobody can delete a COMPLIANCE version, the storage admin included.
+  - Backups on separate credentials and restore exercises belong to the cloud deployment.
+- **Still open for the cloud:** TLS, KMS auto-unseal, platform workload identity instead
+  of AppRole secret IDs, and provider IAM bucket and KMS policies.

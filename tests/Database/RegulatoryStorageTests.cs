@@ -76,11 +76,22 @@ public sealed class RegulatoryStorageTests(DatabaseFixture db)
         Assert.Equal(content, await service.ReadAsync(sha, CancellationToken.None));
         Assert.Equal(stored.ObjectKey, (await service.StoreAsync("test-artifact", content, CancellationToken.None)).ObjectKey);
 
-        // Someone with storage credentials overwrites the object: the read refuses it.
+        // Someone with storage credentials overwrites the object and then hides it behind a
+        // delete marker. With versioning the read is pinned to the recorded version and still
+        // returns the original bytes; without it, the hash check refuses the tampered object.
         using var raw = new AmazonS3Client(new BasicAWSCredentials("local-dev-only", "local-dev-only"),
             new AmazonS3Config { ServiceURL = S3.ToString(), ForcePathStyle = true, AuthenticationRegion = "us-east-1" });
-        await raw.PutObjectAsync(new PutObjectRequest { BucketName = options.Bucket, Key = stored.ObjectKey, ContentBody = "tampered" });
-        Assert.Equal(ErrorCodes.ArtifactIntegrity, (await Assert.ThrowsAsync<DomainException>(() => service.ReadAsync(sha, CancellationToken.None))).Code);
+        await raw.PutObjectAsync(new PutObjectRequest { BucketName = options.Bucket, Key = stored.ObjectKey, ContentBody = "tampered", UseChunkEncoding = false });
+        if (stored.ObjectVersion is null)
+        {
+            Assert.Equal(ErrorCodes.ArtifactIntegrity, (await Assert.ThrowsAsync<DomainException>(() => service.ReadAsync(sha, CancellationToken.None))).Code);
+        }
+        else
+        {
+            Assert.Equal(content, await service.ReadAsync(sha, CancellationToken.None));
+            await raw.DeleteObjectAsync(new DeleteObjectRequest { BucketName = options.Bucket, Key = stored.ObjectKey });
+            Assert.Equal(content, await service.ReadAsync(sha, CancellationToken.None));
+        }
 
         // With object lock, the original version cannot be deleted.
         if (stored.ObjectLock == "COMPLIANCE" && stored.ObjectVersion is { } version)

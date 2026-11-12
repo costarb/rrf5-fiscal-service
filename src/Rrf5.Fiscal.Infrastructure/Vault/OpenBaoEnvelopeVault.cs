@@ -195,14 +195,13 @@ public sealed class OpenBaoEnvelopeVault(HttpClient http, OpenBaoOptions options
 
     private HttpRequestMessage Request(HttpMethod method, string path)
     {
-        if (options.Address is null || string.IsNullOrEmpty(options.Token))
+        if (options.Address is null)
         {
             throw new DomainException(ErrorCodes.Unavailable, "The vault is not configured.");
         }
 
-        var request = new HttpRequestMessage(method, new Uri(options.Address, path));
-        request.Headers.Add("X-Vault-Token", options.Token);
-        return request;
+        // The token is added by OpenBaoAuthHandler.
+        return new HttpRequestMessage(method, new Uri(options.Address, path));
     }
 
     private async Task<JsonDocument?> SendAsync(HttpRequestMessage request, bool allowNotFound, CancellationToken cancellationToken)
