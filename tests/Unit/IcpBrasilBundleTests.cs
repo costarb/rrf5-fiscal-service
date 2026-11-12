@@ -43,4 +43,29 @@ public sealed class IcpBrasilBundleTests
         Assert.True(chain.Build(intermediate));
         Assert.Contains(trust.Roots, r => r.RawData.AsSpan().SequenceEqual(chain.ChainElements[^1].Certificate.RawData));
     }
+
+    [Fact]
+    public void PinnedSefazSpTlsRootIsInTheOfficialBundleAndIsTheOnlyTrustAnchor()
+    {
+        if (!File.Exists(BundlePath))
+        {
+            return;
+        }
+
+        var trust = CertificateTrust.FromIcpBrasilBundle(File.ReadAllBytes(BundlePath), X509RevocationMode.NoCheck);
+        var policy = SefazTlsTrust.PolicyFor(Authorizers.ForUf("SP")!, trust);
+        var anchor = Assert.Single(policy.CustomTrustStore);
+        Assert.Equal("Autoridade Certificadora Raiz Brasileira v10", anchor.GetNameInfo(X509NameType.SimpleName, false));
+        Assert.Equal(X509ChainTrustMode.CustomRootTrust, policy.TrustMode);
+        Assert.Equal(trust.Intermediates.Count, policy.ExtraStore.Count);
+    }
+
+    [Fact]
+    public void AnAuthorizerWhoseRootIsMissingFailsClosed()
+    {
+        var empty = new CertificateTrust([], [], X509RevocationMode.NoCheck);
+        var authorizer = Authorizers.ForUf("SP")! with { TlsRootSha256 = new string('0', 64) };
+        var refused = Assert.Throws<Rrf5.Fiscal.Application.Errors.DomainException>(() => SefazTlsTrust.PolicyFor(authorizer, empty));
+        Assert.Equal(Rrf5.Fiscal.Application.Errors.ErrorCodes.Unavailable, refused.Code);
+    }
 }
