@@ -149,8 +149,8 @@ public sealed class IdempotencyAndAuditTests(DatabaseFixture db)
                 throw new InvalidOperationException("simulated failure after the claim");
             }
 
-            var body = JsonDocument.Parse("""{"name":"A"}""").RootElement;
-            JsonElement? once = oneTime is null ? null : JsonDocument.Parse(oneTime).RootElement;
+            var body = JsonElement.Parse("""{"name":"A"}""");
+            JsonElement? once = oneTime is null ? null : JsonElement.Parse(oneTime);
             return Task.FromResult(new OperationResult(new StoredResponse(status, "company", Guid.NewGuid(), body), once));
         });
 

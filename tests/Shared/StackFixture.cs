@@ -245,7 +245,7 @@ public static class ApiClient
 
         var response = await client.SendAsync(request);
         var text = await response.Content.ReadAsStringAsync();
-        var json = string.IsNullOrEmpty(text) ? default : JsonDocument.Parse(text).RootElement.Clone();
+        var json = string.IsNullOrEmpty(text) ? default : JsonElement.Parse(text);
         return (response, json);
     }
 
