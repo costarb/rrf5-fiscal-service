@@ -13,7 +13,7 @@ Tasks marked **[operator]** use the real A1 or the real issuer and are run by th
 - [x] T003 [P] Extract the `tPag` code table and the DANFE labels from the frozen MOC copy into a versioned resource with its source reference (L5) Done 2026-11-12: national table frozen and transcribed by script (`regulatory/payment-methods.json`, `PaymentMethods`).
 - [x] T004 [P] Record the layout rounding rule with its source, and port the POC boundary cases as tests (checklist B) Done 2026-11-12: MOC Anexo I footnote (*4); half away from zero as a technical choice (`FiscalRounding`).
 - [x] T005 [P] Pin the ICP-Brasil roots per authorizer for the SEFAZ TLS endpoints, reusing the catalog bundle, with TLS validation always on (checklist B) Done 2026-11-12: SP pinned to AC Raiz v10 from the ITI bundle (`SefazTlsTrust`).
-- [ ] T006 Record ADR-005, ADR-007 and ADR-016 in `docs/fiscal-service/adr/`
+- [x] T006 Record ADR-005, ADR-007 and ADR-016 in `docs/fiscal-service/adr/` Done 2026-11-12: written as Proposed, waiting for the operator's acceptance.
 
 ## Phase 2 — Model and persistence
 
