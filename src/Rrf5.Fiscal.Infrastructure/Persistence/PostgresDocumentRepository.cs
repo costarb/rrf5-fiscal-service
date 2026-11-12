@@ -274,7 +274,7 @@ public sealed class PostgresDocumentRepository(NpgsqlConnection connection, Npgs
             reader.GetGuid(0), reader.GetGuid(1), reader.GetGuid(2), reader.GetGuid(3), reader.IsDBNull(4) ? null : reader.GetGuid(4),
             reader.GetString(5), reader.GetString(6), Text(7), reader.IsDBNull(8) ? null : reader.GetInt64(8), Text(9), Time(10), Time(11),
             Text(12), reader.IsDBNull(13) ? null : reader.GetDecimal(13), reader.GetDecimal(14), Text(15), Text(16),
-            reader.IsDBNull(17) ? null : JsonDocument.Parse(reader.GetString(17)).RootElement.Clone(),
+            reader.IsDBNull(17) ? null : JsonElement.Parse(reader.GetString(17)),
             Text(18), Text(19), Text(20), Text(21), Text(22), Text(23), Time(24), reader.GetFieldValue<DateTimeOffset>(25));
     }
 
