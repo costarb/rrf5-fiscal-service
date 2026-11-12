@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\src\Rrf5.Fiscal.Domain\Rrf5.Fiscal.Domain.csproj" />
     <ProjectReference Include="..\..\src\Rrf5.Fiscal.Application\Rrf5.Fiscal.Application.csproj" />
     <ProjectReference Include="..\..\src\Rrf5.Fiscal.Regulatory\Rrf5.Fiscal.Regulatory.csproj" />
+    <ProjectReference Include="..\..\src\Rrf5.Fiscal.Nfce\Rrf5.Fiscal.Nfce.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

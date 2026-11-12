@@ -33,3 +33,7 @@ transmitted. The real issuer file has the same shape and lives outside Git.
 Unsigned golden NFC-e produced by the .NET POC from the three files above with
 `--nnf 1 --cnf 12345678 --dhemi 2026-11-06T12:00:00-03:00`. Other candidates
 must reproduce it byte for byte. Hash and checks: `pocs/evidence/xml-xsd-poc.md`.
+
+## Note on the golden cNF (2026-11-12)
+
+The golden uses `cNF` 12345678. MOC 7.0 Anexo I rule B09-20 (rejection 897, NT 2019.001) forbids that value, so a real authorizer would reject this document. The golden is synthetic and never transmitted; it pins generator output byte for byte. The product draws `cNF` from a cryptographic source that satisfies B09-20 (`AccessKey.NewNumericCode`).

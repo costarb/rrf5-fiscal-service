@@ -28,9 +28,9 @@ Tasks marked **[operator]** use the real A1 or the real issuer and are run by th
 
 ## Phase 4 — Generation and signing (`Rrf5.Fiscal.Nfce`)
 
-- [ ] T012 Access key (44 digits with the official check digit) and `cNF` from a cryptographic random source; tests with the official example values
-- [ ] T013 XML generator in layout order from the normalized request and the profile snapshot; output equal to the T001 golden XML for the minimal scenario
-- [ ] T014 XSD validation against the resolved package, read from the artifact store with a hash check; DTD and external entities disabled; size and depth limits; negative corpus of XXE, entity expansion and duplicate IDs (TM-09)
+- [x] T012 Access key (44 digits with the official check digit) and `cNF` from a cryptographic random source; tests with the official example values Done 2026-11-12: `AccessKey` per NT Conjunta 2025.001 §5 and Anexo II (alphanumeric CNPJ); cNF from a cryptographic source and rule B09-20 (rejection 897).
+- [ ] T013 XML generator in layout order from the normalized request and the profile snapshot; output equal to the T001 golden XML for the minimal scenario Generator done 2026-11-12: `NfceGenerator` (nfce-4.00-g1) is byte-identical to the golden; variants are 010g-valid. **Open:** the source of NCM and GTIN per item (operator decision) before the application maps a rule version into the model.
+- [x] T014 XSD validation against the resolved package, read from the artifact store with a hash check; DTD and external entities disabled; size and depth limits; negative corpus of XXE, entity expansion and duplicate IDs (TM-09) Done 2026-11-12: `NfceSchema` loads only from the verified package ZIP; DTD prohibited, no resolver, size limit; XXE and entity-expansion corpus refused. Duplicate-ID checks come with the signature (T015).
 - [ ] T015 XMLDSig in the worker with the A1 opened from the vault (`rrf5-worker` policy), following the T002 section; verify the signature before sending; a test proves the API process cannot sign
 - [ ] T016 Number allocation right before signing (`08-emission-flows.md`); a failure after the reservation leaves an audited gap
 

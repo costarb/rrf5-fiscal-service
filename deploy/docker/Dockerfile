@@ -13,6 +13,7 @@ COPY Directory.Build.props Directory.Packages.props ./
 COPY src/Rrf5.Fiscal.Domain/Rrf5.Fiscal.Domain.csproj                 src/Rrf5.Fiscal.Domain/
 COPY src/Rrf5.Fiscal.Application/Rrf5.Fiscal.Application.csproj       src/Rrf5.Fiscal.Application/
 COPY src/Rrf5.Fiscal.Regulatory/Rrf5.Fiscal.Regulatory.csproj         src/Rrf5.Fiscal.Regulatory/
+COPY src/Rrf5.Fiscal.Nfce/Rrf5.Fiscal.Nfce.csproj                     src/Rrf5.Fiscal.Nfce/
 COPY src/Rrf5.Fiscal.Infrastructure/Rrf5.Fiscal.Infrastructure.csproj src/Rrf5.Fiscal.Infrastructure/
 COPY src/Rrf5.Fiscal.Api/Rrf5.Fiscal.Api.csproj                       src/Rrf5.Fiscal.Api/
 COPY src/Rrf5.Fiscal.Worker/Rrf5.Fiscal.Worker.csproj                 src/Rrf5.Fiscal.Worker/

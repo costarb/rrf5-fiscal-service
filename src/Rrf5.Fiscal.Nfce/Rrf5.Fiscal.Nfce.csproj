@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Rrf5.Fiscal.Nfce</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- ADR-016: generation, XSD validation and signing without I/O; no third-party fiscal library. -->
+    <ProjectReference Include="..\Rrf5.Fiscal.Domain\Rrf5.Fiscal.Domain.csproj" />
+  </ItemGroup>
+</Project>
