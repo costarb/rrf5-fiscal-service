@@ -37,6 +37,8 @@ tags:
     description: Tax profiles, rules and four-eyes versions (F4).
   - name: regulatory
     description: Schema selection and audited release of package-exclusive elements (F5).
+  - name: documents
+    description: NFC-e emission in homologation (feature 005). Operations marked x-rrf5-planned are specified but not implemented yet.
   - name: operations
     description: Liveness.
 
@@ -999,6 +1001,191 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "429": { $ref: "#/components/responses/RateLimited" }
 
+  /v1/environments/{environmentId}/documents/prevalidate:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    post:
+      tags: [documents]
+      operationId: prevalidateDocument
+      x-rrf5-planned: true
+      summary: Check a sale without reserving a number or transmitting (scope documents.issue)
+      description: Checks issuer, environment, ACTIVE certificate within validity, approved tax rule in force on the issue date for every item, totals and payments. Never reserves a number and never calls SEFAZ.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateDocument" }
+      responses:
+        "200":
+          description: Result of the checks; problems are listed, not raised.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrevalidationResult" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/environments/{environmentId}/documents:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    post:
+      tags: [documents]
+      operationId: issueDocument
+      x-rrf5-planned: true
+      summary: Issue an NFC-e and wait for the result up to the configured timeout (scope documents.issue)
+      description: Same path as the asynchronous issue (ADR-005). Answers 201 when SEFAZ answered in time (AUTHORIZED or REJECTED) and 202 with the non-terminal document otherwise; the client then polls the document. The same Idempotency-Key with the same payload returns the same document; with another payload, 409.
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateDocument" }
+      responses:
+        "201":
+          description: Terminal result within the timeout.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FiscalDocument" }
+        "202": { $ref: "#/components/responses/DocumentAccepted" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/environments/{environmentId}/documents/async:
+    parameters: [{ $ref: "#/components/parameters/EnvironmentId" }]
+    post:
+      tags: [documents]
+      operationId: issueDocumentAsync
+      x-rrf5-planned: true
+      summary: Issue an NFC-e and return at once (scope documents.issue)
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateDocument" }
+      responses:
+        "202": { $ref: "#/components/responses/DocumentAccepted" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/documents/{documentId}:
+    parameters: [{ $ref: "#/components/parameters/DocumentId" }]
+    get:
+      tags: [documents]
+      operationId: getDocument
+      x-rrf5-planned: true
+      summary: Current state of a document; poll while it is not terminal (scope documents.read)
+      responses:
+        "200":
+          description: The document. While the state is not terminal, Retry-After says when to poll again.
+          headers:
+            Retry-After: { schema: { type: integer, minimum: 1 }, description: Present only for non-terminal states. }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FiscalDocument" }
+              examples:
+                waiting:
+                  summary: Polling a document whose result is still unknown
+                  value:
+                    id: 7d1f8f6e-0f0a-4f2b-9a9e-2a3e3c1d5b10
+                    externalId: pedido-1001
+                    state: WAITING_SEFAZ
+                    terminal: false
+                    series: 1
+                    number: 42
+                    total: "25.90"
+                authorized:
+                  summary: Terminal state after authorization
+                  value:
+                    id: 7d1f8f6e-0f0a-4f2b-9a9e-2a3e3c1d5b10
+                    externalId: pedido-1001
+                    state: AUTHORIZED
+                    terminal: true
+                    series: 1
+                    number: 42
+                    total: "25.90"
+                    authorization: { cStat: 100, xMotivo: Autorizado o uso da NF-e, protocol: "135260000000001", authorizedAt: "2026-11-20T12:00:01-03:00" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/documents/{documentId}/xml:
+    parameters: [{ $ref: "#/components/parameters/DocumentId" }]
+    get:
+      tags: [documents]
+      operationId: downloadDocumentXml
+      x-rrf5-planned: true
+      summary: The stored nfeProc of an AUTHORIZED document, hash-verified on read (scope documents.read)
+      responses:
+        "200":
+          description: nfeProc exactly as stored.
+          content:
+            application/xml:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /v1/documents/{documentId}/danfe:
+    parameters: [{ $ref: "#/components/parameters/DocumentId" }]
+    get:
+      tags: [documents]
+      operationId: getDanfe
+      x-rrf5-planned: true
+      summary: DANFE NFC-e ready to print, built from the nfeProc (scope documents.read)
+      description: The integrating ERP prints it (operator decision, 2026-11-12). Manual DANFE NFC-e v6.0.
+      parameters:
+        - name: paper
+          in: query
+          required: false
+          schema: { type: string, enum: ["80mm", "58mm"], default: "80mm" }
+      responses:
+        "200":
+          description: Print-ready HTML.
+          content:
+            text/html:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/documents/{documentId}/print-data:
+    parameters: [{ $ref: "#/components/parameters/DocumentId" }]
+    get:
+      tags: [documents]
+      operationId: getPrintData
+      x-rrf5-planned: true
+      summary: Data an ERP needs to print its own DANFE layout (scope documents.read)
+      responses:
+        "200":
+          description: QR Code content and URLs of an AUTHORIZED document.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrintData" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
 components:
   securitySchemes:
     clientCredentials:
@@ -1039,6 +1226,7 @@ components:
     ProfileId: { name: profileId, in: path, required: true, schema: { type: string, format: uuid } }
     RuleId: { name: ruleId, in: path, required: true, schema: { type: string, format: uuid } }
     VersionId: { name: versionId, in: path, required: true, schema: { type: string, format: uuid } }
+    DocumentId: { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }
 
   headers:
     CorrelationId:
@@ -1141,6 +1329,15 @@ components:
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
+    DocumentAccepted:
+      description: Accepted and not terminal yet; poll the Location until the state is terminal.
+      headers:
+        X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" }
+        Location: { required: true, schema: { type: string }, description: Path of the document resource. }
+        Retry-After: { required: true, schema: { type: integer, minimum: 1 }, description: Seconds before the next poll. }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/FiscalDocument" }
     Unavailable:
       description: A dependency (database, vault, object storage) is unavailable; the operation failed closed (dependency.unavailable).
       headers: { X-Correlation-Id: { $ref: "#/components/headers/CorrelationId" } }
@@ -1185,7 +1382,7 @@ components:
         - dependency.unavailable
         - internal.error
     DocumentState:
-      description: Closed state set of a fiscal document (data-model.md, L10). No document endpoint exists in the foundation; emission (phase 2) uses exactly these values.
+      description: Closed state set of a fiscal document (data-model.md, L10), enforced by the database (migration 0011). WAITING_SEFAZ also covers a result still unknown; it is reconciled by consultation before any resend.
       type: string
       enum:
         - DRAFT
@@ -1244,7 +1441,7 @@ components:
               y: { type: string }
     Scope:
       type: string
-      enum: [platform.admin, tenant.admin, issuer.read, issuer.write, certificates.manage, certificates.approve, fiscal.rules.read, fiscal.rules.write, fiscal.rules.approve]
+      enum: [platform.admin, tenant.admin, issuer.read, issuer.write, certificates.manage, certificates.approve, fiscal.rules.read, fiscal.rules.write, fiscal.rules.approve, documents.issue, documents.read]
     Caller:
       type: object
       required: [tenantId, applicationId, scopes, establishmentIds]
@@ -1540,3 +1737,109 @@ components:
         approvedAt: { type: [string, "null"], format: date-time }
         retiredAt: { type: [string, "null"], format: date-time }
         rejectionReason: { type: [string, "null"] }
+    Money:
+      type: string
+      description: Decimal with two places and a dot separator (MOC Anexo I, footnote (*4)).
+      pattern: "^[0-9]{1,13}\\.[0-9]{2}$"
+    CreateDocument:
+      type: object
+      additionalProperties: false
+      required: [externalId, items, payments]
+      properties:
+        externalId: { type: string, minLength: 1, maxLength: 100, description: The client's sale id; unique per environment. }
+        seriesId: { type: string, format: uuid, description: Optional; defaults to the environment's only active NFC-e series. }
+        consumer:
+          type: object
+          additionalProperties: false
+          properties:
+            cpf: { type: string, pattern: "^[0-9]{11}$" }
+            name: { type: string, minLength: 2, maxLength: 60 }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 990
+          items: { $ref: "#/components/schemas/DocumentItem" }
+        payments:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/DocumentPayment" }
+        change: { $ref: "#/components/schemas/Money" }
+    DocumentItem:
+      type: object
+      additionalProperties: false
+      required: [productCode, description, itemClass, unit, quantity, unitPrice]
+      properties:
+        productCode: { type: string, minLength: 1, maxLength: 60 }
+        description: { type: string, minLength: 1, maxLength: 120 }
+        itemClass: { type: string, minLength: 1, maxLength: 60, description: Business item class that selects the approved tax rule. The service never infers tax treatment. }
+        unit: { type: string, minLength: 1, maxLength: 6 }
+        quantity: { type: string, pattern: "^[0-9]{1,11}(\\.[0-9]{1,4})?$" }
+        unitPrice: { type: string, pattern: "^[0-9]{1,11}(\\.[0-9]{1,10})?$" }
+        discount: { $ref: "#/components/schemas/Money" }
+        surcharge: { $ref: "#/components/schemas/Money" }
+    DocumentPayment:
+      type: object
+      additionalProperties: false
+      required: [method, amount]
+      properties:
+        method: { type: string, enum: [CASH, PIX, CREDIT_CARD, DEBIT_CARD, VOUCHER, STORE_CREDIT, OTHER], description: "Commercial method, mapped to the official tPag by configuration." }
+        amount: { $ref: "#/components/schemas/Money" }
+        description: { type: string, minLength: 2, maxLength: 60 }
+        card:
+          type: object
+          additionalProperties: false
+          required: [integration]
+          properties:
+            integration: { type: integer, enum: [1, 2], description: "tpIntegra: 1 integrated, 2 not integrated." }
+            acquirerCnpj: { $ref: "#/components/schemas/Cnpj" }
+            brand: { type: string, pattern: "^[0-9]{2}$" }
+            authorizationCode: { type: string, minLength: 1, maxLength: 128 }
+    PrevalidationResult:
+      type: object
+      required: [valid, problems]
+      properties:
+        valid: { type: boolean }
+        problems:
+          type: array
+          items:
+            type: object
+            required: [code, detail]
+            properties:
+              code: { $ref: "#/components/schemas/ErrorCode" }
+              detail: { type: string }
+              pointer: { type: string, description: JSON pointer into the request. }
+    FiscalDocument:
+      type: object
+      required: [id, externalId, state, terminal]
+      properties:
+        id: { type: string, format: uuid }
+        externalId: { type: string }
+        state: { $ref: "#/components/schemas/DocumentState" }
+        terminal: { type: boolean, description: "True for AUTHORIZED, REJECTED and CANCELLED." }
+        emissionMode: { type: string, enum: [SYNC, ASYNC] }
+        series: { type: [integer, "null"] }
+        number: { type: [integer, "null"] }
+        accessKey: { type: [string, "null"], pattern: "^[0-9]{6}[0-9A-Z]{12}[0-9]{26}$" }
+        total: { $ref: "#/components/schemas/Money" }
+        authorization:
+          type: [object, "null"]
+          properties:
+            cStat: { type: integer }
+            xMotivo: { type: string }
+            protocol: { type: string }
+            authorizedAt: { type: string, format: date-time }
+        rejection:
+          type: [object, "null"]
+          description: Official SEFAZ answer, kept apart from technical failures (FR-021).
+          properties:
+            cStat: { type: integer }
+            xMotivo: { type: string }
+    PrintData:
+      type: object
+      required: [qrCode, qrCodeUrl, consultationUrl, accessKey]
+      properties:
+        qrCode: { type: string, description: Content of infNFeSupl/qrCode as authorized (QR v3 online). }
+        qrCodeUrl: { type: string, format: uri }
+        consultationUrl: { type: string, format: uri }
+        accessKey: { type: string, pattern: "^[0-9]{6}[0-9A-Z]{12}[0-9]{26}$" }

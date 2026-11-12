@@ -26,10 +26,16 @@ public static class Scopes
     public const string FiscalRulesWrite = "fiscal.rules.write";
     public const string FiscalRulesApprove = "fiscal.rules.approve";
 
+    /// <summary>Pre-validate and issue NFC-e documents (005).</summary>
+    public const string DocumentsIssue = "documents.issue";
+
+    /// <summary>Read documents, their nfeProc, DANFE and print data (005).</summary>
+    public const string DocumentsRead = "documents.read";
+
     public static FrozenSet<string> All { get; } = new[]
     {
         PlatformAdmin, TenantAdmin, IssuerRead, IssuerWrite, CertificatesManage, CertificatesApprove,
-        FiscalRulesRead, FiscalRulesWrite, FiscalRulesApprove,
+        FiscalRulesRead, FiscalRulesWrite, FiscalRulesApprove, DocumentsIssue, DocumentsRead,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>Validates a requested scope set for an application in a tenant of the given kind.</summary>

@@ -19,7 +19,7 @@ Tasks marked **[operator]** use the real A1 or the real issuer and are run by th
 
 - [x] T007 Migrations: document items, payments, protocol, SEFAZ request/response records (hashes and object references, never raw XML in the database) and an outbox table, with tenant RLS and composite keys Done 2026-11-12: migration 0011 (`fiscal_document_item`, `fiscal_document_payment`, `sefaz_exchange`, `fiscal_protocol`, `document_outbox`), formats from the 010g XSD (TProt, TChNFe, TStat).
 - [x] T008 Enforce the closed state machine of `data-model.md` in the database (allowed transitions only; `ERROR` only from retryable stages; frozen fields after the signed boundary); add the tests in `tests/Database/` Done 2026-11-12: `fiscal_document_transition`; AUTHORIZED needs cStat 100 with the same key and digest plus the stored nfeProc; a resend from WAITING_SEFAZ needs a later consultation answering 217 (`DocumentStateMachineTests`).
-- [ ] T009 Add the document endpoints to the 002 contract: pre-validate, issue (sync and async), get, poll example for non-terminal states, download of the sent XML, `nfeProc` and DANFE
+- [x] T009 Add the document endpoints to the 002 contract: pre-validate, issue (sync and async), get, poll example for non-terminal states, download of the sent XML, `nfeProc` and DANFE Done 2026-11-12: eight operations in the 002 contract, marked `x-rrf5-planned` until implemented (`ContractTests` checks that planned operations are not routed); scopes `documents.issue` and `documents.read`; Redocly lint clean.
 
 ## Phase 3 — E2 Pre-validation
 

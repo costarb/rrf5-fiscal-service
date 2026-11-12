@@ -35,9 +35,14 @@ public sealed partial class ContractTests(WebApplicationFactory<Program> factory
                 .Select(m => $"{m.ToUpperInvariant()} {RouteConstraint().Replace("/" + e.RoutePattern.RawText!.TrimStart('/'), "}")}"))
             .ToHashSet(StringComparer.Ordinal);
 
+        // Operations marked x-rrf5-planned are specified ahead of their code (005 T009) and
+        // must not be routed yet; the marker goes when the endpoint is implemented.
         var documented = DocumentedOperations();
-        Assert.Empty(routes.Except(documented).Order(StringComparer.Ordinal));
-        Assert.Empty(documented.Except(routes).Order(StringComparer.Ordinal));
+        var implemented = documented.Where(o => !o.Planned).Select(o => o.Operation).ToHashSet(StringComparer.Ordinal);
+        var planned = documented.Where(o => o.Planned).Select(o => o.Operation).ToHashSet(StringComparer.Ordinal);
+        Assert.Empty(routes.Except(implemented).Order(StringComparer.Ordinal));
+        Assert.Empty(implemented.Except(routes).Order(StringComparer.Ordinal));
+        Assert.Empty(planned.Intersect(routes).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -57,17 +62,21 @@ public sealed partial class ContractTests(WebApplicationFactory<Program> factory
         Assert.Equal(states.Order(StringComparer.Ordinal), Enum("DocumentState").Order(StringComparer.Ordinal));
     }
 
-    private static HashSet<string> DocumentedOperations()
+    private static List<(string Operation, bool Planned)> DocumentedOperations()
     {
-        var operations = new HashSet<string>(StringComparer.Ordinal);
+        var operations = new List<(string, bool)>();
         var paths = PathLine().Matches(Contract).ToList();
         for (var i = 0; i < paths.Count; i++)
         {
             var start = paths[i].Index;
             var end = i + 1 < paths.Count ? paths[i + 1].Index : Contract.IndexOf("\ncomponents:", StringComparison.Ordinal);
-            foreach (Match method in MethodLine().Matches(Contract[start..end]))
+            var block = Contract[start..end];
+            var methods = MethodLine().Matches(block).ToList();
+            for (var m = 0; m < methods.Count; m++)
             {
-                operations.Add($"{method.Groups[1].Value.ToUpperInvariant()} {paths[i].Groups[1].Value}");
+                var body = block[methods[m].Index..(m + 1 < methods.Count ? methods[m + 1].Index : block.Length)];
+                operations.Add(($"{methods[m].Groups[1].Value.ToUpperInvariant()} {paths[i].Groups[1].Value}",
+                    body.Contains("\n      x-rrf5-planned: true\n", StringComparison.Ordinal)));
             }
         }
 

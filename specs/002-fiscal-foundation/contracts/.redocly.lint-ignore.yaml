@@ -1,6 +1,3 @@
 # Reviewed exceptions to the contract lint (T037).
-openapi.yaml:
-  no-unused-components:
-    # L10: the closed document state enum is part of the contract before phase 2
-    # adds the document endpoints that will reference it.
-    - '#/components/schemas/DocumentState'
+# None since 005 T009: DocumentState is referenced by the document schemas.
+{}
