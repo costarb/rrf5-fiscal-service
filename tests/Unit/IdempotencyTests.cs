@@ -54,7 +54,7 @@ public sealed class IdempotencyTests
     {
         var store = new FakeStore(ClaimOutcome.Claimed);
         var runs = 0;
-        var secret = JsonDocument.Parse("""{"secret":"shown-once"}""").RootElement;
+        var secret = JsonElement.Parse("""{"secret":"shown-once"}""");
 
         var result = await IdempotentOperation.RunAsync(store, Claim(), _ =>
         {
@@ -95,7 +95,7 @@ public sealed class IdempotencyTests
         new(Guid.NewGuid(), null, "company.create", IdempotencyKey.Parse("key-1"), RequestHash.Compute("{}"));
 
     private static StoredResponse Stored() =>
-        new(201, "company", Guid.NewGuid(), JsonDocument.Parse("""{"id":"x"}""").RootElement);
+        new(201, "company", Guid.NewGuid(), JsonElement.Parse("""{"id":"x"}"""));
 
     private sealed class FakeStore(ClaimOutcome outcome) : IIdempotencyStore
     {

@@ -38,7 +38,7 @@ public sealed class SchemaSelectionTests
               {"id":"xsd-c","title":"t","sourceUrl":"http://x.invalid","documentVersion":"011c v1.00","models":["65"],"states":["BR"],"artifactSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","hashStatus":"VERIFIED"}
             ]}
             """;
-        var (packages, refused) = RegulatoryCatalog.Parse(JsonDocument.Parse(json).RootElement).SchemaPackages();
+        var (packages, refused) = RegulatoryCatalog.Parse(JsonElement.Parse(json)).SchemaPackages();
         Assert.Empty(packages);
         Assert.Equal(["xsd-a", "xsd-b", "xsd-c"], refused.Select(r => r.CatalogReferenceId));
     }
