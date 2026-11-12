@@ -4,6 +4,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="AWSSDK.S3" Version="4.0.104.7" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Abstractions" Version="10.0.10" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />

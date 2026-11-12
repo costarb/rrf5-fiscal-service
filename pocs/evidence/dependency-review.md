@@ -131,3 +131,7 @@ The image SBOM and Trivy scan of the foundation CI cover these packages on every
 - Redocly v2 migration depends on moving contract tooling to Node 22.
 
 This document intentionally does not select a runtime or fiscal library.
+
+## Update 2026-11-12: XMLDSig in the product (feature 005, T015)
+
+`System.Security.Cryptography.Xml` 10.0.14 (Microsoft, MIT) moves from the POC to the product, in `Rrf5.Fiscal.Nfce` only. It is the version reviewed above, pinned in `Directory.Packages.props`. The image SBOM and the Trivy scan in CI cover it. No other package was added. QRCoder and System.Drawing.Common stay POC-only until the DANFE (T027).

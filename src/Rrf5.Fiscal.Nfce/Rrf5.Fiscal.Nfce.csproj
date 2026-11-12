@@ -5,5 +5,7 @@
   <ItemGroup>
     <!-- ADR-016: generation, XSD validation and signing without I/O; no third-party fiscal library. -->
     <ProjectReference Include="..\Rrf5.Fiscal.Domain\Rrf5.Fiscal.Domain.csproj" />
+    <!-- XMLDSig (Microsoft, MIT), reviewed in pocs/evidence/dependency-review.md. -->
+    <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>
 </Project>
