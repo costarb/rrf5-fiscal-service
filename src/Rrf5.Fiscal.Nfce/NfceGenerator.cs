@@ -165,6 +165,12 @@ public static class NfceGenerator
         E(w, "cEAN", item.Gtin);
         E(w, "xProd", homologationFirstItem ? HomologationFirstItem : item.Description);
         E(w, "NCM", item.Ncm);
+        if (item.Cest is not null)
+        {
+            // CEST sits right after NCM (no NVE is generated); indEscala and CNPJFab are optional.
+            E(w, "CEST", item.Cest);
+        }
+
         E(w, "CFOP", item.Cfop);
         E(w, "uCom", item.Unit);
         E(w, "qCom", Quantity(item.Quantity));

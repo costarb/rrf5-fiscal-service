@@ -12,7 +12,8 @@ namespace Rrf5.Fiscal.Application.TaxRules;
 /// What the NFC-e generator builds from one rule version (ADR-015 item 3). The
 /// service only checks form and consistency against the official layout; every
 /// tax choice (CRT, CFOP, CSOSN, CST, rate) comes from the approved version and is
-/// never filled in by the service. Generator <see cref="GeneratorVersion"/> supports
+/// never filled in by the service. The ERP sends CFOP and CSOSN per item, and they must
+/// equal the version that covers the item (ADR-017). Generator <see cref="GeneratorVersion"/> supports
 /// exactly the groups declared here; anything else is refused with the reason.
 /// </summary>
 public sealed record RulePayload(
@@ -29,8 +30,11 @@ public sealed record RulePayload(
 [JsonDerivedType(typeof(IcmsSn102), "ICMSSN102")]
 public abstract record IcmsGroup;
 
-/// <summary><c>ICMSSN102</c>: <c>orig</c> (Torig 0-8) and <c>CSOSN</c> 102, 103, 300 or 400 (PL_010g).</summary>
-public sealed record IcmsSn102(string Orig, string Csosn) : IcmsGroup;
+/// <summary>
+/// <c>ICMSSN102</c>: <c>CSOSN</c> 102, 103, 300 or 400 (PL_010g). The <c>orig</c> of the
+/// group is a product attribute sent by the ERP (ADR-017), not part of the rule.
+/// </summary>
+public sealed record IcmsSn102(string Csosn) : IcmsGroup;
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "group")]
 [JsonDerivedType(typeof(PisOutr), "PISOutr")]
@@ -71,7 +75,6 @@ public static partial class RulePayloads
     }.ToFrozenDictionary();
 
     // Enumerations and patterns of leiauteNFe_v4.00.xsd / tiposBasico_v4.00.xsd (PL_010g v1.03).
-    private static readonly FrozenSet<string> Origins = new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8" }.ToFrozenSet();
     private static readonly FrozenSet<string> Sn102Csosn = new[] { "102", "103", "300", "400" }.ToFrozenSet();
     private static readonly FrozenSet<string> OutrCst = new[]
     {
@@ -136,11 +139,6 @@ public static partial class RulePayloads
 
         if (p.Icms is IcmsSn102 sn)
         {
-            if (!Origins.Contains(sn.Orig))
-            {
-                throw Invalid("icms.orig must be 0 to 8 (Torig).");
-            }
-
             if (!Sn102Csosn.Contains(sn.Csosn))
             {
                 throw Invalid("icms.csosn of ICMSSN102 must be 102, 103, 300 or 400.");

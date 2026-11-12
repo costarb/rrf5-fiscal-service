@@ -17,7 +17,7 @@ public sealed record NfceTaxes(string Orig, string Csosn, string PisCst, decimal
 
 public sealed record NfceItem(
     string ProductCode, string Gtin, string Description, string Ncm, string Cfop, string Unit,
-    decimal Quantity, decimal UnitPrice, decimal LineValue, decimal Discount, decimal Surcharge, NfceTaxes Taxes);
+    decimal Quantity, decimal UnitPrice, decimal LineValue, decimal Discount, decimal Surcharge, NfceTaxes Taxes, string? Cest = null);
 
 public sealed record NfceCard(int Integration, string? AcquirerCnpj, string? Brand, string? AuthorizationCode);
 

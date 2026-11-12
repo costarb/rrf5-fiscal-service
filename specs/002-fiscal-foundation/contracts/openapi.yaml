@@ -1416,6 +1416,8 @@ components:
         - payment.card_invalid
         - document.totals_mismatch
         - document.consumer_invalid
+        - document.product_invalid
+        - document.tax_mismatch
         - rules.unsupported_group
         - rules.payload_invalid
         - rules.not_in_force
@@ -1791,8 +1793,9 @@ components:
     CreateDocument:
       type: object
       additionalProperties: false
-      required: [externalId, operation, items, payments]
+      required: [externalId, nature, operation, items, payments]
       properties:
+        nature: { type: string, pattern: "^[A-Z0-9][A-Z0-9-]{1,63}$", description: "Code of the operation nature (tax profile) whose approved rules must cover every item (ADR-017)." }
         operation: { type: string, minLength: 1, maxLength: 60, description: "Business operation code of the approved tax rules, e.g. VENDA (ADR-015)." }
         externalId: { type: string, minLength: 1, maxLength: 100, description: The client's sale id; unique per environment. }
         seriesId: { type: string, format: uuid, description: Optional; defaults to the environment's only active NFC-e series. }
@@ -1816,13 +1819,18 @@ components:
     DocumentItem:
       type: object
       additionalProperties: false
-      required: [productCode, description, fiscalProfileId, itemClass, unit, quantity, unitPrice]
+      description: "Product attributes come from the ERP registry (ADR-017). CFOP and CSOSN must equal the approved rule of the nature that covers the item (class ncm-<NCM>, else ANY); otherwise the item is refused with document.tax_mismatch. The service never infers or completes them."
+      required: [productCode, description, unit, gtin, ncm, origin, cfop, csosn, quantity, unitPrice]
       properties:
-        fiscalProfileId: { type: string, format: uuid, description: Tax profile whose approved rules cover this item. }
         productCode: { type: string, minLength: 1, maxLength: 60 }
         description: { type: string, minLength: 1, maxLength: 120 }
-        itemClass: { type: string, minLength: 1, maxLength: 60, description: Business item class that selects the approved tax rule. The service never infers tax treatment. }
-        unit: { type: string, minLength: 1, maxLength: 6 }
+        unit: { type: string, minLength: 1, maxLength: 6, description: "uCom (layout TString, 1 to 6)." }
+        gtin: { type: string, pattern: "^(SEM GTIN|[0-9]{8}|[0-9]{12,14})$", description: "cEAN: SEM GTIN or a GTIN with a valid GS1 check digit." }
+        ncm: { type: string, pattern: "^([0-9]{2}|[0-9]{8})$", description: "NCM as registered in the ERP (layout pattern)." }
+        cest: { type: string, pattern: "^[0-9]{7}$", description: Optional CEST (layout pattern). }
+        origin: { type: string, pattern: "^[0-8]$", description: "orig (Torig 0 to 8)." }
+        cfop: { type: string, pattern: "^[123567][0-9]{3}$" }
+        csosn: { type: string, pattern: "^[0-9]{3}$" }
         quantity: { type: string, pattern: "^[0-9]{1,11}(\\.[0-9]{1,4})?$" }
         unitPrice: { type: string, pattern: "^[0-9]{1,11}(\\.[0-9]{1,10})?$" }
         discount: { $ref: "#/components/schemas/Money" }

@@ -60,6 +60,8 @@ public static class ErrorCodes
     public static readonly ErrorCode PaymentCardRequired = new("payment.card_invalid", ErrorCategory.Unprocessable, "The card payment data is missing or invalid (MOC group YA).");
     public static readonly ErrorCode TotalsMismatch = new("document.totals_mismatch", ErrorCategory.Unprocessable, "Totals, payments or change do not add up (MOC rules W16 and YA).");
     public static readonly ErrorCode ConsumerInvalid = new("document.consumer_invalid", ErrorCategory.Unprocessable, "The consumer identification is invalid.");
+    public static readonly ErrorCode ProductInvalid = new("document.product_invalid", ErrorCategory.Unprocessable, "A product attribute sent by the ERP does not match the layout.");
+    public static readonly ErrorCode TaxMismatch = new("document.tax_mismatch", ErrorCategory.Unprocessable, "The CFOP or CSOSN of the item differs from the approved rule of the operation nature.");
     public static readonly ErrorCode ConstraintViolated = new("validation.constraint", ErrorCategory.Unprocessable, "The request violates a consistency rule.");
     public static readonly ErrorCode RateLimited = new("rate_limited", ErrorCategory.RateLimited, "Too many requests.");
     public static readonly ErrorCode Unavailable = new("dependency.unavailable", ErrorCategory.Unavailable, "A required dependency is unavailable.");
@@ -69,7 +71,7 @@ public static class ErrorCodes
     public static IReadOnlyList<ErrorCode> All { get; } =
     [
         RequestInvalid, IdempotencyKeyInvalid, Unauthenticated, Forbidden, ScopeMissing, FourEyes, NotFound,
-        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, CertificateInvalid, CertificateExpired, CertificateHolderMismatch, UnsupportedGroup, RulePayloadInvalid, RuleNotInForce, RuleCrtMismatch, ValidityOverlap, SchemaNotResolved, ArtifactRefused, ArtifactIntegrity, CertificateUntrusted, CertificateRevoked, RevocationUnavailable, CertificateNotActive, SeriesNotAvailable, PaymentMethodNotConfigured, PaymentMethodNotInForce, PaymentCardRequired, TotalsMismatch, ConsumerInvalid, ConstraintViolated,
+        MethodNotAllowed, Conflict, IdempotencyConflict, Immutable, InvalidTransition, SeriesExhausted, CertificateInvalid, CertificateExpired, CertificateHolderMismatch, UnsupportedGroup, RulePayloadInvalid, RuleNotInForce, RuleCrtMismatch, ValidityOverlap, SchemaNotResolved, ArtifactRefused, ArtifactIntegrity, CertificateUntrusted, CertificateRevoked, RevocationUnavailable, CertificateNotActive, SeriesNotAvailable, PaymentMethodNotConfigured, PaymentMethodNotInForce, PaymentCardRequired, TotalsMismatch, ConsumerInvalid, ProductInvalid, TaxMismatch, ConstraintViolated,
         RateLimited, Unavailable, Internal,
     ];
 }

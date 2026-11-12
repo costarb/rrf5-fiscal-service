@@ -238,6 +238,34 @@ public sealed partial class TaxRuleAdministration(IUnitOfWorkFactory database, T
         return new ResolvedRule(rule, version);
     }
 
+    /// <summary>Item class of the default rule of an operation nature (ADR-017).</summary>
+    public const string DefaultItemClass = "ANY";
+
+    /// <summary>Item class of the exception rule for one NCM (ADR-017).</summary>
+    public static string NcmItemClass(string ncm) => "ncm-" + ncm;
+
+    /// <summary>
+    /// The rule of the operation nature <paramref name="natureCode"/> (an ACTIVE tax profile)
+    /// that covers an item with <paramref name="ncm"/>, ADR-017 item 3. The exception rule
+    /// <c>ncm-&lt;NCM&gt;</c> wins whenever it exists, even with no version in force: the
+    /// default rule <c>ANY</c> never stands in for an NCM the nature treats separately.
+    /// </summary>
+    public static async Task<ResolvedRule> ResolveForNatureAsync(
+        IUnitOfWork uow, Issuer.EstablishmentRecord establishment, string natureCode, string model, string? operation, string ncm, DateOnly date, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(uow);
+        ArgumentNullException.ThrowIfNull(establishment);
+        var profile = await uow.TaxRules.FindProfileByCodeAsync(natureCode, cancellationToken).ConfigureAwait(false);
+        if (profile is null || profile.Status != "ACTIVE")
+        {
+            throw new DomainException(ErrorCodes.RuleNotInForce, "The operation nature does not exist or is not active.");
+        }
+
+        var (m, u, o, specific) = RequireDimensions(model, establishment.Uf, operation, NcmItemClass(ncm));
+        var exception = await uow.TaxRules.FindRuleAsync(profile.Id, m, u, o, specific, cancellationToken).ConfigureAwait(false);
+        return await ResolveInForceAsync(uow, establishment, profile.Id, m, o, exception is null ? DefaultItemClass : specific, date, cancellationToken).ConfigureAwait(false);
+    }
+
     // ----- Import of the discovery profile (T031) -------------------------------------
 
     /// <summary>
@@ -297,7 +325,7 @@ public sealed partial class TaxRuleAdministration(IUnitOfWorkFactory database, T
             {
                 crt = f.GetProperty("crt").GetString(),
                 cfop = item.GetProperty("cfop").GetString(),
-                icms = item.GetProperty("icms"),
+                icms = new { group = item.GetProperty("icms").GetProperty("group").GetString(), csosn = item.GetProperty("icms").GetProperty("csosn").GetString() },
                 pis = new { group = item.GetProperty("pis").GetProperty("group").GetString(), cst = item.GetProperty("pis").GetProperty("cst").GetString(), ratePercent = item.GetProperty("pis").GetProperty("rate").GetString() },
                 cofins = new { group = item.GetProperty("cofins").GetProperty("group").GetString(), cst = item.GetProperty("cofins").GetProperty("cst").GetString(), ratePercent = item.GetProperty("cofins").GetProperty("rate").GetString() },
                 ibsCbs = new { send = f.GetProperty("ibsCbs").GetProperty("send").GetBoolean(), basis = f.GetProperty("ibsCbs").GetProperty("basis").GetString() },

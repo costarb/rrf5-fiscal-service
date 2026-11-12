@@ -12,15 +12,20 @@ public sealed record ConsumerInput(string? Cpf, string? Name);
 
 public sealed record CardInput(int? Integration, string? AcquirerCnpj, string? Brand, string? AuthorizationCode);
 
+/// <summary>
+/// One item as the ERP sends it. NCM, CEST, GTIN, origin, unit, CFOP and CSOSN are product
+/// attributes of the ERP registry (ADR-017); the service checks their form and that CFOP and
+/// CSOSN equal the approved rule of the operation nature, and never fills them in.
+/// </summary>
 public sealed record ItemInput(
-    string? ProductCode, string? Description, Guid? FiscalProfileId, string? ItemClass, string? Unit,
-    string? Quantity, string? UnitPrice, string? Discount, string? Surcharge);
+    string? ProductCode, string? Description, string? Unit, string? Gtin, string? Ncm, string? Cest,
+    string? Origin, string? Cfop, string? Csosn, string? Quantity, string? UnitPrice, string? Discount, string? Surcharge);
 
 public sealed record PaymentInput(string? Method, string? Amount, string? Description, CardInput? Card);
 
 /// <summary>The sale as the client sends it (contract <c>CreateDocument</c>). Decimals arrive as strings.</summary>
 public sealed record DocumentInput(
-    string? ExternalId, Guid? SeriesId, string? Operation, ConsumerInput? Consumer,
+    string? ExternalId, Guid? SeriesId, string? Nature, string? Operation, ConsumerInput? Consumer,
     IReadOnlyList<ItemInput>? Items, IReadOnlyList<PaymentInput>? Payments, string? Change);
 
 public sealed record DocumentProblem(string Code, string Detail, string? JsonPointer);
@@ -47,8 +52,9 @@ public sealed record PrevalidationReport(
 /// <summary>
 /// 005 T010 and T011 (E2): checks a sale without reserving a number and without
 /// calling SEFAZ. Every problem is collected, with a JSON pointer into the request.
-/// Tax treatment comes only from approved rule versions in force on the issue date;
-/// nothing is inferred (FR-017, ADR-015). Payment rules cite MOC 7.0 Anexo I, group YA.
+/// Tax treatment comes only from approved rule versions in force on the issue date:
+/// the ERP sends the product attributes, and CFOP and CSOSN must equal the rule of the
+/// operation nature that covers the item; nothing is inferred (FR-017, ADR-015, ADR-017). Payment rules cite MOC 7.0 Anexo I, group YA.
 /// </summary>
 public sealed class DocumentPrevalidation(IUnitOfWorkFactory database, PaymentMethods paymentTable, TimeProvider clock)
 {
@@ -165,22 +171,65 @@ public sealed class DocumentPrevalidation(IUnitOfWorkFactory database, PaymentMe
                 problems.Add(Problem(ErrorCodes.TotalsMismatch, "The item discount is greater than the item value.", pointer + "/discount"));
             }
 
-            TaxRules.ResolvedRule? rule = null;
-            try
-            {
-                rule = await TaxRules.TaxRuleAdministration.ResolveInForceAsync(
-                    uow, establishment, item.FiscalProfileId!.Value, Model, input.Operation, item.ItemClass, date, cancellationToken).ConfigureAwait(false);
-            }
-            catch (DomainException exception) when (exception.Code == ErrorCodes.RuleNotInForce || exception.Code == ErrorCodes.RuleCrtMismatch || exception.Code == ErrorCodes.NotFound)
-            {
-                problems.Add(Problem(exception.Code == ErrorCodes.NotFound ? ErrorCodes.RuleNotInForce : exception.Code,
-                    "No approved tax rule of the profile covers this item on the issue date.", pointer));
-            }
-
+            var rule = await ResolveItemRuleAsync(uow, establishment, input, item, date, pointer, problems, cancellationToken).ConfigureAwait(false);
             items.Add(new ResolvedItem(i + 1, item, quantity, unitPrice, lineValue, discount, surcharge, rule));
         }
 
         return items;
+    }
+
+    // ADR-017: form of the ERP attributes, then the rule of the nature (ncm-<NCM>, else ANY),
+    // then CFOP and CSOSN against the approved version.
+    private static async Task<TaxRules.ResolvedRule?> ResolveItemRuleAsync(
+        IUnitOfWork uow, EstablishmentRecord establishment, DocumentInput input, ItemInput item, DateOnly date, string pointer, List<DocumentProblem> problems, CancellationToken cancellationToken)
+    {
+        var formOk = true;
+        void Form(bool valid, string field, string detail)
+        {
+            if (!valid)
+            {
+                formOk = false;
+                problems.Add(Problem(ErrorCodes.ProductInvalid, detail, pointer + "/" + field));
+            }
+        }
+
+        Form(ProductCodes.IsValidUnit(item.Unit), "unit", "unit must be 1 to 6 characters (uCom).");
+        Form(ProductCodes.IsValidGtin(item.Gtin), "gtin", "gtin must be SEM GTIN or a GTIN-8, 12, 13 or 14 with a valid GS1 check digit (cEAN).");
+        Form(ProductCodes.IsValidNcm(item.Ncm), "ncm", "ncm must have 2 or 8 digits (layout NCM).");
+        Form(item.Cest is null || ProductCodes.IsValidCest(item.Cest), "cest", "cest must have 7 digits (layout CEST).");
+        Form(ProductCodes.IsValidOrigin(item.Origin), "origin", "origin must be 0 to 8 (Torig).");
+        Form(ProductCodes.IsValidCfop(item.Cfop), "cfop", "cfop must match [123567]NNN (layout CFOP).");
+        if (!formOk)
+        {
+            return null;
+        }
+
+        TaxRules.ResolvedRule rule;
+        try
+        {
+            rule = await TaxRules.TaxRuleAdministration.ResolveForNatureAsync(
+                uow, establishment, input.Nature!, Model, input.Operation, item.Ncm!, date, cancellationToken).ConfigureAwait(false);
+        }
+        catch (DomainException exception) when (exception.Code == ErrorCodes.RuleNotInForce || exception.Code == ErrorCodes.RuleCrtMismatch)
+        {
+            problems.Add(Problem(exception.Code,
+                "No approved rule of the operation nature covers this item (class ncm-<NCM>, else ANY) on the issue date.", pointer));
+            return null;
+        }
+
+        var payload = rule.Version.Payload;
+        if (payload.GetProperty("cfop").GetString() != item.Cfop)
+        {
+            problems.Add(Problem(ErrorCodes.TaxMismatch, "The item CFOP differs from the approved rule of the operation nature.", pointer + "/cfop"));
+        }
+
+        var csosn = payload.GetProperty("icms").TryGetProperty("csosn", out var value) ? value.GetString() : null;
+        if (csosn is null || csosn != item.Csosn)
+        {
+            problems.Add(Problem(ErrorCodes.TaxMismatch, "The item CSOSN differs from the approved rule of the operation nature.", pointer + "/csosn"));
+        }
+
+        return rule;
     }
 
     private async Task<List<ResolvedPayment>> ResolvePaymentsAsync(
@@ -285,6 +334,11 @@ public sealed class DocumentPrevalidation(IUnitOfWorkFactory database, PaymentMe
             throw new DomainException(ErrorCodes.RequestInvalid, "externalId is required (1 to 100 characters).");
         }
 
+        if (string.IsNullOrWhiteSpace(input.Nature) || input.Nature.Length > 64)
+        {
+            throw new DomainException(ErrorCodes.RequestInvalid, "nature is required (code of the operation nature).");
+        }
+
         if (string.IsNullOrWhiteSpace(input.Operation) || input.Operation.Length > 60)
         {
             throw new DomainException(ErrorCodes.RequestInvalid, "operation is required (1 to 60 characters).");
@@ -300,10 +354,9 @@ public sealed class DocumentPrevalidation(IUnitOfWorkFactory database, PaymentMe
             throw new DomainException(ErrorCodes.RequestInvalid, "payments must have 1 to 100 entries.");
         }
 
-        if (input.Items.Any(i => i.FiscalProfileId is null || string.IsNullOrWhiteSpace(i.ItemClass) || string.IsNullOrWhiteSpace(i.ProductCode)
-            || string.IsNullOrWhiteSpace(i.Description) || string.IsNullOrWhiteSpace(i.Unit)))
+        if (input.Items.Any(i => new[] { i.ProductCode, i.Description, i.Unit, i.Gtin, i.Ncm, i.Origin, i.Cfop, i.Csosn }.Any(string.IsNullOrWhiteSpace)))
         {
-            throw new DomainException(ErrorCodes.RequestInvalid, "Every item needs productCode, description, fiscalProfileId, itemClass and unit.");
+            throw new DomainException(ErrorCodes.RequestInvalid, "Every item needs productCode, description, unit, gtin, ncm, origin, cfop and csosn.");
         }
     }
 

@@ -230,7 +230,7 @@ public sealed class TaxRuleLifecycleTests : IClassFixture<StackFixture>, IAsyncL
         {
             crt,
             cfop = "5102",
-            icms = new { group = "ICMSSN102", orig = "0", csosn },
+            icms = new { group = "ICMSSN102", csosn },
             pis = new { group = "PISOutr", cst = "49", ratePercent = "0.0000" },
             cofins = new { group = "COFINSOutr", cst = "49", ratePercent = "0.0000" },
             ibsCbs = new { send = false, basis = "test" },

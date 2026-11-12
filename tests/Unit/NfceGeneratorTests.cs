@@ -65,7 +65,7 @@ public sealed class NfceGeneratorTests
             Items =
             [
                 new NfceItem("A-1", "SEM GTIN", "LANCHE & BEBIDA <SINTETICO>", "21069090", "5102", "UN", 2m, 12.50m, 25.00m, 1.00m, 0.50m, ProfileTaxes),
-                new NfceItem("A-2", "SEM GTIN", "PORCAO 0,365 KG", "21069090", "5102", "KG", 0.365m, 2.5m, 0.91m, 0m, 0m, ProfileTaxes),
+                new NfceItem("A-2", "4006381333931", "PORCAO 0,365 KG", "21069090", "5102", "KG", 0.365m, 2.5m, 0.91m, 0m, 0m, ProfileTaxes, Cest: "0300700"),
             ],
             Payments =
             [
@@ -84,6 +84,7 @@ public sealed class NfceGeneratorTests
         }
 
         Assert.Equal(25.41m, NfceGenerator.Generate(variant).Total);
+        Assert.Contains("<NCM>21069090</NCM><CEST>0300700</CEST><CFOP>5102</CFOP>", NfceGenerator.Generate(variant).Xml, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -75,7 +75,7 @@ Todo documento autorizado tem QR Code na versão aplicável e DANFE NFC-e recupe
 - **FE-002**: O XML MUST seguir a ordem e as regras do leiaute vigente e passar na validação XSD do pacote resolvido antes da assinatura. Elementos exclusivos de pacote seguem desligados até liberação auditada (E4, ADR-009).
 - **FE-003**: A assinatura XMLDSig MUST usar o algoritmo e as transformações da seção do MOC 7.0 registrada (L8). A assinatura MUST ser validada antes do envio, e só o worker abre o A1 (política `rrf5-worker`, feature 004).
 - **FE-004**: Valores e arredondamentos MUST seguir a regra do leiaute, com os testes de borda da POC (checklist B).
-- **FE-005**: A tributação de cada item MUST vir do perfil aprovado. O serviço MUST NOT inferir NCM, CFOP, CST, CSOSN nem alíquota (FR-017 da 001, AGENTS.md).
+- **FE-005**: NCM, CFOP, CSOSN, origem, unidade, CEST e GTIN MUST vir do ERP em cada item. O CFOP e o CSOSN MUST ser iguais aos da regra aprovada e vigente da natureza de operação (exceção por NCM, senão a regra `ANY`); divergência ou falta de regra recusa o item antes de numerar. PIS, COFINS e CRT vêm da regra. O serviço MUST NOT inferir nem completar nenhum desses valores (FR-017 da 001, AGENTS.md, ADR-017).
 - **FE-006**: O meio de pagamento comercial MUST ser mapeado para o código oficial `tPag` pela versão vigente. Os rótulos do DANFE vêm da tabela do MOC congelado (L5).
 - **FE-007**: A transmissão MUST usar SOAP 1.2 com TLS mútuo ao endpoint do catálogo, com raízes ICP-Brasil fixadas por autorizador e validação TLS sempre ligada (checklist B).
 - **FE-008**: O número MUST ser alocado só depois da validação e imediatamente antes da assinatura (`08-emission-flows.md`). Uma falha após a reserva deixa lacuna auditada; a inutilização fica para a Fase 3.

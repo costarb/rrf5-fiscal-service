@@ -1,6 +1,6 @@
 # Synthetic fiscal profile for the golden NFC-e (T016 input)
 
-**Status:** INTERIM — approved by the operator on 2026-11-06 for discovery use; accountant ratification scheduled for the week of 2026-11-09 (T011 open)  
+**Status:** SUPERSEDED for own production — on 2026-11-12 the accountant validated CFOP 5101 and PIS/COFINS CST 99 (see `fiscal-review.md`). This file stays as the discovery record and the input of the golden XML.  
 **Recorded:** 2026-11-06  
 **Scope:** NFC-e model 65, São Paulo, homologation, issuer's own matriz
 

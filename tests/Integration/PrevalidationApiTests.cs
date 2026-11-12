@@ -12,6 +12,7 @@ namespace Rrf5.Fiscal.Tests.Integration;
 /// <list type="bullet">
 /// <item>A valid sale passes without reserving a number.</item>
 /// <item>Every blocking problem is reported with its pointer: rule coverage, MOC payment rules (group YA), consumer CPF (E05-10), active certificate.</item>
+/// <item>ADR-017: the ERP sends the product attributes; the nature's exception rule (ncm-NCM) wins over ANY, even with no version in force; CFOP and CSOSN must equal the approved rule; the attribute form follows the layout.</item>
 /// <item>The per-environment payment mapping only accepts codes of the national table.</item>
 /// </list>
 /// Synthetic data only.
@@ -30,7 +31,7 @@ public sealed class PrevalidationApiTests : IClassFixture<StackFixture>, IAsyncL
     private Guid _approverId;
     private Guid _environment;
     private Guid _series;
-    private Guid _profile;
+    private string _nature = null!;
 
     public PrevalidationApiTests(StackFixture stack)
     {
@@ -67,14 +68,14 @@ public sealed class PrevalidationApiTests : IClassFixture<StackFixture>, IAsyncL
         Assert.Equal(HttpStatusCode.Created, uploaded.StatusCode);
         await Expect(HttpStatusCode.OK, HttpMethod.Post, $"/v1/certificates/{certificate.GetProperty("id").GetGuid()}/approve", _approver);
 
-        // Tax rule for item class "lanche", approved by four eyes and in force today.
-        var (_, profile) = await Send(HttpMethod.Post, "/v1/tax-profiles", _manager, new { code = $"PRE-{Guid.NewGuid():N}"[..30].ToUpperInvariant(), name = "Prevalidation" });
-        _profile = profile.GetProperty("id").GetGuid();
-        var (_, rule) = await Send(HttpMethod.Post, $"/v1/tax-profiles/{_profile}/rules", _manager, new { model = "65", uf = "SP", operation = "VENDA", itemClass = "lanche" });
-        var (_, version) = await Send(HttpMethod.Post, $"/v1/tax-rules/{rule.GetProperty("id").GetGuid()}/versions", _manager, RuleVersion(Today));
-        var versionId = version.GetProperty("id").GetGuid();
-        await Expect(HttpStatusCode.OK, HttpMethod.Post, $"/v1/tax-rule-versions/{versionId}/submit", _manager);
-        await Expect(HttpStatusCode.OK, HttpMethod.Post, $"/v1/tax-rule-versions/{versionId}/approve", _approver);
+        // Operation nature (ADR-017): default rule ANY 5102/102, exception for NCM 21069090
+        // with 5101/102, both approved by four eyes; NCM 22011000 has an exception still in DRAFT.
+        _nature = $"PRE-{Guid.NewGuid():N}"[..30].ToUpperInvariant();
+        var (_, profile) = await Send(HttpMethod.Post, "/v1/tax-profiles", _manager, new { code = _nature, name = "Prevalidation nature" });
+        var profileId = profile.GetProperty("id").GetGuid();
+        await RuleAsync(profileId, "ANY", "5102", approve: true);
+        await RuleAsync(profileId, "ncm-21069090", "5101", approve: true);
+        await RuleAsync(profileId, "ncm-22011000", "5102", approve: false);
 
         await Expect(HttpStatusCode.OK, HttpMethod.Put, $"/v1/environments/{_environment}/payment-methods", _manager,
             new { methods = new Dictionary<string, string> { ["CASH"] = "01", ["PIX"] = "17", ["CREDIT_CARD"] = "03" } });
@@ -92,7 +93,7 @@ public sealed class PrevalidationApiTests : IClassFixture<StackFixture>, IAsyncL
     {
         var nextBefore = await NextNumberAsync();
         var (response, body) = await Send(HttpMethod.Post, $"/v1/environments/{_environment}/documents/prevalidate", _manager, Sale(
-            items: [Item("2", "12.50"), Item("1", "5.00", discount: "1.00")],
+            items: [Item("2", "12.50"), Item("1", "5.00", discount: "1.00", ncm: "19059090", cfop: "5102", gtin: "4006381333931")],
             payments: [Payment("CASH", "40.00")],
             change: "11.00",
             cpf: SyntheticCpf));
@@ -117,7 +118,13 @@ public sealed class PrevalidationApiTests : IClassFixture<StackFixture>, IAsyncL
     public async Task EveryBlockingProblemIsReportedWithItsPointer()
     {
         var (response, body) = await Send(HttpMethod.Post, $"/v1/environments/{_environment}/documents/prevalidate", _manager, Sale(
-            items: [Item("1", "10.00"), Item("1", "5.00", itemClass: "sem-regra")],
+            items:
+            [
+                Item("1", "10.00"),
+                Item("1", "5.00", ncm: "22011000", cfop: "5102"),
+                Item("1", "1.00", cfop: "5102"),
+                Item("1", "1.00", gtin: "4006381333932"),
+            ],
             payments: [Payment("CASH", "5.00"), Payment("DEBIT_CARD", "2.00"), Payment("CREDIT_CARD", "3.00")],
             change: null,
             cpf: "11111111111"));
@@ -127,7 +134,10 @@ public sealed class PrevalidationApiTests : IClassFixture<StackFixture>, IAsyncL
         var problems = body.GetProperty("problems").EnumerateArray()
             .Select(p => (Code: p.GetProperty("code").GetString(), Pointer: p.GetProperty("pointer").GetString()))
             .ToList();
-        Assert.Contains(("rules.not_in_force", "/items/1"), problems);
+        Assert.Contains(("rules.not_in_force", "/items/1"), problems); // ANY never stands in for the NCM exception
+        Assert.Contains(("document.tax_mismatch", "/items/2/cfop"), problems);
+        Assert.Contains(("document.product_invalid", "/items/3/gtin"), problems);
+        Assert.DoesNotContain(problems, p => p.Pointer is not null && p.Pointer.StartsWith("/items/0", StringComparison.Ordinal));
         Assert.Contains(("payment.method_not_configured", "/payments/1/method"), problems);
         Assert.Contains(("payment.card_invalid", "/payments/2/card"), problems);
         Assert.Contains(("document.totals_mismatch", "/payments"), problems);
@@ -184,13 +194,16 @@ public sealed class PrevalidationApiTests : IClassFixture<StackFixture>, IAsyncL
         Assert.Equal(HttpStatusCode.Forbidden, noScope.StatusCode);
     }
 
-    private object Item(string quantity, string unitPrice, string? discount = null, string itemClass = "lanche") => new
+    private static object Item(string quantity, string unitPrice, string? discount = null, string ncm = "21069090", string cfop = "5101", string gtin = "SEM GTIN") => new
     {
         productCode = "X-1",
         description = "Lanche sintetico",
-        fiscalProfileId = _profile,
-        itemClass,
         unit = "UN",
+        gtin,
+        ncm,
+        origin = "0",
+        cfop,
+        csosn = "102",
         quantity,
         unitPrice,
         discount,
@@ -198,11 +211,12 @@ public sealed class PrevalidationApiTests : IClassFixture<StackFixture>, IAsyncL
 
     private static object Payment(string method, string amount) => new { method, amount };
 
-    private static Dictionary<string, object?> Sale(object[] items, object[] payments, string? change, string? cpf)
+    private Dictionary<string, object?> Sale(object[] items, object[] payments, string? change, string? cpf)
     {
         var sale = new Dictionary<string, object?>
         {
             ["externalId"] = $"pedido-{Guid.NewGuid():N}",
+            ["nature"] = _nature,
             ["operation"] = "VENDA",
             ["items"] = items,
             ["payments"] = payments,
@@ -229,13 +243,25 @@ public sealed class PrevalidationApiTests : IClassFixture<StackFixture>, IAsyncL
         return series.GetProperty("id").GetGuid();
     }
 
-    private static object RuleVersion(DateOnly validFrom) => new
+    private async Task RuleAsync(Guid profileId, string itemClass, string cfop, bool approve)
+    {
+        var (_, rule) = await Send(HttpMethod.Post, $"/v1/tax-profiles/{profileId}/rules", _manager, new { model = "65", uf = "SP", operation = "VENDA", itemClass });
+        var (_, version) = await Send(HttpMethod.Post, $"/v1/tax-rules/{rule.GetProperty("id").GetGuid()}/versions", _manager, RuleVersion(Today, cfop));
+        if (approve)
+        {
+            var versionId = version.GetProperty("id").GetGuid();
+            await Expect(HttpStatusCode.OK, HttpMethod.Post, $"/v1/tax-rule-versions/{versionId}/submit", _manager);
+            await Expect(HttpStatusCode.OK, HttpMethod.Post, $"/v1/tax-rule-versions/{versionId}/approve", _approver);
+        }
+    }
+
+    private static object RuleVersion(DateOnly validFrom, string cfop) => new
     {
         payload = new
         {
             crt = "1",
-            cfop = "5102",
-            icms = new { group = "ICMSSN102", orig = "0", csosn = "102" },
+            cfop,
+            icms = new { group = "ICMSSN102", csosn = "102" },
             pis = new { group = "PISOutr", cst = "49", ratePercent = "0.0000" },
             cofins = new { group = "COFINSOutr", cst = "49", ratePercent = "0.0000" },
             ibsCbs = new { send = false, basis = "test" },

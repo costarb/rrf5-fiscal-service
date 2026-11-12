@@ -11,7 +11,7 @@ public sealed class RulePayloadTests
     private const string Valid = """
         {
           "crt": "1", "cfop": "5102",
-          "icms": { "group": "ICMSSN102", "orig": "0", "csosn": "102" },
+          "icms": { "group": "ICMSSN102", "csosn": "102" },
           "pis": { "group": "PISOutr", "cst": "49", "ratePercent": "0.0000" },
           "cofins": { "group": "COFINSOutr", "cst": "49", "ratePercent": "0.0000" },
           "ibsCbs": { "send": false, "basis": "operator decision" },
@@ -45,7 +45,6 @@ public sealed class RulePayloadTests
         { "cfop", "4102", null },
         { "cfop", "510", null },
         { "icms.csosn", "101", null },
-        { "icms.orig", "9", null },
         { "pis.cst", "01", null },
         { "cofins.ratePercent", "0.00000", null },
         { "crt", "3", "CSOSN with CRT 3 (MOC N12a-20)" },
@@ -98,7 +97,7 @@ public sealed class RulePayloadTests
         Assert.Equal(("65", "SP", "VENDA", "ncm-21069090"), (mapped.Model, mapped.Uf, mapped.Operation, mapped.ItemClass));
         var (payload, _) = RulePayloads.Parse(mapped.Version.Payload);
         Assert.Equal(("1", "5102"), (payload.Crt, payload.Cfop));
-        Assert.Equal(new IcmsSn102("0", "102"), payload.Icms);
+        Assert.Equal(new IcmsSn102("102"), payload.Icms);
         Assert.Equal(new PisOutr("49", "0.0000"), payload.Pis);
         Assert.False(payload.IbsCbs.Send);
         Assert.Contains(mapped.Version.SourceRefs, s => s.Kind == "pending-ratification");
