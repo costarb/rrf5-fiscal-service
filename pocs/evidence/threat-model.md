@@ -143,6 +143,22 @@ stored object hash differing from the record (`artifact.integrity_failed`).
   `certificates.approve` (never together with `certificates.manage`) and the
   establishment grant activates or rejects it. Migration 0010 enforces this in the
   database. Evidence: `CertificateDualControlTests`, `CertificateApiTests`.
-- **Pending:** the operator runs `scripts/operator/validate-a1-dual-control.ps1` with
-  the real A1 on the local stack. A rehearsal with a self-signed "NOT AN A1" stopped
-  as expected at `certificate.untrusted`.
+- **Rehearsal:** a self-signed "NOT AN A1" stopped as expected at `certificate.untrusted`.
+
+### Update 2026-11-12: TM-03 validated with the real A1 (operator run)
+
+The operator ran `scripts/operator/validate-a1-dual-control.ps1` with the real A1 on
+the local stack (local OpenBao and PostgreSQL only; nothing was sent to SEFAZ). The
+script printed no CNPJ, fingerprint or password. All six checks passed:
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| 1. Wrong password refused | PASS | 422 `certificate.invalid` |
+| 2. ICP-Brasil chain and LCR | PASS | Chains to Autoridade Certificadora Raiz Brasileira v5; not revoked; within validity |
+| 3. Manager cannot activate its own upload | PASS | 403 `auth.scope_missing` |
+| 4. Approver without the establishment grant cannot see it | PASS | 404 `resource.not_found` |
+| 5. Approver with the grant activates it (audited) | PASS | 200 `ACTIVE` |
+| 6. Cannot be activated twice | PASS | 409 `state.invalid_transition` |
+
+TM-03 status: **Mitigated**. The residual risk is unchanged: CA or identity-proofing
+compromise.
