@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rrf5.Fiscal.Api\Rrf5.Fiscal.Api.csproj" />
+    <ProjectReference Include="..\..\src\Rrf5.Fiscal.Adapters.Sefaz\Rrf5.Fiscal.Adapters.Sefaz.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

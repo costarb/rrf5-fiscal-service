@@ -14,6 +14,7 @@ COPY src/Rrf5.Fiscal.Domain/Rrf5.Fiscal.Domain.csproj                 src/Rrf5.F
 COPY src/Rrf5.Fiscal.Application/Rrf5.Fiscal.Application.csproj       src/Rrf5.Fiscal.Application/
 COPY src/Rrf5.Fiscal.Regulatory/Rrf5.Fiscal.Regulatory.csproj         src/Rrf5.Fiscal.Regulatory/
 COPY src/Rrf5.Fiscal.Nfce/Rrf5.Fiscal.Nfce.csproj                     src/Rrf5.Fiscal.Nfce/
+COPY src/Rrf5.Fiscal.Adapters.Sefaz/Rrf5.Fiscal.Adapters.Sefaz.csproj src/Rrf5.Fiscal.Adapters.Sefaz/
 COPY src/Rrf5.Fiscal.Infrastructure/Rrf5.Fiscal.Infrastructure.csproj src/Rrf5.Fiscal.Infrastructure/
 COPY src/Rrf5.Fiscal.Api/Rrf5.Fiscal.Api.csproj                       src/Rrf5.Fiscal.Api/
 COPY src/Rrf5.Fiscal.Worker/Rrf5.Fiscal.Worker.csproj                 src/Rrf5.Fiscal.Worker/
@@ -21,8 +22,8 @@ RUN dotnet restore src/Rrf5.Fiscal.${APP}/Rrf5.Fiscal.${APP}.csproj
 COPY src/ src/
 # Migrations are embedded in Rrf5.Fiscal.Infrastructure (ADR-014).
 COPY db/migrations/ db/migrations/
-# The reviewed regulatory catalog (T033) and the tPag table (005 T003) are embedded in Rrf5.Fiscal.Regulatory.
-COPY regulatory/catalog.json regulatory/payment-methods.json regulatory/
+# The reviewed regulatory catalog (T033), the tPag table (005 T003) and the SEFAZ endpoints (005 T017) are embedded in Rrf5.Fiscal.Regulatory.
+COPY regulatory/catalog.json regulatory/payment-methods.json regulatory/sefaz-endpoints.json regulatory/
 RUN dotnet publish src/Rrf5.Fiscal.${APP}/Rrf5.Fiscal.${APP}.csproj -c Release -o /app --no-restore \
  && mv /app/Rrf5.Fiscal.${APP}.dll /app/app.dll \
  && mv /app/Rrf5.Fiscal.${APP}.deps.json /app/app.deps.json \

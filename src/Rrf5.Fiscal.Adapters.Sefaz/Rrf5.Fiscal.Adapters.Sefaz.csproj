@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Rrf5.Fiscal.Adapters.Sefaz</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- ADR-007: SOAP 1.2 over mutual TLS with the BCL only; endpoints from the catalog in Regulatory. -->
+    <ProjectReference Include="..\Rrf5.Fiscal.Regulatory\Rrf5.Fiscal.Regulatory.csproj" />
+    <ProjectReference Include="..\Rrf5.Fiscal.Nfce\Rrf5.Fiscal.Nfce.csproj" />
+  </ItemGroup>
+</Project>

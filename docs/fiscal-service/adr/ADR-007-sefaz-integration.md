@@ -37,3 +37,25 @@ Adaptadores por modelo, autorizador e UF, resolvidos por catálogo versionado de
 - **Riscos:**
   - catálogo errado é risco crítico: mudanças de endpoint ou de raiz exigem fonte oficial, homologação e dupla aprovação;
   - se a cadeia TLS do autorizador mudar de raiz, a transmissão falha fechada até a nova raiz ser catalogada.
+
+## Implementação (2026-11-12, T017–T019)
+
+- **Projeto `Rrf5.Fiscal.Adapters.Sefaz`:** só BCL.
+  - `SefazNfceClient` (`AuthorizeAsync` com `indSinc` 1 e `ConsultAsync`);
+  - `SefazResponses` para a leitura;
+  - `SefazResult` normalizado, com o rastro da troca para o armazenamento imutável.
+- **Endpoints:** `regulatory/sefaz-endpoints.json`, copiado da evidência datada de `sp-nfce-services`.
+  - Só a homologação SP está catalogada; produção e outros autorizadores devolvem nulo, e o chamador falha fechado.
+- **Enviado ou não:** o cliente marca quando o corpo do pedido começa a sair.
+  - Falha antes disso (conexão, handshake TLS) é `NotSent`: retentativa técnica segura.
+  - Depois disso, é `Uncertain`, e o chamador consulta pela chave.
+- **Classificação pelo MOC 7.0 congelado:**
+  - 100 com a mesma chave e o mesmo `digVal`: `Authorized`;
+  - 110, 301, 302 e 303: `Denied`;
+  - 103: `Received`, recibo assíncrono;
+  - 108 e 109: `ServiceUnavailable`;
+  - 217 na consulta: `NotFound`;
+  - duplicidade 204 e 539: `Uncertain`, porque pode ser este mesmo documento já autorizado;
+  - outro `digVal` para a mesma chave: `Mismatch`;
+  - 150, 101, 151 e outro `tpAmb`: `Unexpected`, revisão manual.
+- **Testes:** `SefazTestServer` com TLS mútuo real e raiz de teste, e `SefazAdapterTests`.

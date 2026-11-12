@@ -74,6 +74,39 @@ public static class TestCertificates
         }
     }
 
+    /// <summary>The in-memory test root (public part only).</summary>
+    public static X509Certificate2 RootCertificate() => X509CertificateLoader.LoadCertificate(Root.Value.Certificate.RawData);
+
+    /// <summary>
+    /// TLS server certificate for 127.0.0.1 issued by the test root (or self-signed, to
+    /// stand for a server outside the pinned root), returned as PKCS#12 bytes so Kestrel
+    /// on Windows gets a persisted key.
+    /// </summary>
+    public static byte[] ServerPkcs12(string password, bool selfSigned = false)
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest("CN=RRF5 TEST SEFAZ - NOT A REAL AUTHORIZER", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddIpAddress(System.Net.IPAddress.Loopback);
+        san.AddDnsName("localhost");
+        request.CertificateExtensions.Add(san.Build());
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+        request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension([new Oid("1.3.6.1.5.5.7.3.1")], false));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, true));
+        var from = DateTimeOffset.UtcNow.AddDays(-1);
+        var to = DateTimeOffset.UtcNow.AddDays(30);
+        if (selfSigned)
+        {
+            using var self = request.CreateSelfSigned(from, to);
+            return self.ExportPkcs12(Pkcs12ExportPbeParameters.Pbes2Aes256Sha256, password);
+        }
+
+        var (root, rootKey) = Root.Value;
+        using var issued = request.Create(root.SubjectName, X509SignatureGenerator.CreateForRSA(rootKey, RSASignaturePadding.Pkcs1), from, to, RandomNumberGenerator.GetBytes(16));
+        using var withKey = issued.CopyWithPrivateKey(rsa);
+        return withKey.ExportPkcs12(Pkcs12ExportPbeParameters.Pbes2Aes256Sha256, password);
+    }
+
     /// <summary>SAN with otherName { 2.16.76.1.3.3, [0] OCTET STRING "&lt;CNPJ&gt;" } and a DNS name.</summary>
     public static byte[] SubjectAltNameWithCnpj(string cnpj)
     {

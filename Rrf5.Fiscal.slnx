@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Rrf5.Fiscal.Adapters.Sefaz/Rrf5.Fiscal.Adapters.Sefaz.csproj" />
     <Project Path="src/Rrf5.Fiscal.Api/Rrf5.Fiscal.Api.csproj" />
     <Project Path="src/Rrf5.Fiscal.Application/Rrf5.Fiscal.Application.csproj" />
     <Project Path="src/Rrf5.Fiscal.Domain/Rrf5.Fiscal.Domain.csproj" />

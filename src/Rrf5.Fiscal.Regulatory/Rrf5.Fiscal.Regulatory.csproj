@@ -10,5 +10,7 @@
     <EmbeddedResource Include="..\..\regulatory\catalog.json" LogicalName="regulatory/catalog.json" />
     <!-- tPag table transcribed by script from the official spreadsheet (005 T003). -->
     <EmbeddedResource Include="..\..\regulatory\payment-methods.json" LogicalName="regulatory/payment-methods.json" />
+    <!-- SEFAZ endpoints copied from the dated evidence of sp-nfce-services (005 T017, ADR-007). -->
+    <EmbeddedResource Include="..\..\regulatory\sefaz-endpoints.json" LogicalName="regulatory/sefaz-endpoints.json" />
   </ItemGroup>
 </Project>

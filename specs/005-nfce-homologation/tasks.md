@@ -38,9 +38,9 @@ Tasks marked **[operator]** use the real A1 or the real issuer and are run by th
 
 ## Phase 5 — SEFAZ adapter (`Rrf5.Fiscal.Adapters.Sefaz`)
 
-- [ ] T017 SOAP 1.2 client with mutual TLS: the client certificate comes from the A1, server trust from the T005 roots; endpoints from the catalog per authorizer and environment
-- [ ] T018 Parse `retEnviNFe`, `protNFe` and `retConsSitNFe`; `AUTHORIZED` only with `cStat` 100 and the same `chNFe` and `digVal`; rejection codes and messages kept as official values
-- [ ] T019 Test SOAP server (a rewrite of the POC mock): 104/100, 225, 217, timeout after authorization, unreadable answer
+- [x] T017 SOAP 1.2 client with mutual TLS: the client certificate comes from the A1, server trust from the T005 roots; endpoints from the catalog per authorizer and environment Done 2026-11-12: `SefazNfceClient` (project `Rrf5.Fiscal.Adapters.Sefaz`, BCL only); client chain built offline from the PKCS#12; server trust is the `X509ChainPolicy` from `SefazTlsTrust`; endpoints from `regulatory/sefaz-endpoints.json` (SP homologation only; production fails closed). `NotSent` only when the request body never started to go out; after that, any failure is `Uncertain`.
+- [x] T018 Parse `retEnviNFe`, `protNFe` and `retConsSitNFe`; `AUTHORIZED` only with `cStat` 100 and the same `chNFe` and `digVal`; rejection codes and messages kept as official values Done 2026-11-12: `SefazResponses` per MOC 7.0 Visão Geral §5.1.4 and §5.4 and Anexo I §4.4.1 and §4.4.3. Authorized needs 100 with the same chNFe and digVal; denial 110/301/302/303; 103 is an asynchronous receipt; 108/109 service paused; duplicity 204/539 (rules 2B08-10/20) is uncertain, never a rejection; a different digVal is `Mismatch`; 150, 101 and 151 are `Unexpected` (manual review).
+- [x] T019 Test SOAP server (a rewrite of the POC mock): 104/100, 225, 217, timeout after authorization, unreadable answer Done 2026-11-12: `SefazTestServer` (Kestrel, HTTPS with a required client certificate, test root): 104/100, 225, 104/301, 204, 103, 108, 217, 101, timeout after authorization, unreadable answer, SOAP fault, other key, other digVal, other tpAmb; a server outside the pinned root is never reached (`SefazAdapterTests`).
 
 ## Phase 6 — E1 and E3 Emission and uncertain result
 

@@ -1,0 +1,16 @@
+{
+  "source": {
+    "catalogReference": "sp-nfce-services",
+    "evidence": "pocs/evidence/sefaz-sp-endpoints.md",
+    "checkedAt": "2026-08-04",
+    "notes": "Homologation only. Production endpoints are not catalogued until they are captured from the official page and approved; an environment without an endpoint fails closed (ADR-007 item 2)."
+  },
+  "endpoints": [
+    { "authorizer": "SP", "model": "65", "environment": "HOMOLOGATION", "service": "NFeAutorizacao4", "url": "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeAutorizacao4.asmx" },
+    { "authorizer": "SP", "model": "65", "environment": "HOMOLOGATION", "service": "NFeRetAutorizacao4", "url": "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeRetAutorizacao4.asmx" },
+    { "authorizer": "SP", "model": "65", "environment": "HOMOLOGATION", "service": "NFeInutilizacao4", "url": "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeInutilizacao4.asmx" },
+    { "authorizer": "SP", "model": "65", "environment": "HOMOLOGATION", "service": "NFeConsultaProtocolo4", "url": "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeConsultaProtocolo4.asmx" },
+    { "authorizer": "SP", "model": "65", "environment": "HOMOLOGATION", "service": "NFeRecepcaoEvento4", "url": "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeRecepcaoEvento4.asmx" },
+    { "authorizer": "SP", "model": "65", "environment": "HOMOLOGATION", "service": "NFeStatusServico4", "url": "https://homologacao.nfce.fazenda.sp.gov.br/ws/NFeStatusServico4.asmx" }
+  ]
+}
