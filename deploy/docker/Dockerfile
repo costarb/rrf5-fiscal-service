@@ -20,8 +20,8 @@ RUN dotnet restore src/Rrf5.Fiscal.${APP}/Rrf5.Fiscal.${APP}.csproj
 COPY src/ src/
 # Migrations are embedded in Rrf5.Fiscal.Infrastructure (ADR-014).
 COPY db/migrations/ db/migrations/
-# The reviewed regulatory catalog is embedded in Rrf5.Fiscal.Regulatory (T033).
-COPY regulatory/catalog.json regulatory/catalog.json
+# The reviewed regulatory catalog (T033) and the tPag table (005 T003) are embedded in Rrf5.Fiscal.Regulatory.
+COPY regulatory/catalog.json regulatory/payment-methods.json regulatory/
 RUN dotnet publish src/Rrf5.Fiscal.${APP}/Rrf5.Fiscal.${APP}.csproj -c Release -o /app --no-restore \
  && mv /app/Rrf5.Fiscal.${APP}.dll /app/app.dll \
  && mv /app/Rrf5.Fiscal.${APP}.deps.json /app/app.deps.json \
