@@ -53,10 +53,10 @@ Tasks marked **[operator]** use the real A1 or the real issuer and are run by th
 
 ## Phase 7 — E5 QR Code and DANFE
 
-- [ ] T026 QR Code v3 online per the Manual DANFE NFC-e v6.0 §4.4.1 (key, version and environment; no CSC), as proven in homologation by the POC (`danfe-qr.md`). QR v2 with the CSC hash only if a later decision requires it; the CSC never appears in logs, responses or diagnostics (TM-04)
-- [ ] T027 DANFE NFC-e HTML at 80 and 58 mm, from the `nfeProc` only; print data in the API (QR content, QR URL, consultation URL)
-- [ ] T028 Simulated printing: render at 80 and 58 mm, check the margins and the QR quiet zone, decode the QR from the rendered image and compare it with the expected content
-- [ ] T029 `danfe-selftest` inside the Linux container image (L3)
+- [x] T026 QR Code v3 online per the Manual DANFE NFC-e v6.0 §4.4.1 (key, version and environment; no CSC), as proven in homologation by the POC (`danfe-qr.md`). QR v2 with the CSC hash only if a later decision requires it; the CSC never appears in logs, responses or diagnostics (TM-04) Done 2026-11-13: `NfceQrCode` builds and reads only v3 online (v2 and offline are refused); the generator uses it. The QR Code and `urlChave` URLs of SP homologation were reconfirmed on the official SEFAZ-SP "WebServices" page (`regulatory/sefaz-endpoints.json`). No CSC exists in the flow.
+- [x] T027 DANFE NFC-e HTML at 80 and 58 mm, from the `nfeProc` only; print data in the API (QR content, QR URL, consultation URL) Done 2026-11-13: `AuthorizedNfce` (refuses anything but cStat 100 for the same key and environment, model 65, tpEmis 1, and QR/`urlChave` of the catalogued authorizer) and `Danfe` (Divisions I to IX, official tPag labels, issuer time zone). `GET /v1/documents/{id}/xml`, `/danfe?paper=80mm|58mm` and `/print-data`; the nfeProc is re-hashed on read; a document that is not AUTHORIZED gets 409 `document.not_authorized`.
+- [x] T028 Simulated printing: render at 80 and 58 mm, check the margins and the QR quiet zone, decode the QR from the rendered image and compare it with the expected content Done 2026-11-13: `DanfeTests` checks paper, side margins, QR size, content and quiet zone (§3.3, §3.4), rasterizes the printed SVG at 203 dpi and decodes it with ZXing.Net (test only) to the authorized `qrCode`, level M. A phone scan on real thermal paper stays with the operator (T032).
+- [x] T029 `danfe-selftest` inside the Linux container image (L3) Done 2026-11-13: `dotnet app.dll danfe-selftest` in the API image (tzdata `America/Sao_Paulo`, separators without ICU, QR, refusals; synthetic data only); the CI `image` job runs it.
 
 ## Phase 8 — E4 Real homologation
 

@@ -7,6 +7,12 @@ using Rrf5.Fiscal.Api.Http;
 using Rrf5.Fiscal.Infrastructure;
 using Rrf5.Fiscal.Infrastructure.Observability;
 
+// 005 T029: "dotnet app.dll danfe-selftest" checks the DANFE runtime inside the image (synthetic data only).
+if (args is ["danfe-selftest"])
+{
+    return Rrf5.Fiscal.Nfce.DanfeSelfTest.Run(Console.Out) ? 0 : 1;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Logs: one redacting JSON provider replaces every default provider (FF-011).
@@ -59,6 +65,7 @@ foreach (var module in app.Services.GetServices<IEndpointModule>())
 }
 
 await app.RunAsync().ConfigureAwait(false);
+return 0;
 
 /// <summary>Entry point; public so integration tests can host the API in memory.</summary>
 public partial class Program;

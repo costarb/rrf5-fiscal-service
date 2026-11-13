@@ -99,7 +99,7 @@ public static class NfceGenerator
 
             // QR Code v3 online: Manual DANFE NFC-e v6.0 §4.4.1, "<url>?p=<chave>|3|<tpAmb>".
             w.WriteStartElement("infNFeSupl", Namespace);
-            E(w, "qrCode", $"{document.QrCodeUrl}?p={key}|3|{ide.Environment}");
+            E(w, "qrCode", NfceQrCode.V3Online(document.QrCodeUrl, key, ide.Environment));
             E(w, "urlChave", document.ConsultationUrl);
             w.WriteEndElement();
 

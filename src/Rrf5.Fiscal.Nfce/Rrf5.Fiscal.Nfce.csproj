@@ -7,5 +7,9 @@
     <ProjectReference Include="..\Rrf5.Fiscal.Domain\Rrf5.Fiscal.Domain.csproj" />
     <!-- XMLDSig (Microsoft, MIT), reviewed in pocs/evidence/dependency-review.md. -->
     <PackageReference Include="System.Security.Cryptography.Xml" />
+    <!-- DANFE QR (T027): QRCoder (MIT), reviewed in pocs/evidence/dependency-review.md; only QRCodeGenerator is used. -->
+    <PackageReference Include="QRCoder" />
+    <!-- Not used by the code: QRCoder's net6.0 group pulls System.Drawing.Common 6.0.0 (out of support); pinned to the .NET 10 line. -->
+    <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 </Project>

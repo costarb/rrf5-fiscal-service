@@ -96,6 +96,10 @@ jobs:
         run: docker build -f deploy/docker/Dockerfile --build-arg APP=${{ matrix.app }} -t ${{ matrix.image }}:ci .
       - name: Runs as non-root
         run: test "$(docker image inspect ${{ matrix.image }}:ci --format '{{.Config.User}}')" = "1654"
+      # 005 T029: the DANFE runtime (tzdata, number format, QR) inside the shipped Linux image.
+      - name: DANFE self-test in the image
+        if: matrix.app == 'Api'
+        run: docker run --rm ${{ matrix.image }}:ci danfe-selftest
       - name: No secret material in any image layer (SF-004)
         run: |
           docker save ${{ matrix.image }}:ci -o image.tar

@@ -3,7 +3,7 @@
     "catalogReference": "sp-nfce-services",
     "evidence": "pocs/evidence/sefaz-sp-endpoints.md",
     "checkedAt": "2026-08-04",
-    "urlChaveSource": "NFCeConsultaChave (infNFeSupl/urlChave) comes from the configuration used in the authorized homologation runs (pocs/evidence/homologation.md, pocs/fixtures/issuer-synthetic.json); reconfirm against the official SP table in 005 Phase 7.",
+    "urlChaveSource": "Reconfirmed on 2026-11-13 (005 T026) on the official SEFAZ-SP page https://portal.fazenda.sp.gov.br/servicos/nfce/Paginas/WebServices.aspx: homologation '2. URL QR Code' lists https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode and '3. URL Consulta Publica' lists https://www.homologacao.nfce.fazenda.sp.gov.br/consulta. The same values were accepted in the authorized homologation runs (pocs/evidence/homologation.md).",
     "notes": "Homologation only. Production endpoints are not catalogued until they are captured from the official page and approved; an environment without an endpoint fails closed (ADR-007 item 2)."
   },
   "endpoints": [

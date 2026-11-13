@@ -62,7 +62,13 @@ public sealed class EmissionTests : IClassFixture<StackFixture>, IAsyncLifetime
     public async Task InitializeAsync()
     {
         (_apiLogs, _workerLogs) = (NewLog(), NewLog());
-        _factory = _stack.CreateFactory(new Dictionary<string, string?> { ["Documents:SyncTimeoutSeconds"] = "20" })
+        _factory = _stack.CreateFactory(new Dictionary<string, string?>
+            {
+                ["Documents:SyncTimeoutSeconds"] = "20",
+                // The API reads the nfeProc the test worker stored (T027).
+                ["ObjectStorage:ServiceUrl"] = Environment.GetEnvironmentVariable("RRF5_TEST_S3") ?? "http://127.0.0.1:58333/",
+                ["ObjectStorage:Bucket"] = "rrf5-test-artifacts",
+            })
             .WithWebHostBuilder(builder => builder.ConfigureTestServices(services => services.AddSingleton(new LogSink(_apiLogs))));
         _client = _factory.CreateClient();
         var tenant = await TenantSetup.TenantWithAdminAsync(_client, _stack, "Emission tenant");
@@ -170,6 +176,75 @@ public sealed class EmissionTests : IClassFixture<StackFixture>, IAsyncLifetime
         Assert.Contains(signedNfe, request, StringComparison.Ordinal);
         Assert.Contains("<CFOP>5101</CFOP>", request, StringComparison.Ordinal);
         Assert.Contains("<CST>99</CST>", request, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AnAuthorizedDocumentHasItsNfeProcDanfeAndPrintData()
+    {
+        var (_, body) = await Send(HttpMethod.Post, $"/v1/environments/{_environment}/documents/async", _manager, Sale());
+        var id = body.GetProperty("id").GetGuid();
+        await DrainAsync();
+        var (_, document) = await Send(HttpMethod.Get, $"/v1/documents/{id}", _manager);
+        Assert.Equal("AUTHORIZED", document.GetProperty("state").GetString());
+        var key = document.GetProperty("accessKey").GetString()!;
+
+        // The nfeProc exactly as stored (hash-verified on read).
+        var (_, _, _, procKey, procVersion, procSha, _) = await StoredAsync(id);
+        var stored = await _worker.GetRequiredService<IArtifactStore>().GetAsync(procKey, procVersion, CancellationToken.None);
+        using (var xml = await Raw($"/v1/documents/{id}/xml"))
+        {
+            Assert.Equal(HttpStatusCode.OK, xml.StatusCode);
+            Assert.Equal("application/xml", xml.Content.Headers.ContentType!.MediaType);
+            Assert.Equal(stored, await xml.Content.ReadAsByteArrayAsync());
+            Assert.Equal(procSha, Convert.ToHexStringLower(SHA256.HashData(stored)));
+        }
+
+        // T027: the DANFE in both widths, built only from that nfeProc.
+        foreach (var (paper, width) in new[] { ("80mm", "80"), ("58mm", "58") })
+        {
+            using var danfe = await Raw($"/v1/documents/{id}/danfe?paper={paper}");
+            Assert.Equal(HttpStatusCode.OK, danfe.StatusCode);
+            Assert.Equal("text/html", danfe.Content.Headers.ContentType!.MediaType);
+            Assert.Equal("nosniff", danfe.Headers.GetValues("X-Content-Type-Options").Single());
+            var html = await danfe.Content.ReadAsStringAsync();
+            Assert.Contains($"width: {width}mm", html, StringComparison.Ordinal);
+            Assert.Contains(string.Join(' ', Enumerable.Range(0, 11).Select(i => key.Substring(i * 4, 4))), html, StringComparison.Ordinal);
+            Assert.Contains("Protocolo de autorização:</b> 135260000000001", html, StringComparison.Ordinal);
+            Assert.Contains("EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO – SEM VALOR FISCAL", html, StringComparison.Ordinal);
+            Assert.Contains("<td>Dinheiro</td>", html, StringComparison.Ordinal); // official tPag label of CASH (T003)
+        }
+
+        var (badPaper, badPaperProblem) = await Send(HttpMethod.Get, $"/v1/documents/{id}/danfe?paper=A4", _manager);
+        Assert.Equal(HttpStatusCode.BadRequest, badPaper.StatusCode);
+        Assert.Equal("request.invalid", badPaperProblem.GetProperty("code").GetString());
+
+        // Print data for an ERP that prints its own layout.
+        var (printResponse, print) = await Send(HttpMethod.Get, $"/v1/documents/{id}/print-data", _manager);
+        Assert.Equal(HttpStatusCode.OK, printResponse.StatusCode);
+        Assert.Equal(key, print.GetProperty("accessKey").GetString());
+        Assert.Equal($"https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode?p={key}|3|2", print.GetProperty("qrCode").GetString());
+        Assert.Equal("https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode", print.GetProperty("qrCodeUrl").GetString());
+        Assert.Equal("https://www.homologacao.nfce.fazenda.sp.gov.br/consulta", print.GetProperty("consultationUrl").GetString());
+
+        // A document that is not AUTHORIZED has none of them; an unknown one is 404.
+        _sefaz.Scenario = SefazScenario.SchemaRejected;
+        var (_, rejected) = await Send(HttpMethod.Post, $"/v1/environments/{_environment}/documents/async", _manager, Sale());
+        await DrainAsync();
+        foreach (var path in new[] { "xml", "danfe", "print-data" })
+        {
+            var (conflict, problem) = await Send(HttpMethod.Get, $"/v1/documents/{rejected.GetProperty("id").GetGuid()}/{path}", _manager);
+            Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
+            Assert.Equal("document.not_authorized", problem.GetProperty("code").GetString());
+            var (missing, _) = await Send(HttpMethod.Get, $"/v1/documents/{Guid.NewGuid()}/{path}", _manager);
+            Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        }
+    }
+
+    private async Task<HttpResponseMessage> Raw(string path)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(path, UriKind.Relative));
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _manager);
+        return await _client.SendAsync(request);
     }
 
     [Fact]

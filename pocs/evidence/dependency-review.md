@@ -135,3 +135,12 @@ This document intentionally does not select a runtime or fiscal library.
 ## Update 2026-11-12: XMLDSig in the product (feature 005, T015)
 
 `System.Security.Cryptography.Xml` 10.0.14 (Microsoft, MIT) moves from the POC to the product, in `Rrf5.Fiscal.Nfce` only. It is the version reviewed above, pinned in `Directory.Packages.props`. The image SBOM and the Trivy scan in CI cover it. No other package was added. QRCoder and System.Drawing.Common stay POC-only until the DANFE (T027).
+
+## Update 2026-11-13: DANFE in the product (feature 005, T027 and T028)
+
+- `QRCoder` 1.8.1 (MIT) moves from the POC to the product, in `Rrf5.Fiscal.Nfce` only. Only `QRCodeGenerator` is used (level M, UTF-8), never the drawing API.
+- `System.Drawing.Common` 10.0.14 (MIT, Microsoft) comes with it, pinned. It is unused by the code: QRCoder's net6.0 group would otherwise pull the out-of-support 6.0.0.
+- `ZXing.Net` 0.16.10 (Apache-2.0, `github.com/micjahn/ZXing.Net`), **test only** (`tests/Unit`). It decodes the QR rasterized from the rendered DANFE (simulated printing, T028).
+  - It has no package dependencies for net5.0 and later.
+  - It never reaches an image.
+- All three are pinned in `Directory.Packages.props`. The image SBOM and the Trivy scan in CI cover the two runtime packages.

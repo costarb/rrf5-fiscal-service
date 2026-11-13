@@ -1164,7 +1164,6 @@ paths:
     get:
       tags: [documents]
       operationId: downloadDocumentXml
-      x-rrf5-planned: true
       summary: The stored nfeProc of an AUTHORIZED document, hash-verified on read (scope documents.read)
       responses:
         "200":
@@ -1184,7 +1183,6 @@ paths:
     get:
       tags: [documents]
       operationId: getDanfe
-      x-rrf5-planned: true
       summary: DANFE NFC-e ready to print, built from the nfeProc (scope documents.read)
       description: The integrating ERP prints it (operator decision, 2026-11-12). Manual DANFE NFC-e v6.0.
       parameters:
@@ -1198,18 +1196,19 @@ paths:
           content:
             text/html:
               schema: { type: string }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
 
   /v1/documents/{documentId}/print-data:
     parameters: [{ $ref: "#/components/parameters/DocumentId" }]
     get:
       tags: [documents]
       operationId: getPrintData
-      x-rrf5-planned: true
       summary: Data an ERP needs to print its own DANFE layout (scope documents.read)
       responses:
         "200":
@@ -1222,6 +1221,7 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
 
 components:
   securitySchemes:
@@ -1416,6 +1416,7 @@ components:
         - document.product_invalid
         - document.tax_mismatch
         - document.invalid
+        - document.not_authorized
         - rules.unsupported_group
         - rules.payload_invalid
         - rules.not_in_force

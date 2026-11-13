@@ -1,6 +1,6 @@
 # Fiscal stakeholder review
 
-**Status:** PARTIAL — accountant validated the per-product table on 2026-11-12; IBS/CBS omission, resale-without-ST PIS/COFINS and the `vTotTrib` source remain open
+**Status:** PARTIAL — accountant validated the per-product table on 2026-11-12; answers on IBS/CBS and resale-without-ST PIS/COFINS relayed on 2026-11-13; the `vTotTrib` source and the rule citation for the IBS/CBS omission remain open
 
 This record must be completed by the responsible fiscal stakeholder after the official artifacts and hashes in `normative-baseline.md` are frozen.
 
@@ -48,11 +48,22 @@ This record must be completed by the responsible fiscal stakeholder after the of
 - **Resale with ST:** the 5105 vs 5405 conflict is resolved to **5405**.
   - CSOSN 500 needs the `ICMSSN500` group, CEST and the retained-ST fields.
   - Operator decision on 2026-11-12: deferred to a later generator increment; refused with a reason until then.
-- **Resale without ST:** PIS/COFINS is still "validate", so no rule for 22011000 can be approved yet.
+- **Resale without ST:** PIS/COFINS was "validate" in the table; answered on 2026-11-13 (CST 99, 0%), see below.
 - **Not covered by the table (still open):**
-  1. the IBS/CBS omission for CRT 1 in 2026, with the applicable rule cited;
+  1. the IBS/CBS omission for CRT 1 in 2026, with the applicable rule cited (decision relayed on 2026-11-13, citation still open);
   2. the IBPT table: version, licence and update cadence;
   3. the accountant's attributable sign-off on the normative baseline (T011 scope).
+
+## Accountant answers relayed on 2026-11-13
+
+Relayed by the operator in the working session, about the items the table left open.
+
+- **IBS/CBS:** the company is not an optant (it does not opt for paying IBS/CBS outside the Simples Nacional) and will stay that way. **In 2026 the IBS/CBS groups are not sent.**
+  - This matches the rules' payload (`ibsCbs.send = false`).
+  - Still open: the citation of the applicable rule, required by the interim approval condition above.
+- **PIS/COFINS of resale without ST (22011000):** **CST 99 at a 0% rate**, the same as own production.
+  - A rule for 22011000 (5102/102/99) can now be drafted. It is approved only through the four-eyes flow (ADR-015), like any other.
+- **`vTotTrib` (Lei 12.741/2012):** still open. The operator asked what is needed; the options are recorded in feature 005 (Phase 7) and the decision stays with the operator and the accountant.
 
 ## Reviewer
 

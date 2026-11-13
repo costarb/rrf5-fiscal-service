@@ -6,6 +6,7 @@ using Rrf5.Fiscal.Api.Http;
 using Rrf5.Fiscal.Application.Documents;
 using Rrf5.Fiscal.Application.Errors;
 using Rrf5.Fiscal.Application.Idempotency;
+using Rrf5.Fiscal.Nfce;
 
 namespace Rrf5.Fiscal.Api.Endpoints;
 
@@ -83,6 +84,35 @@ public sealed class DocumentEndpoints : IEndpointModule
             }
 
             return Results.Json(Render(view));
+        });
+
+        // Phase 7 (T027): what the ERP prints, only for an AUTHORIZED document.
+        v1.MapGet("/documents/{documentId:guid}/xml", async (HttpContext http, Guid documentId, DocumentPrinting printing, CancellationToken ct) =>
+        {
+            http.Response.Headers.CacheControl = "no-store";
+            return Results.Bytes(await printing.GetProcAsync(http.GetCaller(), documentId, ct), "application/xml");
+        });
+
+        v1.MapGet("/documents/{documentId:guid}/danfe", async (HttpContext http, Guid documentId, string? paper, DocumentPrinting printing, CancellationToken ct) =>
+        {
+            var size = paper switch
+            {
+                null or "80mm" => DanfePaper.Mm80,
+                "58mm" => DanfePaper.Mm58,
+                _ => throw new DomainException(ErrorCodes.RequestInvalid, "paper must be 80mm or 58mm."),
+            };
+            var danfe = await printing.GetDanfeAsync(http.GetCaller(), documentId, size, ct);
+            http.Response.Headers.CacheControl = "no-store";
+            http.Response.Headers.XContentTypeOptions = "nosniff";
+            http.Response.Headers.ContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'; img-src data:";
+            return Results.Text(danfe.Html, "text/html; charset=utf-8");
+        });
+
+        v1.MapGet("/documents/{documentId:guid}/print-data", async (HttpContext http, Guid documentId, DocumentPrinting printing, CancellationToken ct) =>
+        {
+            var data = await printing.GetPrintDataAsync(http.GetCaller(), documentId, ct);
+            http.Response.Headers.CacheControl = "no-store";
+            return Results.Json(new { qrCode = data.QrCode, qrCodeUrl = data.QrCodeUrl, consultationUrl = data.ConsultationUrl, accessKey = data.AccessKey });
         });
     }
 

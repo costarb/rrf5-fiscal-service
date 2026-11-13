@@ -134,3 +134,16 @@ consultation for that document.
 
 - printing on an 80 mm thermal printer and on a 58 mm one (the minimum is
   56 mm), followed by a phone scan of the thermal print.
+
+## Product implementation (feature 005, 2026-11-13)
+
+The POC was rewritten with tests in `Rrf5.Fiscal.Nfce` (`NfceQrCode`, `AuthorizedNfce`, `Danfe`, `DanfeSelfTest`) and served by the API (`/xml`, `/danfe`, `/print-data`). It closes these gaps from the list above:
+
+- **Gap 2 (payment labels):** labels now come from the frozen official tPag table (`regulatory/payment-methods.json`, 005 T003); `xPag` wins when present.
+- **Gap 5 (consultation URL):** the QR Code and `urlChave` URLs come from the endpoint catalog per authorizer and environment. They were reconfirmed on the official SEFAZ-SP "WebServices" page, and the DANFE refuses a document whose URLs differ.
+- **Gap 6 (container):** `danfe-selftest` passes inside the Linux API image (6 of 6 checks), and the CI image job runs it.
+- **Simulated printing:** the QR rasterized at 203 dpi from the rendered SVG decodes, at level M, to the authorized `qrCode` on 80 and 58 mm paper.
+
+Still open:
+- gaps 1 (phone scan on real thermal paper), 3 (UF-discretion items) and 4 (contingency DANFE, behind ADR-010);
+- `vTotTrib`: Division IX prints only when the XML has it, and the generator does not write it until the operator and the accountant decide its source.

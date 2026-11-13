@@ -75,6 +75,7 @@ public static class ServiceRegistration
         // 005 Phase 6: issue and read in the API; the worker processes (only it can open the A1).
         services.AddSingleton<Application.Documents.DocumentIssue>();
         services.AddSingleton<Application.Documents.DocumentQueries>();
+        services.AddSingleton<Application.Documents.DocumentPrinting>();
         services.AddSingleton(_ => Regulatory.SefazEndpoints.LoadEmbedded());
         services.AddSingleton<Application.Documents.ISefazEndpointCatalog, Application.Documents.EmbeddedSefazEndpointCatalog>();
         services.AddSingleton<Application.Documents.ISefazTrust, Application.Documents.IcpBrasilSefazTrust>();
